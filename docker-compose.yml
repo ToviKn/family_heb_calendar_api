@@ -1,0 +1,51 @@
+services:
+  db:
+    image: postgres:16
+    container_name: family-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: family_user
+      POSTGRES_PASSWORD: family_pass
+      POSTGRES_DB: family_calendar
+    ports:
+      - "5432:5432"
+    volumes:
+      - family_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U family_user -d family_calendar" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+
+  api:
+    build: .
+    container_name: family-api
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg://family_user:family_pass@db:5432/family_calendar
+    volumes:
+      - .:/app
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+
+  tests:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    container_name: family-api-tests
+    environment:
+      DATABASE_URL: sqlite:///./calendar_test_bootstrap.db
+    volumes:
+      - .:/app
+    command: pytest -v
+    profiles:
+      - test
+
+volumes:
+  family_pgdata:
