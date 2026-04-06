@@ -11,7 +11,7 @@ from fastapi.responses import JSONResponse, Response
 
 from exceptions import CalendarAPIException
 from logging_config import configure_logging, reset_request_id, set_request_id
-from routes import auth, convert, debug, events, families, notifications, users
+from routes import auth, convert, events, families, notifications, users
 from storage.database import Base, engine
 from storage.schema_migrations import run_safe_schema_migrations
 
@@ -112,8 +112,6 @@ app.include_router(users.router)
 app.include_router(events.router)
 app.include_router(families.router)
 app.include_router(notifications.router)
-if os.getenv("ENABLE_DEBUG_ROUTES", "false").lower() == "true":
-    app.include_router(debug.router)
 
 logger.info("Application startup complete")
 
