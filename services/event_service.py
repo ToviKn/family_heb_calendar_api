@@ -8,11 +8,26 @@ from sqlalchemy.orm import Session
 
 from exceptions import CalendarAPIException, DatabaseError, NotFoundError
 from models.event import EventCreate, EventUpdate
-from models.models import Event, FamilyMembership
+from models.models import Event, FamilyMembership, User
 from services.date_service import calculate_next_occurrence, convert_to_hebrew
 from services import notification_service
 
 logger = logging.getLogger(__name__)
+
+
+def get_user_family_ids(user: User, db: Session) -> list[int]:
+    """Return all family ids where the user is a member."""
+    memberships = (
+        db.query(FamilyMembership.family_id)
+        .filter(FamilyMembership.user_id == user.id)
+        .all()
+    )
+    family_ids = [family_id for (family_id,) in memberships]
+    logger.debug(
+        "Resolved user family memberships",
+        extra={"operation": "get_user_family_ids", "user_id": user.id, "family_count": len(family_ids)},
+    )
+    return family_ids
 
 
 def create_event(db: Session, event: EventCreate, user_id: int) -> Event:
@@ -62,7 +77,7 @@ def create_event(db: Session, event: EventCreate, user_id: int) -> Event:
                 "operation": "create_event",
                 "event_id": db_event.id,
                 "family_id": db_event.family_id,
-                "created_by": user_id,
+                "user_id": user_id,
             },
         )
         notification_service.notify_family_on_event_created(db, db_event, user_id)
@@ -81,7 +96,9 @@ def create_event(db: Session, event: EventCreate, user_id: int) -> Event:
         raise DatabaseError(f"Failed to create event: {str(e)}", "create")
 
 
-def get_events_for_date(db: Session, year: int, month: int, day: int) -> list[Event]:
+def get_events_for_date(
+    db: Session, year: int, month: int, day: int, family_ids: Optional[list[int]] = None
+) -> list[Event]:
     """Efficiently get events for a specific date using database queries"""
     try:
         _, h_month, h_day = convert_to_hebrew(year, month, day)
@@ -96,7 +113,14 @@ def get_events_for_date(db: Session, year: int, month: int, day: int) -> list[Ev
             },
         )
 
-        gregorian_events = (
+        if family_ids is not None and not family_ids:
+            logger.info(
+                "Events fetched by date",
+                extra={"operation": "get_events_for_date", "result_count": 0},
+            )
+            return []
+
+        gregorian_query = (
             db.query(Event)
             .filter(
                 and_(
@@ -105,10 +129,8 @@ def get_events_for_date(db: Session, year: int, month: int, day: int) -> list[Ev
                     Event.day == day,
                 )
             )
-            .all()
         )
-
-        hebrew_events = (
+        hebrew_query = (
             db.query(Event)
             .filter(
                 and_(
@@ -117,8 +139,14 @@ def get_events_for_date(db: Session, year: int, month: int, day: int) -> list[Ev
                     Event.day == h_day,
                 )
             )
-            .all()
         )
+
+        if family_ids is not None:
+            gregorian_query = gregorian_query.filter(Event.family_id.in_(family_ids))
+            hebrew_query = hebrew_query.filter(Event.family_id.in_(family_ids))
+
+        gregorian_events = gregorian_query.all()
+        hebrew_events = hebrew_query.all()
 
         results = cast(list[Event], gregorian_events + hebrew_events)
         logger.info(
@@ -152,18 +180,34 @@ def get_event_by_id(db: Session, event_id: int) -> Event:
         raise DatabaseError(f"Failed to retrieve event: {str(e)}", "get_event_by_id")
 
 
-def delete_event(db: Session, event_id: int) -> dict[str, str]:
+def delete_event(db: Session, event_id: int, user_id: int) -> dict[str, str]:
     """Delete an event with proper error handling"""
     try:
         event = get_event_by_id(db, event_id)
+        if event.created_by != user_id:
+            logger.warning(
+                "Unauthorized event delete attempt",
+                extra={
+                    "operation": "delete_event",
+                    "event_id": event_id,
+                    "family_id": event.family_id,
+                    "user_id": user_id,
+                    "created_by": event.created_by,
+                },
+            )
+            raise HTTPException(status_code=403, detail="Not authorized to delete this event")
 
         db.delete(event)
         db.commit()
 
         logger.info(
-            "Event deleted", extra={"operation": "delete_event", "event_id": event_id, "family_id": event.family_id}
+            "Event deleted",
+            extra={"operation": "delete_event", "event_id": event_id, "family_id": event.family_id, "user_id": user_id},
         )
         return {"message": "Event deleted successfully"}
+    except HTTPException:
+        db.rollback()
+        raise
     except NotFoundError:
         raise
     except Exception as e:
@@ -174,10 +218,22 @@ def delete_event(db: Session, event_id: int) -> dict[str, str]:
         raise DatabaseError(f"Failed to delete event: {str(e)}", "delete")
 
 
-def update_event(db: Session, event_id: int, updated_event: EventUpdate) -> Event:
+def update_event(db: Session, event_id: int, updated_event: EventUpdate, user_id: int) -> Event:
     """Update an event with partial updates and validation"""
     try:
         event = get_event_by_id(db, event_id)
+        if event.created_by != user_id:
+            logger.warning(
+                "Unauthorized event update attempt",
+                extra={
+                    "operation": "update_event",
+                    "event_id": event_id,
+                    "family_id": event.family_id,
+                    "user_id": user_id,
+                    "created_by": event.created_by,
+                },
+            )
+            raise HTTPException(status_code=403, detail="Not authorized to update this event")
         update_data = updated_event.model_dump(exclude_unset=True)
 
         if "end_time" in update_data and "start_time" not in update_data:
@@ -199,12 +255,21 @@ def update_event(db: Session, event_id: int, updated_event: EventUpdate) -> Even
 
         logger.info(
             "Event updated",
-            extra={"operation": "update_event", "event_id": event_id, "updated_fields": sorted(update_data.keys())},
+            extra={
+                "operation": "update_event",
+                "event_id": event_id,
+                "family_id": event.family_id,
+                "user_id": user_id,
+                "updated_fields": sorted(update_data.keys()),
+            },
         )
         notification_service.notify_family_on_event_updated(
-            db, event, actor_user_id=event.created_by
+            db, event, actor_user_id=user_id
         )
         return event
+    except HTTPException:
+        db.rollback()
+        raise
     except NotFoundError:
         db.rollback()
         raise
@@ -219,16 +284,29 @@ def update_event(db: Session, event_id: int, updated_event: EventUpdate) -> Even
 
 
 def get_upcoming_events(
-    db: Session, days: int = 30, family_id: Optional[int] = None
+    db: Session,
+    days: int = 30,
+    family_id: Optional[int] = None,
+    allowed_family_ids: Optional[list[int]] = None,
 ) -> list[Event]:
     """Get upcoming events for the next N days"""
     try:
         today = date.today()
         end_date = today + timedelta(days=days)
 
+        if allowed_family_ids is not None and not allowed_family_ids:
+            logger.info(
+                "Upcoming events fetched",
+                extra={"operation": "get_upcoming_events", "days": days, "family_id": family_id, "result_count": 0},
+            )
+            return []
+
         query = db.query(Event).filter(
             and_(Event.next_occurrence >= today, Event.next_occurrence <= end_date)
         )
+
+        if allowed_family_ids is not None:
+            query = query.filter(Event.family_id.in_(allowed_family_ids))
 
         if family_id:
             query = query.filter(Event.family_id == family_id)
@@ -252,13 +330,23 @@ def get_upcoming_events(
 
 
 def get_events_by_family(
-    db: Session, family_id: int, page: int = 1, per_page: int = 20
+    db: Session,
+    family_id: int,
+    page: int = 1,
+    per_page: int = 20,
+    allowed_family_ids: Optional[list[int]] = None,
 ) -> dict[str, Any]:
     """Get paginated events for a specific family"""
     try:
         offset = (page - 1) * per_page
 
         query = db.query(Event).filter(Event.family_id == family_id)
+        if allowed_family_ids is not None and family_id not in allowed_family_ids:
+            logger.warning(
+                "Unauthorized family events access attempt",
+                extra={"operation": "get_events_by_family", "family_id": family_id},
+            )
+            return {"events": [], "total": 0, "page": page, "per_page": per_page}
         total = query.count()
         events = query.offset(offset).limit(per_page).all()
 

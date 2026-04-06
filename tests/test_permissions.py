@@ -83,5 +83,6 @@ def test_create_event_non_member_surfaces_current_error_contract(
         headers=_auth_header(auth_tokens["outsider"]),
     )
 
-    assert response.status_code == 500
-    assert response.json()["message"] == "Internal server error"
+    assert response.status_code == 403
+    body = response.json()
+    assert body.get("detail") == "User not in family" or body.get("message") == "User not in family"

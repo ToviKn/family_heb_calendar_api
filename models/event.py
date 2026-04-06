@@ -1,4 +1,5 @@
 import re
+import logging
 from datetime import date, datetime, time
 from typing import Annotated, Any, cast
 
@@ -18,6 +19,7 @@ from storage.enums import CalendarType, RepeatType
 
 field_validator_annotated = cast(Any, field_validator)
 model_validator_annotated = cast(Any, model_validator)
+logger = logging.getLogger(__name__)
 
 
 def _validate_repeat_type_input(
@@ -91,7 +93,6 @@ class EventBase(BaseModel):
     day: int = Field(..., ge=1, le=31)
     repeat_type: RepeatType = RepeatType.NONE
     family_id: int = Field(..., gt=0)
-    created_by: int = Field(..., gt=0)
     start_time: time | None = _time_field("18:00:00")
     end_time: time | None = _time_field("20:00:00")
 
@@ -144,6 +145,18 @@ class EventBase(BaseModel):
 class EventCreate(EventBase):
     repeat_type: RequestRepeatType = RepeatType.NONE
 
+    @model_validator_annotated(mode="before")
+    @classmethod
+    def strip_created_by(cls, data: Any) -> Any:
+        if isinstance(data, dict) and "created_by" in data:
+            data = dict(data)
+            data.pop("created_by", None)
+            logger.warning(
+                "Ignored client-provided created_by in event create request",
+                extra={"operation": "event_create_schema"},
+            )
+        return data
+
 
 class EventUpdate(BaseModel):
     title: str | None = Field(None, min_length=1, max_length=255)
@@ -154,6 +167,18 @@ class EventUpdate(BaseModel):
     repeat_type: RequestRepeatType | None = None
     start_time: time | None = _time_field("18:00:00")
     end_time: time | None = _time_field("20:00:00")
+
+    @model_validator_annotated(mode="before")
+    @classmethod
+    def strip_created_by(cls, data: Any) -> Any:
+        if isinstance(data, dict) and "created_by" in data:
+            data = dict(data)
+            data.pop("created_by", None)
+            logger.warning(
+                "Ignored client-provided created_by in event update request",
+                extra={"operation": "event_update_schema"},
+            )
+        return data
 
     @field_validator_annotated("start_time", "end_time", mode="before")  # type: ignore[misc]
     @classmethod
@@ -173,6 +198,7 @@ class EventUpdate(BaseModel):
 
 class EventResponse(EventBase):
     id: int
+    created_by: int
     created_at: datetime
     updated_at: datetime
     next_occurrence: date | None = None

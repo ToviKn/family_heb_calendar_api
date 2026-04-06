@@ -59,6 +59,35 @@ def client() -> Generator[TestClient, None, None]:
 
 
 @pytest.fixture(scope="function")
+def create_user_and_login(client: TestClient) -> Any:
+    """Create a user via API and return a helper that logs in and returns auth data."""
+
+    def _create_user_and_login(email: str, name: str, password: str) -> dict[str, Any]:
+        create_response = client.post(
+            "/users/",
+            json={"email": email, "name": name, "password": password},
+        )
+        assert create_response.status_code == 200
+        user_payload = create_response.json()
+
+        login_response = client.post(
+            "/auth/login",
+            data={"username": email, "password": password},
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+        )
+        assert login_response.status_code == 200
+        login_payload = login_response.json()
+
+        return {
+            "user": user_payload,
+            "access_token": login_payload["access_token"],
+            "token_type": login_payload["token_type"],
+        }
+
+    return _create_user_and_login
+
+
+@pytest.fixture(scope="function")
 def sample_users(db_session: Session) -> dict[str, User]:
     owner = User(
         email="owner@example.com",
@@ -127,5 +156,4 @@ def event_payload(sample_family: Family, sample_users: dict[str, User]) -> dict[
         "day": 20,
         "repeat_type": "none",
         "family_id": sample_family.id,
-        "created_by": sample_users["owner"].id,
     }
