@@ -1,4 +1,5 @@
 import logging
+from collections import defaultdict
 from datetime import date, datetime, timedelta
 from typing import cast
 
@@ -6,7 +7,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from logging_config import get_request_id
-from models.models import Event, FamilyMembership, Notification
+from models.models import Event, FamilyMembership, Notification, User
 from models.notification import NotificationCreate
 from services.date_service import calculate_next_occurrence
 from storage.enums import RepeatType
@@ -16,6 +17,20 @@ logger = logging.getLogger(__name__)
 
 ALLOWED_NOTIFICATION_TYPES = {"event reminder", "invite", "system", "EVENT_REMINDER"}
 EVENT_REMINDER_TYPE = "EVENT_REMINDER"
+
+
+def get_user_family_ids(
+    user: User, db: Session, membership_map: dict[int, list[int]] | None = None
+) -> list[int]:
+    if membership_map is not None:
+        return membership_map.get(user.id, [])
+
+    memberships = (
+        db.query(FamilyMembership.family_id)
+        .filter(FamilyMembership.user_id == user.id)
+        .all()
+    )
+    return [family_id for (family_id,) in memberships]
 
 
 def _get_existing_notification(
@@ -390,13 +405,14 @@ def _event_occurs_within_window(next_occurrence: date, today: date) -> tuple[boo
 
 
 
-def _reminder_sent_today(db: Session, event_id: int, today: date) -> bool:
+def _reminder_sent_today(db: Session, event_id: int, user_id: int, today: date) -> bool:
     start_of_day = datetime.combine(today, datetime.min.time())
     end_of_day = start_of_day + timedelta(days=1)
     return (
         db.query(Notification)
         .filter(
             Notification.event_id == event_id,
+            Notification.user_id == user_id,
             Notification.type == EVENT_REMINDER_TYPE,
             Notification.send_at >= start_of_day,
             Notification.send_at < end_of_day,
@@ -457,89 +473,111 @@ def _advance_next_occurrence_after_reminder(
 
 
 def process_event_reminders(db: Session, _within_hours: int = 24) -> int:
-    today = datetime.utcnow().date()
-    events = cast(list[Event], db.query(Event).all())
-    created_count = 0
+    try:
+        today = datetime.utcnow().date()
+        created_count = 0
+        created_by_event: dict[int, int] = defaultdict(int)
 
-    for event in events:
-        next_occurrence = _resolve_next_occurrence(db, event, today)
-        if next_occurrence is None:
-            logger.info(
-                "Reminder skipped: no next occurrence",
-                extra={
-                    "request_id": get_request_id(),
-                    "event_id": event.id,
-                    "user_id": None,
-                    "notification_id": None,
-                },
-            )
-            continue
-
-        should_send, reason = _event_occurs_within_window(next_occurrence, today)
-        if should_send and _reminder_sent_today(db, event.id, today):
-            should_send = False
-            reason = "reminder already sent today"
-        if not should_send:
-            logger.info(
-                "Reminder skipped: event outside reminder window",
-                extra={
-                    "request_id": get_request_id(),
-                    "event_id": event.id,
-                    "user_id": None,
-                    "notification_id": None,
-                    "next_occurrence": next_occurrence.isoformat(),
-                    "reason": reason,
-                },
-            )
-            continue
-
-        memberships = (
-            db.query(FamilyMembership)
-            .filter(FamilyMembership.family_id == event.family_id)
-            .all()
+        users = cast(list[User], db.query(User).all())
+        memberships = cast(
+            list[tuple[int, int]],
+            db.query(FamilyMembership.user_id, FamilyMembership.family_id).all(),
         )
-        if not memberships:
-            logger.info(
-                "Reminder skipped: no family members found",
-                extra={
-                    "request_id": get_request_id(),
-                    "event_id": event.id,
-                    "user_id": None,
-                    "notification_id": None,
-                    "family_id": event.family_id,
-                },
-            )
-            continue
+        user_family_map: dict[int, list[int]] = defaultdict(list)
+        for user_id, family_id in memberships:
+            user_family_map[user_id].append(family_id)
 
-        created_for_event = 0
-        reminder_message = f"Reminder: {event.title} on {next_occurrence}"
-        for member in memberships:
-            notification, created = _create_notification_record(
-                db=db,
-                user_id=member.user_id,
-                event_id=event.id,
-                message=reminder_message,
-                notification_type=EVENT_REMINDER_TYPE,
-            )
-            if created:
-                created_count += 1
-                created_for_event += 1
-                logger.info(
-                    "Reminder notification created",
+        all_family_ids = sorted({family_id for _, family_id in memberships})
+        events = cast(
+            list[Event],
+            db.query(Event).filter(Event.family_id.in_(all_family_ids)).all()
+            if all_family_ids
+            else [],
+        )
+        events_by_family: dict[int, list[Event]] = defaultdict(list)
+        for event in events:
+            events_by_family[event.family_id].append(event)
+
+        event_occurrences: dict[int, date] = {}
+        for event in events:
+            next_occurrence = _resolve_next_occurrence(db, event, today)
+            if next_occurrence is None:
+                continue
+            should_send, _ = _event_occurs_within_window(next_occurrence, today)
+            if should_send:
+                event_occurrences[event.id] = next_occurrence
+
+        for user in users:
+            family_ids = get_user_family_ids(user, db, user_family_map)
+            if not family_ids:
+                logger.warning(
+                    "Reminder processing skipped: user has no families",
                     extra={
                         "request_id": get_request_id(),
-                        "event_id": event.id,
-                        "user_id": member.user_id,
-                        "notification_id": notification.id,
-                        "next_occurrence": next_occurrence.isoformat(),
-                        "reason": reason,
+                        "user_id": user.id,
+                        "notification_id": None,
                     },
                 )
+                continue
 
-        if created_for_event > 0:
-            _advance_next_occurrence_after_reminder(db, event, next_occurrence)
+            user_events = [
+                event
+                for family_id in family_ids
+                for event in events_by_family.get(family_id, [])
+            ]
+            logger.info(
+                "Reminder processing for user",
+                extra={
+                    "request_id": get_request_id(),
+                    "user_id": user.id,
+                    "notification_id": None,
+                    "event_count": len(user_events),
+                },
+            )
 
-    return created_count
+            for event in user_events:
+                next_occurrence = event_occurrences.get(event.id)
+                if next_occurrence is None:
+                    continue
+                if _reminder_sent_today(db, event.id, user.id, today):
+                    continue
+
+                reminder_message = f"Reminder: {event.title} on {next_occurrence}"
+                notification, created = _create_notification_record(
+                    db=db,
+                    user_id=user.id,
+                    event_id=event.id,
+                    message=reminder_message,
+                    notification_type=EVENT_REMINDER_TYPE,
+                )
+                if created:
+                    created_count += 1
+                    created_by_event[event.id] += 1
+                    logger.info(
+                        "Reminder notification created",
+                        extra={
+                            "request_id": get_request_id(),
+                            "event_id": event.id,
+                            "user_id": user.id,
+                            "notification_id": notification.id,
+                            "next_occurrence": next_occurrence.isoformat(),
+                        },
+                    )
+
+        for event in events:
+            if created_by_event.get(event.id, 0) > 0 and event.id in event_occurrences:
+                _advance_next_occurrence_after_reminder(
+                    db, event, event_occurrences[event.id]
+                )
+
+        return created_count
+    except Exception:
+        logger.error(
+            "Unexpected error while processing reminders",
+            exc_info=True,
+            extra={"request_id": get_request_id(), "notification_id": None},
+        )
+        raise
 
 
 def create_reminder_notifications(db: Session, within_hours: int = 24) -> int:

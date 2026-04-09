@@ -67,6 +67,40 @@ def add_member(
     current_user: CurrentUser,
 ) -> Any:
     try:
+        actor_membership = (
+            db.query(FamilyMembership)
+            .filter(
+                FamilyMembership.user_id == current_user.id,
+                FamilyMembership.family_id == family_id,
+            )
+            .first()
+        )
+        if not actor_membership or actor_membership.role != "admin":
+            logger.warning(
+                "Unauthorized family membership add attempt",
+                extra={"user_id": current_user.id, "family_id": family_id},
+            )
+            raise HTTPException(status_code=403, detail="Not authorized to add family members")
+
+        existing_membership = (
+            db.query(FamilyMembership)
+            .filter(
+                FamilyMembership.user_id == user_id,
+                FamilyMembership.family_id == family_id,
+            )
+            .first()
+        )
+        if existing_membership:
+            logger.warning(
+                "Membership change rejected: user already in family",
+                extra={
+                    "family_id": family_id,
+                    "user_id": current_user.id,
+                    "added_user_id": user_id,
+                },
+            )
+            raise HTTPException(status_code=400, detail="User is already a member of this family")
+
         membership = FamilyMembership(user_id=user_id, family_id=family_id)
 
         db.add(membership)
@@ -75,8 +109,8 @@ def add_member(
             "Membership changed: member added",
             extra={
                 "family_id": family_id,
-                "user_id": user_id,
-                "added_by": current_user.id,
+                "user_id": current_user.id,
+                "added_user_id": user_id,
             },
         )
         notification_service.notify_family_invitation(
@@ -93,13 +127,16 @@ def add_member(
             "Membership change rejected: duplicate or invalid relation",
             extra={
                 "family_id": family_id,
-                "user_id": user_id,
-                "added_by": current_user.id,
+                "user_id": current_user.id,
+                "added_user_id": user_id,
             },
         )
         raise HTTPException(
             status_code=400, detail="Membership already exists or invalid user/family"
         ) from exc
+    except HTTPException:
+        db.rollback()
+        raise
     except Exception:
         db.rollback()
         logger.error(
