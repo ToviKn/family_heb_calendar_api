@@ -150,6 +150,18 @@ Use the returned token:
 - `GET /docs` for interactive Swagger UI.
 - `GET /openapi.json` for raw OpenAPI schema.
 
+## 🌐 Live API
+
+Base URL:
+https://family-heb-calendar-api.onrender.com
+
+API Documentation (Swagger):
+https://family-heb-calendar-api.onrender.com/docs
+
+Health Check:
+https://family-heb-calendar-api.onrender.com/health
+
+
 ## Production Notes
 
 - Do not commit `.env` files or secrets.
