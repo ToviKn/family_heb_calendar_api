@@ -94,13 +94,22 @@ async def request_logging_middleware(
 
 
 # noinspection PyTypeChecker
+allowed_origins = [
+    origin.strip()
+    for origin in os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+    if origin.strip()
+]
+
+if "*" in allowed_origins:
+    logger.warning(
+        "Wildcard CORS origin is not allowed when credentials are enabled; falling back to localhost only"
+    )
+    allowed_origins = ["http://localhost:3000"]
+
+# noinspection PyTypeChecker
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        origin.strip()
-        for origin in os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
-        if origin.strip()
-    ],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

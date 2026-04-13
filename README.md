@@ -1,87 +1,124 @@
 # Family Calendar API
 
-Family Calendar API is a FastAPI backend for managing family events 
-with support for **Gregorian** and **Hebrew** calendars, 
-recurring events, JWT authentication, and notifications.
+A production-oriented FastAPI backend for managing family events across Gregorian and Hebrew calendars. The API provides JWT-based authentication, family-scoped event management, notifications, and date conversion utilities.
 
-## Project Overview
+## Features
 
-This service provides:
-- User registration and authentication (`/users`, `/auth/login`)
-- Family and membership management (`/families`)
-- Event CRUD with recurrence + Hebrew/Gregorian support (`/events`)
-- Date conversion endpoints (`/convert/*`)
-- Notification and reminder processing (`/notifications`)
+- JWT authentication and protected endpoints.
+- Family management and membership support.
+- Event CRUD with Gregorian/Hebrew date handling.
+- Date conversion endpoints (`/convert/hebrew`, `/convert/gregorian`).
+- Notification creation and listing.
+- Structured JSON logging with request correlation IDs.
+- OpenAPI documentation via `/docs` and `/redoc`.
 
-The API uses SQLAlchemy for persistence and a centralized structured logging configuration for operational observability.
+## Tech Stack
 
-## Setup Instructions
+- Python 3.11
+- FastAPI + Uvicorn/Gunicorn
+- SQLAlchemy 2.x
+- PostgreSQL (production), SQLite (tests)
+- Passlib + python-jose for authentication
+- Docker + Render deployment support
 
-### 1) Local installation
+## Project Structure
+
+```text
+.
+├── main.py                  # FastAPI entry point and middleware
+├── routes/                  # API route modules
+│   ├── auth.py
+│   ├── convert.py
+│   ├── events.py
+│   ├── families.py
+│   ├── notifications.py
+│   └── users.py
+├── services/                # Business logic layer
+├── models/                  # ORM and API schema models
+├── storage/                 # Database/session/migration helpers
+├── tests/                   # Automated tests
+├── logging_config.py        # Structured logging config
+├── exceptions.py            # Domain/API exception types
+├── requirements.txt         # Runtime dependencies
+├── Dockerfile               # Production container image
+├── Dockerfile.test          # Test container image
+├── docker-compose.yml       # Local development/test orchestration
+├── render.yaml              # Render blueprint
+└── .env.example             # Environment variable template
+```
+
+## Environment Variables
+
+Copy `.env.example` and set secure values before running in production.
+
+Required:
+
+- `DATABASE_URL`: SQLAlchemy database URL.
+  - Example (Render/Postgres): `postgresql+psycopg://USER:PASSWORD@HOST:5432/DB_NAME`
+- `JWT_SECRET_KEY`: Strong random secret for signing access tokens.
+- `ALLOWED_ORIGINS`: Comma-separated frontend origins for CORS.
+
+Optional:
+
+- `ACCESS_TOKEN_EXPIRE_MINUTES` (default: `60`)
+- `DEBUG` (default: `false`)
+- `LOG_LEVEL` (default: `INFO`)
+- `SQL_LOG_LEVEL` (default: `WARNING`)
+- `ENV` (default: `production`)
+
+## Local Setup
 
 ```bash
 python -m venv .venv
 source .venv/bin/activate
+pip install --upgrade pip
 pip install -r requirements.txt
+cp .env.example .env
 ```
 
-### 2) Environment variables
-
-Required:
-
-```bash
-export DATABASE_URL="postgresql+psycopg://<user>:<password>@<host>:5432/<db>"
-export JWT_SECRET_KEY="<strong-random-secret>"
-export ALLOWED_ORIGINS="https://your-frontend.example.com"
-```
-
-Optional:
-
-```bash
-export DEBUG="false"
-export LOG_LEVEL="INFO"
-export SQL_LOG_LEVEL="WARNING"
-export ENABLE_DEBUG_ROUTES="false"
-export ACCESS_TOKEN_EXPIRE_MINUTES="60"
-```
-
-### 3) Run the app
+Start locally:
 
 ```bash
 gunicorn -k uvicorn.workers.UvicornWorker -w 2 -b 0.0.0.0:8000 main:app
 ```
 
 Docs:
+
 - Swagger UI: `http://localhost:8000/docs`
 - ReDoc: `http://localhost:8000/redoc`
 
-### 4) Docker
+## Docker Setup
 
-Build and run:
+Build and run API + Postgres locally:
 
 ```bash
 docker compose up --build
 ```
 
-Run tests in Docker:
+Run tests profile:
 
 ```bash
 docker compose --profile test run --rm tests
 ```
 
-## API Usage
+## Render Deployment
 
-## Authentication
+This repository includes `render.yaml` for service provisioning.
 
-1. Create a user:
+1. Push this repository to GitHub.
+2. In Render, create a **Blueprint** from the repo.
+3. Set `DATABASE_URL`, `JWT_SECRET_KEY`, and `ALLOWED_ORIGINS` as environment variables.
+4. Deploy and verify `/health` and `/docs`.
+
+Start command used in production:
 
 ```bash
-curl -X POST "http://localhost:8000/users/" \
-  -H "Content-Type: application/json" \
-  -d '{"email":"user@example.com","name":"User","password":"StrongPass123"}'
+gunicorn -k uvicorn.workers.UvicornWorker -w 2 -b 0.0.0.0:$PORT main:app
 ```
 
-2. Login to get JWT token:
+## API Usage
+
+### Authentication
 
 ```bash
 curl -X POST "http://localhost:8000/auth/login" \
@@ -89,91 +126,20 @@ curl -X POST "http://localhost:8000/auth/login" \
   -d "username=user@example.com&password=StrongPass123"
 ```
 
-3. Use token for protected endpoints:
+Use the returned token:
 
 ```bash
 -H "Authorization: Bearer <access_token>"
 ```
 
-## Main endpoints
+### Documentation
 
-- `POST /events/` create event
-- `GET /events/` search events by `year/month/day`
-- `GET /events/today` today’s events
-- `GET /events/upcoming?days=30` upcoming events
-- `GET /events/family/{family_id}` family events
-- `GET /convert/hebrew` Gregorian -> Hebrew conversion
-- `GET /convert/gregorian` Hebrew -> Gregorian conversion
-- `POST /notifications/` create notification
-- `GET /notifications/` list user notifications
+- `GET /docs` for interactive Swagger UI.
+- `GET /openapi.json` for raw OpenAPI schema.
 
-## Logging
+## Production Notes
 
-The project uses the existing centralized logger in `logging_config.py` and emits **structured JSON logs**.
-
-### Log levels
-- `INFO`: normal operations (request completed, entity created, commits)
-- `WARNING`: expected issues (invalid login, missing resource, rollback)
-- `ERROR`: unexpected failures (exceptions, DB failures)
-
-### Logging behavior
-- Request correlation via `request_id` (from `X-Request-ID` or generated)
-- Context fields included where available (`operation`, `user_id`, `event_id`, `family_id`, etc.)
-- Sensitive fields are redacted (passwords/tokens/API keys)
-- API middleware logs request completion/failure with duration and status
-- Routes and services log operation start/completion/failures
-- Database layer logs session open/close, commits, and rollbacks
-
-## Project Structure
-
-```text
-family_calendar_api/
-├── .env.example                # Example deployment environment variables
-├── .gitignore                  # Git ignore rules for local/runtime artifacts
-├── render.yaml                 # Render service blueprint
-├── main.py                     # FastAPI entry point, middleware, app wiring
-├── routes/                     # API endpoint modules (auth, users, events, etc.)
-│   ├── auth.py                 # Login endpoint
-│   ├── users.py                # User creation endpoint
-│   ├── events.py               # Event CRUD and search endpoints
-│   ├── families.py             # Family + membership endpoints
-│   ├── notifications.py        # Notification endpoints and reminder trigger
-│   ├── convert.py              # Date conversion endpoints
-│   └── debug.py                # Debug database inspection endpoint
-├── services/                   # Business logic and orchestration
-│   ├── auth_service.py         # Password hashing, JWT, current-user resolution
-│   ├── user_service.py         # User creation logic
-│   ├── event_service.py        # Event rules, queries, and mutation logic
-│   ├── date_service.py         # Date validation/conversion/recurrence calculations
-│   └── notification_service.py # Notification and reminder workflows
-├── models/                     # SQLAlchemy + Pydantic models/schemas
-│   ├── models.py               # SQLAlchemy ORM models
-│   ├── user.py                 # User API schema types
-│   ├── event.py                # Event/date conversion API schema types
-│   └── notification.py         # Notification API schema types
-├── storage/                    # Database configuration and schema support
-│   ├── database.py             # Engine/session configuration and DB session dependency
-│   ├── enums.py                # Shared enum values
-│   └── schema_migrations.py    # Runtime-safe schema migration helpers
-├── tests/                      # Unit/integration test suite
-├── logging_config.py           # Structured logging config + request_id + redaction
-├── exceptions.py               # Custom API and domain exceptions
-├── requirements.txt            # Python dependencies
-├── Dockerfile                  # Production image build
-├── Dockerfile.test             # Test image build
-├── docker-compose.yml          # Multi-service local orchestration
-├── README.md                   # Project documentation
-```
-
-## Code Quality
-
-- Keep business logic in `services/`.
-- Keep route handlers focused on request/response orchestration.
-- Preserve existing API contracts.
-- Run tests before shipping changes.
-
-## Testing
-
-```bash
-pytest
-```
+- Do not commit `.env` files or secrets.
+- Restrict `ALLOWED_ORIGINS` to trusted frontend domains.
+- Keep `DEBUG=false` in production.
+- Use managed PostgreSQL for production workloads.
