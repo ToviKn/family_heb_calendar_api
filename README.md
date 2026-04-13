@@ -26,16 +26,29 @@ A production-oriented FastAPI backend for managing family events across Gregoria
 ```text
 .
 ├── main.py                  # FastAPI entry point and middleware
+├── models/                  # ORM and API schema models
+│   ├── models.py               # SQLAlchemy ORM models
+│   ├── user.py                 # User API schema types
+│   ├── event.py                # Event/date conversion API schema types
+│   └── notification.py         # Notification API schema types 
 ├── routes/                  # API route modules
-│   ├── auth.py
-│   ├── convert.py
-│   ├── events.py
-│   ├── families.py
-│   ├── notifications.py
-│   └── users.py
+│   ├── auth.py                 # Login endpoint
+│   ├── users.py                # User creation endpoint
+│   ├── events.py               # Event CRUD and search endpoints
+│   ├── families.py             # Family + membership endpoints
+│   ├── notifications.py        # Notification endpoints and reminder trigger
+│   ├── convert.py              # Date conversion endpoints
 ├── services/                # Business logic layer
+│   ├── auth_service.py         # Password hashing, JWT, current-user resolution
+│   ├── user_service.py         # User creation logic
+│   ├── event_service.py        # Event rules, queries, and mutation logic
+│   ├── date_service.py         # Date validation/conversion/recurrence calculations
+│   └── notification_service.py # Notification and reminder workflows
 ├── models/                  # ORM and API schema models
 ├── storage/                 # Database/session/migration helpers
+│   ├── database.py             # Engine/session configuration and DB session dependency
+│   ├── enums.py                # Shared enum values
+│   └── schema_migrations.py    # Runtime-safe schema migration helpers
 ├── tests/                   # Automated tests
 ├── logging_config.py        # Structured logging config
 ├── exceptions.py            # Domain/API exception types
