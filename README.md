@@ -41,10 +41,10 @@ A production-oriented FastAPI backend for managing family events across Gregoria
 ├── services/                # Business logic layer
 │   ├── auth_service.py         # Password hashing, JWT, current-user resolution
 │   ├── user_service.py         # User creation logic
+│   ├── family_service.py       # Family + membership creation logic
 │   ├── event_service.py        # Event rules, queries, and mutation logic
 │   ├── date_service.py         # Date validation/conversion/recurrence calculations
 │   └── notification_service.py # Notification and reminder workflows
-├── models/                  # ORM and API schema models
 ├── storage/                 # Database/session/migration helpers
 │   ├── database.py             # Engine/session configuration and DB session dependency
 │   ├── enums.py                # Shared enum values
