@@ -1,7 +1,6 @@
 import logging
 from calendar import monthrange
 from datetime import date, timedelta
-from typing import Any, cast
 
 from convertdate import hebrew
 
@@ -14,8 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 def _hebrew_month_length(year: int, month: int) -> int:
-    month_length = cast(Any, getattr(hebrew, "month_length"))
-    return cast(int, month_length(year, month))
+    return int(hebrew.month_days(year, month))
 
 
 def validate_gregorian_date(year: int, month: int, day: int) -> None:
@@ -233,18 +231,6 @@ def hebrew_to_gregorian_next(month: int, day: int) -> date:
         ) from exc
 
 
-def _event_year(event: Event) -> int:
-    return cast(int, event.year)
-
-
-def _event_month(event: Event) -> int:
-    return cast(int, event.month)
-
-
-def _event_day(event: Event) -> int:
-    return cast(int, event.day)
-
-
 def calculate_next_occurrence(
     event: Event, reference_date: date | None = None
 ) -> date | None:
@@ -280,14 +266,14 @@ def calculate_next_occurrence(
         )
         raise ValidationError("Event month and day are required", "date")
 
-    event_month = _event_month(event)
-    event_day = _event_day(event)
+    event_month = event.month
+    event_day = event.day
 
     # One-time events
     if event.repeat_type == RepeatType.NONE:
         if event.year is None:
             raise ValidationError("One-time events require a year", "year")
-        event_year = _event_year(event)
+        event_year = event.year
 
         if event.calendar_type == CalendarType.GREGORIAN:
             validate_gregorian_date(event_year, event_month, event_day)
@@ -314,7 +300,7 @@ def calculate_next_occurrence(
     if event.repeat_type == RepeatType.DAILY:
         if event.year is None:
             raise ValidationError("Daily events require a year anchor", "year")
-        event_year = _event_year(event)
+        event_year = event.year
 
         if event.calendar_type == CalendarType.GREGORIAN:
             validate_gregorian_date(event_year, event_month, event_day)
@@ -341,7 +327,7 @@ def calculate_next_occurrence(
     if event.repeat_type == RepeatType.WEEKLY:
         if event.year is None:
             raise ValidationError("Weekly events require a year anchor", "year")
-        event_year = _event_year(event)
+        event_year = event.year
 
         if event.calendar_type == CalendarType.GREGORIAN:
             validate_gregorian_date(event_year, event_month, event_day)

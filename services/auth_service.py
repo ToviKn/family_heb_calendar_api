@@ -1,14 +1,15 @@
 import logging
 import os
 from datetime import datetime, timedelta
-from typing import Annotated, cast
+from typing import Annotated
 
-from fastapi import Depends, HTTPException
+from fastapi import Depends
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 
+from exceptions import CalendarAPIException, DatabaseError, ValidationError
 from models.models import User
 from storage.database import get_db
 
@@ -27,8 +28,7 @@ DbSession = Annotated[Session, Depends(get_db)]
 
 
 def hash_password(password: str) -> str:
-    password = password[:MAX_BCRYPT_LENGTH]
-    return pwd_context.hash(password)
+    return pwd_context.hash(password[:MAX_BCRYPT_LENGTH])
 
 
 def verify_password(password: str, hashed: str) -> bool:
@@ -37,80 +37,50 @@ def verify_password(password: str, hashed: str) -> bool:
 
 def create_access_token(user_id: int) -> str:
     expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    payload = {"sub": str(user_id), "exp": expire}
+    payload = {"sub": str(user_id), "exp": expire, "iat": datetime.utcnow()}
     token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
-    logger.info(
-        "Access token created",
-        extra={"operation": "create_access_token", "user_id": user_id, "token_expiration": expire.isoformat()},
-    )
     return token
 
 
 def authenticate_user(db: Session, email: str, password: str) -> User | None:
-    logger.info("Authentication started", extra={"operation": "authenticate_user"})
-    user = cast(User | None, db.query(User).filter(User.email == email).first())
-
-    if not user:
-        logger.warning("Authentication failed: unknown email", extra={"operation": "authenticate_user"})
-        return None
-
-    if not verify_password(password, user.password_hash):
-        logger.warning(
-            "Authentication failed: invalid credentials",
-            extra={"operation": "authenticate_user", "user_id": user.id},
-        )
-        return None
-
-    logger.info(
-        "Authentication completed",
-        extra={"operation": "authenticate_user", "user_id": user.id},
-    )
-    return user
-
-
-def get_current_user(
-    token: Annotated[str, Depends(oauth2_scheme)],
-    db: DbSession,
-) -> User:
-    try:
-        payload = jwt.decode(
-            token,
-            SECRET_KEY,
-            algorithms=[ALGORITHM],
-            options={"verify_sub": False},
-        )
-        user_id_raw = payload.get("sub")
-
-        if user_id_raw is None:
-            logger.warning("Token rejected: missing subject claim")
-            raise HTTPException(status_code=401, detail="Invalid token")
-
-        if not isinstance(user_id_raw, (str, int)):
-            logger.warning(
-                "Token rejected: invalid subject type",
-                extra={"subject_type": type(user_id_raw).__name__},
-            )
-            raise HTTPException(status_code=401, detail="Invalid user ID in token")
-
-        try:
-            user_id = int(user_id_raw)
-        except (TypeError, ValueError) as exc:
-            logger.warning(
-                "Token rejected: invalid subject value", extra={"subject": user_id_raw}
-            )
-            raise HTTPException(
-                status_code=401, detail="Invalid user ID in token"
-            ) from exc
-
-    except JWTError as exc:
-        logger.warning("Token rejected: JWT decode failure")
-        raise HTTPException(status_code=401, detail="Invalid token") from exc
-
-    user = cast(User | None, db.query(User).filter(User.id == user_id).first())
-
+    user = db.query(User).filter(User.email == email.strip().lower()).first()
     if user is None:
-        logger.warning("Token rejected: user not found", extra={"user_id": user_id})
-        raise HTTPException(status_code=401, detail="User not found")
-
-    logger.debug("Authenticated request user resolved", extra={"user_id": user_id})
+        return None
+    if not verify_password(password, user.password_hash):
+        return None
     return user
+
+
+def _extract_user_id_from_payload(payload: dict[str, object]) -> int:
+    if "sub" not in payload:
+        raise CalendarAPIException("Invalid token", 401)
+
+    user_id_raw = payload.get("sub")
+    if not isinstance(user_id_raw, (str, int)):
+        raise CalendarAPIException("Invalid user ID in token", 401)
+
+    try:
+        return int(user_id_raw)
+    except (TypeError, ValueError) as exc:
+        raise CalendarAPIException("Invalid user ID in token", 401) from exc
+
+
+def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db: DbSession) -> User:
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id = _extract_user_id_from_payload(payload)
+    except CalendarAPIException:
+        raise
+    except JWTError as exc:
+        raise CalendarAPIException("Invalid token", 401) from exc
+
+    try:
+        user = db.query(User).filter(User.id == user_id).first()
+        if user is None:
+            raise CalendarAPIException("User not found", 401)
+        return user
+    except CalendarAPIException:
+        raise
+    except Exception as exc:
+        logger.error("Failed to resolve authenticated user", exc_info=True)
+        raise DatabaseError(f"Failed to resolve authenticated user: {exc}", "get_current_user") from exc

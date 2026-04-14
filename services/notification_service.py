@@ -1,36 +1,21 @@
 import logging
 from collections import defaultdict
 from datetime import date, datetime, timedelta
-from typing import cast
 
-from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
+from exceptions import CalendarAPIException, DatabaseError, NotFoundError, ValidationError
 from logging_config import get_request_id
 from models.models import Event, FamilyMembership, Notification, User
 from models.notification import NotificationCreate
 from services.date_service import calculate_next_occurrence
+from services.family_service import ensure_user_in_family, get_user_family_ids
 from storage.enums import RepeatType
 
 logger = logging.getLogger(__name__)
 
-
 ALLOWED_NOTIFICATION_TYPES = {"event reminder", "invite", "system", "EVENT_REMINDER"}
 EVENT_REMINDER_TYPE = "EVENT_REMINDER"
-
-
-def get_user_family_ids(
-    user: User, db: Session, membership_map: dict[int, list[int]] | None = None
-) -> list[int]:
-    if membership_map is not None:
-        return membership_map.get(user.id, [])
-
-    memberships = (
-        db.query(FamilyMembership.family_id)
-        .filter(FamilyMembership.user_id == user.id)
-        .all()
-    )
-    return [family_id for (family_id,) in memberships]
 
 
 def _get_existing_notification(
@@ -44,16 +29,12 @@ def _get_existing_notification(
         Notification.user_id == user_id,
         Notification.type == notification_type,
     )
-
-    if event_id is None:
-        query = query.filter(Notification.event_id.is_(None))
-    else:
-        query = query.filter(Notification.event_id == event_id)
+    query = query.filter(Notification.event_id.is_(None) if event_id is None else Notification.event_id == event_id)
 
     if notification_type == EVENT_REMINDER_TYPE and message is not None:
         query = query.filter(Notification.message == message)
 
-    return cast(Notification | None, query.first())
+    return query.first()
 
 
 def _create_notification_record(
@@ -63,521 +44,276 @@ def _create_notification_record(
     message: str,
     notification_type: str,
 ) -> tuple[Notification, bool]:
+    if notification_type not in ALLOWED_NOTIFICATION_TYPES:
+        raise ValidationError("Invalid notification type", "type")
+
+    existing_notification = _get_existing_notification(
+        db,
+        user_id,
+        event_id,
+        notification_type,
+        message=message,
+    )
+    if existing_notification:
+        return existing_notification, False
+
+    notification = Notification(
+        user_id=user_id,
+        message=message,
+        type=notification_type,
+        event_id=event_id,
+        is_read=False,
+        created_at=datetime.utcnow(),
+        sent=True,
+        send_at=datetime.utcnow(),
+    )
+    db.add(notification)
+    return notification, True
+
+
+def create_notification(db: Session, payload: NotificationCreate, current_user_id: int) -> Notification:
     try:
-        if notification_type not in ALLOWED_NOTIFICATION_TYPES:
-            logger.warning(
-                "Invalid notification type",
-                extra={
-                    "request_id": get_request_id(),
-                    "user_id": user_id,
-                    "notification_id": None,
-                    "type": notification_type,
-                },
-            )
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="Invalid notification type",
-            )
+        event = db.query(Event).filter(Event.id == payload.event_id).first()
+        if event is None:
+            raise CalendarAPIException("Event not found", 404)
 
-        existing_notification = _get_existing_notification(
-            db,
-            user_id,
-            event_id,
-            notification_type,
-            message=message,
-        )
-        if existing_notification:
-            logger.info(
-                "Duplicate notification prevented",
-                extra={
-                    "request_id": get_request_id(),
-                    "user_id": user_id,
-                    "notification_id": existing_notification.id,
-                    "type": notification_type,
-                    "event_id": event_id,
-                },
-            )
-            return existing_notification, False
-
-        notification = Notification(
-            user_id=user_id,
-            message=message,
-            type=notification_type,
-            event_id=event_id,
-            is_read=False,
-            created_at=datetime.utcnow(),
-            sent=True,
-            send_at=datetime.utcnow(),
-        )
-        db.add(notification)
-        db.commit()
-        db.refresh(notification)
-
-        logger.info(
-            "Notification created and sent",
-            extra={
-                "operation": "create_notification_record",
-                "request_id": get_request_id(),
-                "user_id": notification.user_id,
-                "notification_id": notification.id,
-                "type": notification.type,
-            },
-        )
-        return notification, True
-    except HTTPException:
-        raise
-    except Exception:
-        db.rollback()
-        logger.error(
-            "Notification failed",
-            exc_info=True,
-            extra={
-                "operation": "create_notification_record",
-                "request_id": get_request_id(),
-                "user_id": user_id,
-                "notification_id": None,
-            },
-        )
-        raise
-
-
-def create_notification(
-    db: Session,
-    payload: NotificationCreate,
-    current_user_id: int,
-) -> Notification:
-    try:
-        event = cast(Event | None, db.query(Event).filter(Event.id == payload.event_id).first())
-        if not event:
-            logger.warning(
-                "Notification creation rejected: event not found",
-                extra={
-                    "request_id": get_request_id(),
-                    "user_id": current_user_id,
-                    "notification_id": None,
-                    "event_id": payload.event_id,
-                },
-            )
-            raise HTTPException(status_code=404, detail="Event not found")
-
-        membership = (
-            db.query(FamilyMembership)
-            .filter(
-                FamilyMembership.user_id == current_user_id,
-                FamilyMembership.family_id == event.family_id,
-            )
-            .first()
-        )
-        if not membership:
-            logger.warning(
-                "Notification creation rejected: user not in event family",
-                extra={
-                    "request_id": get_request_id(),
-                    "user_id": current_user_id,
-                    "notification_id": None,
-                    "event_id": payload.event_id,
-                    "family_id": event.family_id,
-                },
-            )
-            raise HTTPException(status_code=403, detail="User not in event family")
-
-        return _create_notification_record(
+        ensure_user_in_family(db, current_user_id, event.family_id)
+        notification, _ = _create_notification_record(
             db=db,
             user_id=current_user_id,
             event_id=event.id,
             message=f"Reminder: {event.title} on {event.next_occurrence}",
             notification_type=EVENT_REMINDER_TYPE,
-        )[0]
-    except HTTPException:
-        raise
-    except Exception:
-        logger.error(
-            "Notification failed",
-            exc_info=True,
-            extra={
-                "request_id": get_request_id(),
-                "user_id": current_user_id,
-                "notification_id": None,
-                "event_id": payload.event_id,
-            },
         )
+        db.commit()
+        db.refresh(notification)
+        logger.info(
+            "Notification created",
+            extra={"operation": "create_notification", "user_id": current_user_id, "notification_id": notification.id, "entity_id": notification.id},
+        )
+        return notification
+    except (CalendarAPIException, ValidationError):
+        db.rollback()
         raise
+    except Exception as exc:
+        db.rollback()
+        logger.error("Notification creation failed", exc_info=True)
+        raise DatabaseError(f"Failed to create notification: {exc}", "create_notification") from exc
 
 
 def get_user_notifications(db: Session, user_id: int) -> list[Notification]:
     try:
-        notifications = cast(
-            list[Notification],
-            (
+        return (
             db.query(Notification)
             .filter(Notification.user_id == user_id)
             .order_by(Notification.created_at.desc())
             .all()
-            ),
         )
-        logger.info(
-            "Notifications fetched",
-            extra={
-                "operation": "get_user_notifications",
-                "request_id": get_request_id(),
-                "user_id": user_id,
-                "notification_id": None,
-            },
-        )
-        return notifications
-    except Exception:
-        logger.error(
-            "Notification failed",
-            exc_info=True,
-            extra={
-                "operation": "get_user_notifications",
-                "request_id": get_request_id(),
-                "user_id": user_id,
-                "notification_id": None,
-            },
-        )
-        raise
+    except Exception as exc:
+        logger.error("Failed to get notifications", exc_info=True)
+        raise DatabaseError(f"Failed to get notifications: {exc}", "get_user_notifications") from exc
 
 
-def mark_notification_as_read(
-    db: Session, notification_id: int, user_id: int
-) -> Notification:
+def mark_notification_as_read(db: Session, notification_id: int, user_id: int) -> Notification:
     try:
-        notification = cast(
-            Notification | None,
-            (
+        notification = (
             db.query(Notification)
             .filter(Notification.id == notification_id, Notification.user_id == user_id)
             .first()
-            ),
         )
-        if not notification:
-            logger.warning(
-                "Notification mark-as-read rejected",
-                extra={
-                    "request_id": get_request_id(),
-                    "user_id": user_id,
-                    "notification_id": notification_id,
-                },
-            )
-            raise HTTPException(status_code=404, detail="Notification not found")
+        if notification is None:
+            raise CalendarAPIException("Notification not found", 404)
 
         notification.is_read = True
         db.commit()
         db.refresh(notification)
-
-        logger.info(
-            "Notification marked as read",
-            extra={
-                "operation": "mark_notification_as_read",
-                "request_id": get_request_id(),
-                "user_id": user_id,
-                "notification_id": notification.id,
-            },
-        )
         return notification
-    except HTTPException:
-        raise
-    except Exception:
+    except CalendarAPIException:
         db.rollback()
-        logger.error(
-            "Notification failed",
-            exc_info=True,
-            extra={
-                "operation": "mark_notification_as_read",
-                "request_id": get_request_id(),
-                "user_id": user_id,
-                "notification_id": notification_id,
-            },
-        )
         raise
+    except Exception as exc:
+        db.rollback()
+        logger.error("Failed to mark notification as read", exc_info=True)
+        raise DatabaseError(f"Failed to mark notification as read: {exc}", "mark_notification_as_read") from exc
 
 
 def delete_notification(db: Session, notification_id: int, user_id: int) -> dict[str, str]:
     try:
-        notification = cast(
-            Notification | None,
-            (
+        notification = (
             db.query(Notification)
             .filter(Notification.id == notification_id, Notification.user_id == user_id)
             .first()
-            ),
         )
-        if not notification:
-            logger.warning(
-                "Notification delete rejected",
-                extra={
-                    "request_id": get_request_id(),
-                    "user_id": user_id,
-                    "notification_id": notification_id,
-                },
-            )
-            raise HTTPException(status_code=404, detail="Notification not found")
+        if notification is None:
+            raise CalendarAPIException("Notification not found", 404)
 
         db.delete(notification)
         db.commit()
-        logger.info(
-            "Notification deleted",
-            extra={
-                "operation": "delete_notification",
-                "request_id": get_request_id(),
-                "user_id": user_id,
-                "notification_id": notification_id,
-            },
-        )
-
         return {"message": "Notification deleted successfully"}
-    except HTTPException:
-        raise
-    except Exception:
+    except CalendarAPIException:
         db.rollback()
-        logger.error(
-            "Notification failed",
-            exc_info=True,
-            extra={
-                "operation": "delete_notification",
-                "request_id": get_request_id(),
-                "user_id": user_id,
-                "notification_id": notification_id,
-            },
-        )
         raise
+    except Exception as exc:
+        db.rollback()
+        logger.error("Failed to delete notification", exc_info=True)
+        raise DatabaseError(f"Failed to delete notification: {exc}", "delete_notification") from exc
 
 
-def notify_family_on_event_created(db: Session, event: Event, actor_user_id: int) -> None:
-    memberships = (
-        db.query(FamilyMembership)
-        .filter(FamilyMembership.family_id == event.family_id)
-        .all()
-    )
-    for member in memberships:
-        if member.user_id == actor_user_id:
-            continue
-        _create_notification_record(
-            db=db,
-            user_id=member.user_id,
-            event_id=event.id,
-            message=f"New event created: {event.title}",
-            notification_type="system",
-        )
-
-
-def notify_family_on_event_updated(
-    db: Session, event: Event, actor_user_id: int | None = None
+def _notify_family(
+    db: Session,
+    event: Event,
+    message_factory: callable,
+    actor_user_id: int | None,
 ) -> None:
-    memberships = (
-        db.query(FamilyMembership)
-        .filter(FamilyMembership.family_id == event.family_id)
-        .all()
-    )
+    memberships = db.query(FamilyMembership).filter(FamilyMembership.family_id == event.family_id).all()
+    created_notifications: list[Notification] = []
     for member in memberships:
         if actor_user_id is not None and member.user_id == actor_user_id:
             continue
-        _create_notification_record(
+        notification, created = _create_notification_record(
             db=db,
             user_id=member.user_id,
             event_id=event.id,
-            message=f"Event updated: {event.title}",
+            message=message_factory(event),
             notification_type="system",
         )
+        if created:
+            created_notifications.append(notification)
+
+    if created_notifications:
+        db.commit()
 
 
-def notify_family_invitation(
-    db: Session, invited_user_id: int, family_id: int, invited_by_user_id: int
-) -> None:
-    _create_notification_record(
-        db=db,
-        user_id=invited_user_id,
-        event_id=None,
-        message=f"You were invited to family #{family_id} by user #{invited_by_user_id}",
-        notification_type="invite",
-    )
+def notify_family_on_event_created(db: Session, event: Event, actor_user_id: int) -> None:
+    _notify_family(db, event, lambda item: f"New event created: {item.title}", actor_user_id)
 
 
-def _event_occurs_within_window(next_occurrence: date, today: date) -> tuple[bool, str]:
-    days_diff = (next_occurrence - today).days
-
-    if days_diff == 0:
-        return True, "event occurs today"
-    if days_diff == 1:
-        return True, "event occurs within reminder window"
-    return False, "event outside reminder window"
+def notify_family_on_event_updated(db: Session, event: Event, actor_user_id: int | None = None) -> None:
+    _notify_family(db, event, lambda item: f"Event updated: {item.title}", actor_user_id)
 
 
-
-def _reminder_sent_today(db: Session, event_id: int, user_id: int, today: date) -> bool:
-    start_of_day = datetime.combine(today, datetime.min.time())
-    end_of_day = start_of_day + timedelta(days=1)
-    return (
-        db.query(Notification)
-        .filter(
-            Notification.event_id == event_id,
-            Notification.user_id == user_id,
-            Notification.type == EVENT_REMINDER_TYPE,
-            Notification.send_at >= start_of_day,
-            Notification.send_at < end_of_day,
+def notify_family_invitation(db: Session, invited_user_id: int, family_id: int, invited_by_user_id: int) -> None:
+    try:
+        notification, _ = _create_notification_record(
+            db=db,
+            user_id=invited_user_id,
+            event_id=None,
+            message=f"You were invited to family #{family_id} by user #{invited_by_user_id}",
+            notification_type="invite",
         )
-        .first()
-        is not None
-    )
+        db.commit()
+        db.refresh(notification)
+    except Exception:
+        db.rollback()
+        raise
 
-def _resolve_next_occurrence(db: Session, event: Event, today: date) -> date | None:
-    current_next_occurrence = cast(date | None, event.next_occurrence)
+
+def _event_occurs_within_window(next_occurrence: date, today: date) -> bool:
+    return (next_occurrence - today).days in (0, 1)
+
+
+def _resolve_occurrence_without_commit(event: Event, today: date) -> date | None:
+    current_next_occurrence = event.next_occurrence
     if current_next_occurrence is not None and current_next_occurrence >= today:
         return current_next_occurrence
-
-    next_occurrence = calculate_next_occurrence(event)
-    if next_occurrence is None:
-        if current_next_occurrence is not None:
-            event.next_occurrence = None
-            db.add(event)
-            db.commit()
-            db.refresh(event)
-        return None
-
-    if current_next_occurrence != next_occurrence:
-        event.next_occurrence = next_occurrence
-        db.add(event)
-        db.commit()
-        db.refresh(event)
-
-        logger.info(
-            "Next occurrence recalculated for reminder processing",
-            extra={
-                "request_id": get_request_id(),
-                "event_id": event.id,
-                "user_id": None,
-                "notification_id": None,
-                "next_occurrence": next_occurrence.isoformat(),
-            },
-        )
-    return next_occurrence
+    return calculate_next_occurrence(event)
 
 
-def _advance_next_occurrence_after_reminder(
-    db: Session, event: Event, sent_for_occurrence: date
-) -> None:
+def _advance_next_occurrence_after_reminder(event: Event, sent_for_occurrence: date) -> None:
     if event.repeat_type == RepeatType.NONE:
         return
 
-    next_occurrence = calculate_next_occurrence(
+    event.next_occurrence = calculate_next_occurrence(
         event, reference_date=sent_for_occurrence + timedelta(days=1)
     )
-    if next_occurrence == event.next_occurrence:
-        return
 
-    event.next_occurrence = next_occurrence
-    db.add(event)
-    db.commit()
-    db.refresh(event)
+
+def _today_reminder_pairs(db: Session, today: date) -> set[tuple[int, int]]:
+    start_of_day = datetime.combine(today, datetime.min.time())
+    end_of_day = start_of_day + timedelta(days=1)
+    rows = (
+        db.query(Notification.event_id, Notification.user_id)
+        .filter(
+            Notification.type == EVENT_REMINDER_TYPE,
+            Notification.event_id.isnot(None),
+            Notification.send_at >= start_of_day,
+            Notification.send_at < end_of_day,
+        )
+        .all()
+    )
+    return {(event_id, user_id) for event_id, user_id in rows if event_id is not None}
 
 
 def process_event_reminders(db: Session, _within_hours: int = 24) -> int:
     try:
         today = datetime.utcnow().date()
         created_count = 0
-        created_by_event: dict[int, int] = defaultdict(int)
 
-        users = cast(list[User], db.query(User).all())
-        memberships = cast(
-            list[tuple[int, int]],
-            db.query(FamilyMembership.user_id, FamilyMembership.family_id).all(),
-        )
-        user_family_map: dict[int, list[int]] = defaultdict(list)
-        for user_id, family_id in memberships:
-            user_family_map[user_id].append(family_id)
+        users = db.query(User).all()
+        memberships = db.query(FamilyMembership.user_id, FamilyMembership.family_id).all()
+        family_ids = sorted({family_id for _, family_id in memberships})
+        events = db.query(Event).filter(Event.family_id.in_(family_ids)).all() if family_ids else []
 
-        all_family_ids = sorted({family_id for _, family_id in memberships})
-        events = cast(
-            list[Event],
-            db.query(Event).filter(Event.family_id.in_(all_family_ids)).all()
-            if all_family_ids
-            else [],
-        )
         events_by_family: dict[int, list[Event]] = defaultdict(list)
         for event in events:
             events_by_family[event.family_id].append(event)
 
         event_occurrences: dict[int, date] = {}
         for event in events:
-            next_occurrence = _resolve_next_occurrence(db, event, today)
+            next_occurrence = _resolve_occurrence_without_commit(event, today)
+            event.next_occurrence = next_occurrence
             if next_occurrence is None:
                 continue
-            should_send, _ = _event_occurs_within_window(next_occurrence, today)
-            if should_send:
+            if _event_occurs_within_window(next_occurrence, today):
                 event_occurrences[event.id] = next_occurrence
 
+        sent_pairs = _today_reminder_pairs(db, today)
+        created_by_event: dict[int, int] = defaultdict(int)
+
         for user in users:
-            family_ids = get_user_family_ids(user, db, user_family_map)
-            if not family_ids:
-                logger.warning(
-                    "Reminder processing skipped: user has no families",
-                    extra={
-                        "request_id": get_request_id(),
-                        "user_id": user.id,
-                        "notification_id": None,
-                    },
-                )
-                continue
+            user_family_ids = get_user_family_ids(db, user.id)
+            for family_id in user_family_ids:
+                for event in events_by_family.get(family_id, []):
+                    next_occurrence = event_occurrences.get(event.id)
+                    if next_occurrence is None:
+                        continue
+                    if (event.id, user.id) in sent_pairs:
+                        continue
 
-            user_events = [
-                event
-                for family_id in family_ids
-                for event in events_by_family.get(family_id, [])
-            ]
-            logger.info(
-                "Reminder processing for user",
-                extra={
-                    "request_id": get_request_id(),
-                    "user_id": user.id,
-                    "notification_id": None,
-                    "event_count": len(user_events),
-                },
-            )
-
-            for event in user_events:
-                next_occurrence = event_occurrences.get(event.id)
-                if next_occurrence is None:
-                    continue
-                if _reminder_sent_today(db, event.id, user.id, today):
-                    continue
-
-                reminder_message = f"Reminder: {event.title} on {next_occurrence}"
-                notification, created = _create_notification_record(
-                    db=db,
-                    user_id=user.id,
-                    event_id=event.id,
-                    message=reminder_message,
-                    notification_type=EVENT_REMINDER_TYPE,
-                )
-                if created:
-                    created_count += 1
-                    created_by_event[event.id] += 1
-                    logger.info(
-                        "Reminder notification created",
-                        extra={
-                            "request_id": get_request_id(),
-                            "event_id": event.id,
-                            "user_id": user.id,
-                            "notification_id": notification.id,
-                            "next_occurrence": next_occurrence.isoformat(),
-                        },
+                    reminder_message = f"Reminder: {event.title} on {next_occurrence}"
+                    notification, created = _create_notification_record(
+                        db=db,
+                        user_id=user.id,
+                        event_id=event.id,
+                        message=reminder_message,
+                        notification_type=EVENT_REMINDER_TYPE,
                     )
+                    if created:
+                        created_count += 1
+                        created_by_event[event.id] += 1
+                        sent_pairs.add((event.id, user.id))
+                        logger.info(
+                            "Reminder notification created",
+                            extra={
+                                "operation": "process_event_reminders",
+                                "request_id": get_request_id(),
+                                "event_id": event.id,
+                                "user_id": user.id,
+                                "notification_id": notification.id,
+                                "entity_id": notification.id,
+                            },
+                        )
 
         for event in events:
             if created_by_event.get(event.id, 0) > 0 and event.id in event_occurrences:
-                _advance_next_occurrence_after_reminder(
-                    db, event, event_occurrences[event.id]
-                )
+                _advance_next_occurrence_after_reminder(event, event_occurrences[event.id])
 
+        db.commit()
         return created_count
-    except Exception:
-        logger.error(
-            "Unexpected error while processing reminders",
-            exc_info=True,
-            extra={"request_id": get_request_id(), "notification_id": None},
-        )
-        raise
+    except Exception as exc:
+        db.rollback()
+        logger.error("Unexpected error while processing reminders", exc_info=True)
+        raise DatabaseError(f"Failed to process reminders: {exc}", "process_event_reminders") from exc
 
 
 def create_reminder_notifications(db: Session, within_hours: int = 24) -> int:

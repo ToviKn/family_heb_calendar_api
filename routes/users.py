@@ -1,9 +1,10 @@
 import logging
-from typing import Annotated, cast
+from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from exceptions import CalendarAPIException
 from models.user import UserCreate, UserResponse
 from services import user_service
 from storage.database import get_db
@@ -13,14 +14,13 @@ logger = logging.getLogger(__name__)
 DbSession = Annotated[Session, Depends(get_db)]
 
 
+def _as_http(exc: CalendarAPIException) -> HTTPException:
+    return HTTPException(status_code=exc.status_code, detail=exc.message)
+
+
 @router.post("/", response_model=UserResponse)
 def create_user(user: UserCreate, db: DbSession) -> UserResponse:
-    logger.info("Create user request received", extra={"operation": "create_user"})
-    created_user = cast(
-        UserResponse, user_service.create_user(db, user.email, user.name, user.password)
-    )
-    logger.info(
-        "Create user request completed",
-        extra={"operation": "create_user", "user_id": created_user.id},
-    )
-    return created_user
+    try:
+        return user_service.create_user(db, user.email, user.name, user.password)
+    except CalendarAPIException as exc:
+        raise _as_http(exc) from exc
