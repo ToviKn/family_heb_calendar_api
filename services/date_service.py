@@ -8,9 +8,13 @@ from exceptions import DateConversionError, ValidationError
 from models.models import Event
 from storage.enums import CalendarType, RepeatType
 from models.event import DateConversionResponse, SimpleDate
-from services.calendar_utils import hebrew_month_length
 
 logger = logging.getLogger(__name__)
+
+
+def hebrew_month_length(year: int, month: int) -> int:
+    return int(hebrew.month_days(year, month))
+
 
 def validate_gregorian_date(year: int, month: int, day: int) -> None:
     """Validate Gregorian date and raise ValidationError if invalid."""

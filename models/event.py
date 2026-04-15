@@ -15,7 +15,7 @@ from pydantic import (
 )
 from typing_extensions import Self
 
-from services.calendar_utils import hebrew_month_length
+from services.date_service import hebrew_month_length
 from storage.enums import CalendarType, RepeatType
 
 logger = logging.getLogger(__name__)
