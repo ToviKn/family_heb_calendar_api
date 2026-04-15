@@ -8,13 +8,9 @@ from exceptions import DateConversionError, ValidationError
 from models.models import Event
 from storage.enums import CalendarType, RepeatType
 from models.event import DateConversionResponse, SimpleDate
+from services.calendar_utils import hebrew_month_length
 
 logger = logging.getLogger(__name__)
-
-
-def _hebrew_month_length(year: int, month: int) -> int:
-    return int(hebrew.month_days(year, month))
-
 
 def validate_gregorian_date(year: int, month: int, day: int) -> None:
     """Validate Gregorian date and raise ValidationError if invalid."""
@@ -58,7 +54,7 @@ def validate_hebrew_date(year: int, month: int, day: int) -> None:
         raise ValidationError("Invalid Hebrew month 13 in non-leap year", "month")
 
     try:
-        max_day = _hebrew_month_length(year, month)
+        max_day = hebrew_month_length(year, month)
     except Exception as exc:
         logger.warning(
             "Invalid Hebrew date structure",
@@ -139,7 +135,7 @@ def _resolve_hebrew_month_for_year(source_month: int, target_h_year: int) -> int
 
 def _gregorian_for_hebrew(h_year: int, h_month: int, h_day: int) -> date:
     normalized_month = _resolve_hebrew_month_for_year(h_month, h_year)
-    max_day = _hebrew_month_length(h_year, normalized_month)
+    max_day = hebrew_month_length(h_year, normalized_month)
     candidate_day = min(h_day, max_day)
     g_year, g_month, g_day = convert_to_gregorian(h_year, normalized_month, candidate_day)
     return date(g_year, g_month, g_day)
@@ -207,7 +203,7 @@ def _next_monthly_hebrew(day: int, today: date) -> date:
     current_month = h_month
 
     for _ in range(30):
-        max_day = _hebrew_month_length(current_year, current_month)
+        max_day = hebrew_month_length(current_year, current_month)
         candidate = _gregorian_for_hebrew(current_year, current_month, min(day, max_day))
         if candidate >= today:
             return candidate

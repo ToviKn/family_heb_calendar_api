@@ -1,7 +1,7 @@
 import re
 import logging
 from datetime import date, datetime, time
-from typing import Annotated, Any, cast
+from typing import Annotated, Any, ClassVar
 
 from convertdate import hebrew  # type: ignore[import-untyped]
 from pydantic import (
@@ -15,10 +15,9 @@ from pydantic import (
 )
 from typing_extensions import Self
 
+from services.calendar_utils import hebrew_month_length
 from storage.enums import CalendarType, RepeatType
 
-field_validator_annotated = cast(Any, field_validator)
-model_validator_annotated = cast(Any, model_validator)
 logger = logging.getLogger(__name__)
 
 
@@ -43,11 +42,6 @@ def _time_field(example: str) -> Any:
         examples=[example],
         json_schema_extra={"example": example},
     )
-
-
-def _hebrew_month_length(year: int, month: int) -> int:
-    month_length = cast(Any, getattr(hebrew, "month_length"))
-    return cast(int, month_length(year, month))
 
 
 def _parse_time_only(value: time | str | None) -> time | None:
@@ -78,13 +72,59 @@ def _parse_time_only(value: time | str | None) -> time | None:
     raise ValueError("time fields must use HH:MM or HH:MM:SS format")
 
 
+def _validate_end_time_after_start(
+    end_time: time | None, info: ValidationInfo
+) -> time | None:
+    start_time = info.data.get("start_time")
+    if end_time is not None and isinstance(start_time, time) and end_time <= start_time:
+        raise ValueError("end_time must be after start_time")
+    return end_time
+
+
+def _strip_created_by_field(data: Any, operation: str) -> Any:
+    if isinstance(data, dict) and "created_by" in data:
+        data = dict(data)
+        data.pop("created_by", None)
+        logger.warning(
+            "Ignored client-provided created_by in event request",
+            extra={"operation": operation},
+        )
+    return data
+
+
 RequestRepeatType = Annotated[
     RepeatType,
     BeforeValidator(_validate_repeat_type_input),
 ]
 
 
-class EventBase(BaseModel):
+class EventTimeValidationMixin(BaseModel):
+    start_time: time | None = _time_field("18:00:00")
+    end_time: time | None = _time_field("20:00:00")
+
+    @field_validator("start_time", "end_time", mode="before")
+    @classmethod
+    def validate_time_only(cls, value: time | str | None) -> time | None:
+        return _parse_time_only(value)
+
+    @field_validator("end_time")
+    @classmethod
+    def validate_end_time(
+        cls, value: time | None, info: ValidationInfo
+    ) -> time | None:
+        return _validate_end_time_after_start(value, info)
+
+
+class CreatedByStrippingMixin(BaseModel):
+    _strip_operation: ClassVar[str] = "event_schema"
+
+    @model_validator(mode="before")
+    @classmethod
+    def strip_created_by(cls, data: Any) -> Any:
+        return _strip_created_by_field(data, cls._strip_operation)
+
+
+class EventBase(EventTimeValidationMixin):
     title: str = Field(..., min_length=1, max_length=255)
     description: str | None = Field(None, max_length=1000)
     calendar_type: CalendarType = CalendarType.GREGORIAN
@@ -93,25 +133,8 @@ class EventBase(BaseModel):
     day: int = Field(..., ge=1, le=31)
     repeat_type: RepeatType = RepeatType.NONE
     family_id: int = Field(..., gt=0)
-    start_time: time | None = _time_field("18:00:00")
-    end_time: time | None = _time_field("20:00:00")
 
-    @field_validator_annotated("start_time", "end_time", mode="before")  # type: ignore[misc]
-    @classmethod
-    def validate_time_only(cls, value: time | str | None) -> time | None:
-        return _parse_time_only(value)
-
-    @field_validator_annotated("end_time")  # type: ignore[misc]
-    @classmethod
-    def validate_end_time(
-        cls, value: time | None, info: ValidationInfo
-    ) -> time | None:
-        start_time = info.data.get("start_time")
-        if value is not None and isinstance(start_time, time) and value <= start_time:
-            raise ValueError("end_time must be after start_time")
-        return value
-
-    @model_validator_annotated(mode="after")
+    @model_validator(mode="after")
     def validate_event_date(self) -> Self:
         if self.year == 1 and self.month == 1 and self.day == 1:
             raise ValueError("placeholder date 0001-01-01 is not allowed")
@@ -133,7 +156,7 @@ class EventBase(BaseModel):
                 raise ValueError("Hebrew year must be positive")
             if self.month == 13 and not hebrew.leap(validation_year):
                 raise ValueError("invalid Hebrew month 13 in non-leap year")
-            max_day = _hebrew_month_length(validation_year, self.month)
+            max_day = hebrew_month_length(validation_year, self.month)
             if self.day > max_day:
                 raise ValueError(
                     f"day must be between 1 and {max_day} for Hebrew month {self.month}"
@@ -142,58 +165,20 @@ class EventBase(BaseModel):
         return self
 
 
-class EventCreate(EventBase):
+class EventCreate(CreatedByStrippingMixin, EventBase):
+    _strip_operation: ClassVar[str] = "event_create_schema"
     repeat_type: RequestRepeatType = RepeatType.NONE
 
-    @model_validator_annotated(mode="before")
-    @classmethod
-    def strip_created_by(cls, data: Any) -> Any:
-        if isinstance(data, dict) and "created_by" in data:
-            data = dict(data)
-            data.pop("created_by", None)
-            logger.warning(
-                "Ignored client-provided created_by in event create request",
-                extra={"operation": "event_create_schema"},
-            )
-        return data
 
+class EventUpdate(CreatedByStrippingMixin, EventTimeValidationMixin):
+    _strip_operation: ClassVar[str] = "event_update_schema"
 
-class EventUpdate(BaseModel):
     title: str | None = Field(None, min_length=1, max_length=255)
     description: str | None = Field(None, max_length=1000)
     year: int | None = Field(None, ge=1)
     month: int | None = Field(None, ge=1, le=13)
     day: int | None = Field(None, ge=1, le=31)
     repeat_type: RequestRepeatType | None = None
-    start_time: time | None = _time_field("18:00:00")
-    end_time: time | None = _time_field("20:00:00")
-
-    @model_validator_annotated(mode="before")
-    @classmethod
-    def strip_created_by(cls, data: Any) -> Any:
-        if isinstance(data, dict) and "created_by" in data:
-            data = dict(data)
-            data.pop("created_by", None)
-            logger.warning(
-                "Ignored client-provided created_by in event update request",
-                extra={"operation": "event_update_schema"},
-            )
-        return data
-
-    @field_validator_annotated("start_time", "end_time", mode="before")  # type: ignore[misc]
-    @classmethod
-    def validate_time_only(cls, value: time | str | None) -> time | None:
-        return _parse_time_only(value)
-
-    @field_validator_annotated("end_time")  # type: ignore[misc]
-    @classmethod
-    def validate_end_time(
-        cls, value: time | None, info: ValidationInfo
-    ) -> time | None:
-        start_time = info.data.get("start_time")
-        if value is not None and isinstance(start_time, time) and value <= start_time:
-            raise ValueError("end_time must be after start_time")
-        return value
 
 
 class EventResponse(EventBase):
@@ -228,6 +213,7 @@ class SimpleDate(BaseModel):
         }
     }
 
+
 class DateConversionResponse(BaseModel):
     gregorian_date: SimpleDate
     hebrew_date: SimpleDate
@@ -240,6 +226,7 @@ class DateConversionResponse(BaseModel):
             }
         }
     }
+
 
 class ErrorResponse(BaseModel):
     message: str

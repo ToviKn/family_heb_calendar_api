@@ -1,9 +1,8 @@
 from datetime import datetime
-from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-NotificationType = Literal["event reminder", "invite", "system", "EVENT_REMINDER"]
+from storage.enums import NotificationType
 
 
 class NotificationCreate(BaseModel):
