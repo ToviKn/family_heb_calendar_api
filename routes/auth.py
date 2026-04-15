@@ -31,7 +31,10 @@ def login(
             "Authentication failed at login endpoint",
             extra={"operation": "login", "client_ip": client_ip},
         )
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+        raise HTTPException(
+            status_code=401,
+            detail={"message": "Invalid credentials", "details": {}},
+        )
 
     token = create_access_token(user.id)
     logger.info(

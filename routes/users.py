@@ -15,7 +15,10 @@ DbSession = Annotated[Session, Depends(get_db)]
 
 
 def _as_http(exc: CalendarAPIException) -> HTTPException:
-    return HTTPException(status_code=exc.status_code, detail=exc.message)
+    return HTTPException(
+        status_code=exc.status_code,
+        detail={"message": exc.message, "details": exc.details},
+    )
 
 
 @router.post("/", response_model=UserResponse)

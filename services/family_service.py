@@ -4,7 +4,14 @@ from datetime import datetime
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from exceptions import CalendarAPIException, DatabaseError, NotFoundError, ValidationError
+from exceptions import (
+    CalendarAPIException,
+    ConflictError,
+    DatabaseError,
+    NotFoundError,
+    PermissionDeniedError,
+    ValidationError,
+)
 from models.models import Family, FamilyMembership, User
 
 logger = logging.getLogger(__name__)
@@ -34,14 +41,25 @@ def ensure_user_in_family(db: Session, user_id: int, family_id: int) -> FamilyMe
         .first()
     )
     if membership is None:
-        raise CalendarAPIException("User not in family", 403)
+        logger.warning(
+            "User attempted family access without membership",
+            extra={"operation": "ensure_user_in_family", "user_id": user_id, "family_id": family_id},
+        )
+        raise PermissionDeniedError("User not in family", {"user_id": user_id, "family_id": family_id})
     return membership
 
 
 def ensure_admin_in_family(db: Session, user_id: int, family_id: int) -> FamilyMembership:
     membership = ensure_user_in_family(db, user_id, family_id)
     if membership.role != "admin":
-        raise CalendarAPIException("Not authorized to add family members", 403)
+        logger.warning(
+            "Non-admin attempted to manage family members",
+            extra={"operation": "ensure_admin_in_family", "user_id": user_id, "family_id": family_id},
+        )
+        raise PermissionDeniedError(
+            "Not authorized to add family members",
+            {"user_id": user_id, "family_id": family_id},
+        )
     return membership
 
 
@@ -96,7 +114,10 @@ def add_member(db: Session, family_id: int, user_id: int, actor_user_id: int) ->
             .first()
         )
         if existing_membership is not None:
-            raise CalendarAPIException("User is already a member of this family", 400)
+            raise ConflictError(
+                "User is already a member of this family",
+                {"user_id": user_id, "family_id": family_id},
+            )
 
         membership = FamilyMembership(user_id=user_id, family_id=family_id)
         db.add(membership)
@@ -119,7 +140,14 @@ def add_member(db: Session, family_id: int, user_id: int, actor_user_id: int) ->
         raise
     except IntegrityError as exc:
         db.rollback()
-        raise CalendarAPIException("Membership already exists or invalid user/family", 400) from exc
+        logger.warning(
+            "Failed to add member due to integrity conflict",
+            extra={"operation": "add_family_member", "user_id": actor_user_id, "family_id": family_id, "added_user_id": user_id},
+        )
+        raise ConflictError(
+            "Membership already exists or invalid user/family",
+            {"user_id": user_id, "family_id": family_id},
+        ) from exc
     except Exception as exc:
         db.rollback()
         logger.error(

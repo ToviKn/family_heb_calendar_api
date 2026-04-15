@@ -38,7 +38,10 @@ def to_hebrew(
         return response
 
     except CalendarAPIException as exc:
-        raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
+        raise HTTPException(
+            status_code=exc.status_code,
+            detail={"message": exc.message, "details": exc.details},
+        ) from exc
     except Exception as exc:
         logger.error(
             "Date conversion request failed",
@@ -71,7 +74,10 @@ def to_gregorian(
         logger.info("Date conversion request completed", extra={"operation": "convert_to_gregorian"})
         return response
     except CalendarAPIException as exc:
-        raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
+        raise HTTPException(
+            status_code=exc.status_code,
+            detail={"message": exc.message, "details": exc.details},
+        ) from exc
     except Exception as exc:
         logger.error(
             "Date conversion request failed",
@@ -93,7 +99,10 @@ def get_today() -> DateConversionResponse:
         logger.info("Date conversion request completed", extra={"operation": "get_today_dates"})
         return response
     except CalendarAPIException as exc:
-        raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
+        raise HTTPException(
+            status_code=exc.status_code,
+            detail={"message": exc.message, "details": exc.details},
+        ) from exc
     except Exception as exc:
         logger.error(
             "Date conversion request failed",
