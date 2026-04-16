@@ -5,7 +5,7 @@ from typing import Any
 from sqlalchemy import and_
 from sqlalchemy.orm import Session
 
-from exceptions import CalendarAPIException, DatabaseError, NotFoundError
+from exceptions import CalendarAPIException, DatabaseError, NotFoundError, PermissionDeniedError
 from models.event import EventCreate, EventUpdate
 from models.models import Event
 from services import notification_service
@@ -111,7 +111,14 @@ def delete_event(db: Session, event_id: int, user_id: int) -> dict[str, str]:
     try:
         event = get_event_by_id(db, event_id, user_id=user_id)
         if event.created_by != user_id:
-            raise CalendarAPIException("Not authorized to delete this event", 403)
+            logger.warning(
+                "Unauthorized event delete attempt",
+                extra={"operation": "delete_event", "event_id": event_id, "user_id": user_id, "created_by": event.created_by},
+            )
+            raise PermissionDeniedError(
+                "Not authorized to delete this event",
+                {"event_id": event_id, "user_id": user_id},
+            )
 
         db.delete(event)
         db.commit()
@@ -133,7 +140,14 @@ def update_event(db: Session, event_id: int, updated_event: EventUpdate, user_id
     try:
         event = get_event_by_id(db, event_id, user_id=user_id)
         if event.created_by != user_id:
-            raise CalendarAPIException("Not authorized to update this event", 403)
+            logger.warning(
+                "Unauthorized event update attempt",
+                extra={"operation": "update_event", "event_id": event_id, "user_id": user_id, "created_by": event.created_by},
+            )
+            raise PermissionDeniedError(
+                "Not authorized to update this event",
+                {"event_id": event_id, "user_id": user_id},
+            )
 
         update_data = updated_event.model_dump(exclude_unset=True)
         if "end_time" in update_data and "start_time" not in update_data:

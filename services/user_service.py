@@ -3,7 +3,7 @@ import re
 
 from sqlalchemy.orm import Session
 
-from exceptions import CalendarAPIException, DatabaseError, ValidationError
+from exceptions import CalendarAPIException, ConflictError, DatabaseError, ValidationError
 from models.models import User
 from services.auth_service import hash_password
 
@@ -23,7 +23,11 @@ def create_user(db: Session, email: str, name: str, password: str) -> User:
 
     existing = db.query(User).filter(User.email == normalized_email).first()
     if existing:
-        raise CalendarAPIException("Email already exists", 400)
+        logger.warning(
+            "User creation conflict: email already exists",
+            extra={"operation": "create_user", "email": normalized_email},
+        )
+        raise ConflictError("Email already exists", {"email": normalized_email})
 
     user = User(email=normalized_email, name=name, password_hash=hash_password(password))
 

@@ -92,7 +92,7 @@ def create_notification(db: Session, payload: NotificationCreate, current_user_i
     try:
         event = db.query(Event).filter(Event.id == payload.event_id).first()
         if event is None:
-            raise CalendarAPIException("Event not found", 404)
+            raise NotFoundError("Event", payload.event_id)
 
         ensure_user_in_family(db, current_user_id, event.family_id)
         notification, _ = _create_notification_record(
@@ -139,7 +139,7 @@ def mark_notification_as_read(db: Session, notification_id: int, user_id: int) -
             .first()
         )
         if notification is None:
-            raise CalendarAPIException("Notification not found", 404)
+            raise NotFoundError("Notification", notification_id)
 
         notification.is_read = True
         db.commit()
@@ -162,7 +162,7 @@ def delete_notification(db: Session, notification_id: int, user_id: int) -> dict
             .first()
         )
         if notification is None:
-            raise CalendarAPIException("Notification not found", 404)
+            raise NotFoundError("Notification", notification_id)
 
         db.delete(notification)
         db.commit()

@@ -9,7 +9,12 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 
-from exceptions import CalendarAPIException, DatabaseError, ValidationError
+from exceptions import (
+    CalendarAPIException,
+    DatabaseError,
+    UnauthorizedError,
+    ValidationError,
+)
 from models.models import User
 from storage.database import get_db
 
@@ -53,16 +58,16 @@ def authenticate_user(db: Session, email: str, password: str) -> User | None:
 
 def _extract_user_id_from_payload(payload: dict[str, object]) -> int:
     if "sub" not in payload:
-        raise CalendarAPIException("Invalid token", 401)
+        raise UnauthorizedError("Invalid token")
 
     user_id_raw = payload.get("sub")
     if not isinstance(user_id_raw, (str, int)):
-        raise CalendarAPIException("Invalid user ID in token", 401)
+        raise UnauthorizedError("Invalid user ID in token")
 
     try:
         return int(user_id_raw)
     except (TypeError, ValueError) as exc:
-        raise CalendarAPIException("Invalid user ID in token", 401) from exc
+        raise UnauthorizedError("Invalid user ID in token") from exc
 
 
 def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db: DbSession) -> User:
@@ -72,12 +77,16 @@ def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db: DbSessio
     except CalendarAPIException:
         raise
     except JWTError as exc:
-        raise CalendarAPIException("Invalid token", 401) from exc
+        raise UnauthorizedError("Invalid token") from exc
 
     try:
         user = db.query(User).filter(User.id == user_id).first()
         if user is None:
-            raise CalendarAPIException("User not found", 401)
+            logger.warning(
+                "Authenticated user not found",
+                extra={"operation": "get_current_user", "user_id": user_id},
+            )
+            raise UnauthorizedError("User not found", {"user_id": user_id})
         return user
     except CalendarAPIException:
         raise
