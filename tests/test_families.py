@@ -32,7 +32,7 @@ def test_add_family_member_success(client, auth_tokens, sample_family, sample_us
     )
 
     assert response.status_code == 200
-    assert response.json() == {}
+    assert response.json()["user_id"] == sample_users["outsider"].id
 
 
 def test_add_family_member_fails_for_duplicate_membership(
@@ -44,7 +44,7 @@ def test_add_family_member_fails_for_duplicate_membership(
         headers=_auth_header(auth_tokens["owner"]),
     )
 
-    assert response.status_code == 400
+    assert response.status_code == 409
     assert response.json()["message"] == "User is already a member of this family"
 
 
@@ -71,7 +71,7 @@ def test_add_family_member_fails_for_non_member(
     )
 
     assert response.status_code == 403
-    assert response.json()["message"] == "Not authorized to add family members"
+    assert response.json()["message"] == "User not in family"
 
 
 def test_create_family_assigns_creator_as_admin(

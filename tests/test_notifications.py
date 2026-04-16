@@ -121,7 +121,7 @@ def test_create_notification_returns_404_for_missing_event(client, auth_tokens) 
     )
 
     assert response.status_code == 404
-    assert response.json()["message"] == "Event not found"
+    assert response.json()["message"] == "Event with identifier '999999' not found"
 
 def test_create_notification_returns_403_for_non_family_member(
     client, auth_tokens, event_payload
@@ -140,7 +140,7 @@ def test_create_notification_returns_403_for_non_family_member(
     )
 
     assert response.status_code == 403
-    assert response.json()["message"] == "User not in event family"
+    assert response.json()["message"] == "User not in family"
 
 def test_process_event_reminders_creates_due_reminders_once(
     client, db_session, auth_tokens, event_payload

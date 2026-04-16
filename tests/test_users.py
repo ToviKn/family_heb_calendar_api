@@ -18,13 +18,13 @@ def test_create_user_fails_for_duplicate_email(client) -> None:
     payload = {
         "email": "duplicate@example.com",
         "name": "Original",
-        "password": "pw-1",
+        "password": "password123",
     }
     client.post("/users/", json=payload)
 
     response = client.post("/users/", json=payload)
 
-    assert response.status_code == 400
+    assert response.status_code == 409
     assert response.json()["message"] == "Email already exists"
 
 
