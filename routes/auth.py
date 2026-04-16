@@ -1,10 +1,11 @@
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
+from exceptions import UnauthorizedError
 from services.auth_service import authenticate_user, create_access_token
 from storage.database import get_db
 
@@ -31,10 +32,7 @@ def login(
             "Authentication failed at login endpoint",
             extra={"operation": "login", "client_ip": client_ip},
         )
-        raise HTTPException(
-            status_code=401,
-            detail={"message": "Invalid credentials", "details": {}},
-        )
+        raise UnauthorizedError("Invalid credentials")
 
     token = create_access_token(user.id)
     logger.info(
