@@ -18,6 +18,27 @@ class CalendarAPIException(Exception):
         super().__init__(self.message)
 
 
+class UnauthorizedError(CalendarAPIException):
+    """Raised when authentication fails."""
+
+    def __init__(self, message: str = "Unauthorized", details: dict[str, Any] | None = None) -> None:
+        super().__init__(message, status.HTTP_401_UNAUTHORIZED, details)
+
+
+class PermissionDeniedError(CalendarAPIException):
+    """Raised when user lacks permission for an operation."""
+
+    def __init__(self, message: str = "Permission denied", details: dict[str, Any] | None = None) -> None:
+        super().__init__(message, status.HTTP_403_FORBIDDEN, details)
+
+
+class ConflictError(CalendarAPIException):
+    """Raised when operation conflicts with existing state."""
+
+    def __init__(self, message: str = "Conflict", details: dict[str, Any] | None = None) -> None:
+        super().__init__(message, status.HTTP_409_CONFLICT, details)
+
+
 class ValidationError(CalendarAPIException):
     """Raised when input validation fails."""
 
