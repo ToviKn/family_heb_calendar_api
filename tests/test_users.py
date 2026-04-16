@@ -1,3 +1,6 @@
+from tests.assertions import assert_error_response
+
+
 def test_create_user_success(client) -> None:
     payload = {
         "email": "new.user@example.com",
@@ -24,8 +27,8 @@ def test_create_user_fails_for_duplicate_email(client) -> None:
 
     response = client.post("/users/", json=payload)
 
-    assert response.status_code == 400
-    assert response.json()["message"] == "Email already exists"
+    error_payload = assert_error_response(response, 409, expected_message="Email already exists")
+    assert error_payload["details"].get("email") == "duplicate@example.com"
 
 
 def test_create_user_fails_for_invalid_email(client) -> None:

@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from jose import jwt
 
 from services.auth_service import ALGORITHM, SECRET_KEY
+from tests.assertions import assert_error_response
 
 
 def _auth_header(token: str) -> dict[str, str]:
@@ -34,8 +35,7 @@ def test_create_family_rejects_invalid_token(client) -> None:
         headers={"Authorization": "Bearer not-a-valid-token"},
     )
 
-    assert response.status_code == 401
-    assert response.json()["message"] == "Invalid token"
+    assert_error_response(response, 401, message_contains="invalid token")
 
 
 def test_create_family_rejects_expired_token(client) -> None:
@@ -46,8 +46,7 @@ def test_create_family_rejects_expired_token(client) -> None:
         headers=_auth_header(expired),
     )
 
-    assert response.status_code == 401
-    assert response.json()["message"] == "Invalid token"
+    assert_error_response(response, 401, message_contains="invalid token")
 
 
 def test_create_family_rejects_token_for_missing_user(client) -> None:
@@ -58,8 +57,7 @@ def test_create_family_rejects_token_for_missing_user(client) -> None:
         headers=_auth_header(unknown_user_token),
     )
 
-    assert response.status_code == 401
-    assert response.json()["message"] == "User not found"
+    assert_error_response(response, 401, message_contains="user not found")
 
 
 def test_create_family_rejects_token_with_non_numeric_subject(client) -> None:
@@ -70,8 +68,7 @@ def test_create_family_rejects_token_with_non_numeric_subject(client) -> None:
         headers=_auth_header(bad_subject_token),
     )
 
-    assert response.status_code == 401
-    assert response.json()["message"] == "Invalid user ID in token"
+    assert_error_response(response, 401, message_contains="invalid user")
 
 
 def test_create_event_non_member_surfaces_current_error_contract(
@@ -83,6 +80,4 @@ def test_create_event_non_member_surfaces_current_error_contract(
         headers=_auth_header(auth_tokens["outsider"]),
     )
 
-    assert response.status_code == 403
-    body = response.json()
-    assert body.get("detail") == "User not in family" or body.get("message") == "User not in family"
+    assert_error_response(response, 403, expected_message="User not in family")

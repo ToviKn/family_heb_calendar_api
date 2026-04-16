@@ -2,6 +2,7 @@ from datetime import date
 
 from models.models import Notification
 from services import notification_service
+from tests.assertions import assert_error_response
 
 def _auth_header(token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
@@ -120,8 +121,7 @@ def test_create_notification_returns_404_for_missing_event(client, auth_tokens) 
         headers=_auth_header(auth_tokens["owner"]),
     )
 
-    assert response.status_code == 404
-    assert response.json()["message"] == "Event not found"
+    assert_error_response(response, 404, expected_message="Event not found")
 
 def test_create_notification_returns_403_for_non_family_member(
     client, auth_tokens, event_payload
@@ -139,8 +139,7 @@ def test_create_notification_returns_403_for_non_family_member(
         headers=_auth_header(auth_tokens["outsider"]),
     )
 
-    assert response.status_code == 403
-    assert response.json()["message"] == "User not in event family"
+    assert_error_response(response, 403, expected_message="User not in event family")
 
 def test_process_event_reminders_creates_due_reminders_once(
     client, db_session, auth_tokens, event_payload

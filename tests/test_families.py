@@ -1,4 +1,5 @@
 from models.models import FamilyMembership
+from tests.assertions import assert_error_response
 
 
 def _auth_header(token: str) -> dict[str, str]:
@@ -32,7 +33,10 @@ def test_add_family_member_success(client, auth_tokens, sample_family, sample_us
     )
 
     assert response.status_code == 200
-    assert response.json() == {}
+    data = response.json()
+    assert data["family_id"] == sample_family.id
+    assert data["user_id"] == sample_users["outsider"].id
+    assert data["role"] == "member"
 
 
 def test_add_family_member_fails_for_duplicate_membership(
@@ -44,8 +48,11 @@ def test_add_family_member_fails_for_duplicate_membership(
         headers=_auth_header(auth_tokens["owner"]),
     )
 
-    assert response.status_code == 400
-    assert response.json()["message"] == "User is already a member of this family"
+    assert_error_response(
+        response,
+        409,
+        message_contains="already a member",
+    )
 
 
 def test_add_family_member_fails_for_non_admin_member(
@@ -57,8 +64,7 @@ def test_add_family_member_fails_for_non_admin_member(
         headers=_auth_header(auth_tokens["member"]),
     )
 
-    assert response.status_code == 403
-    assert response.json()["message"] == "Not authorized to add family members"
+    assert_error_response(response, 403, message_contains="not authorized")
 
 
 def test_add_family_member_fails_for_non_member(
@@ -70,8 +76,7 @@ def test_add_family_member_fails_for_non_member(
         headers=_auth_header(auth_tokens["outsider"]),
     )
 
-    assert response.status_code == 403
-    assert response.json()["message"] == "Not authorized to add family members"
+    assert_error_response(response, 403, message_contains="not authorized")
 
 
 def test_create_family_assigns_creator_as_admin(
