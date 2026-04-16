@@ -49,6 +49,8 @@ A production-oriented FastAPI backend for managing family events across Gregoria
 │   ├── database.py             # Engine/session configuration and DB session dependency
 │   ├── enums.py                # Shared enum values
 │   └── schema_migrations.py    # Runtime-safe schema migration helpers
+├── utils/                   # Shared utility module
+│   ├── date_utils.py           # Hebrew month length calculations
 ├── tests/                   # Automated tests
 ├── logging_config.py        # Structured logging config
 ├── exceptions.py            # Domain/API exception types
