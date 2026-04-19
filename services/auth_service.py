@@ -1,7 +1,7 @@
 import logging
 import os
-from datetime import datetime, timedelta
-from typing import Annotated
+from datetime import datetime, timedelta, timezone
+from typing import Annotated, Optional
 
 from fastapi import Depends
 from fastapi.security import OAuth2PasswordBearer
@@ -13,7 +13,6 @@ from exceptions import (
     CalendarAPIException,
     DatabaseError,
     UnauthorizedError,
-    ValidationError,
 )
 from models.models import User
 from storage.database import get_db
@@ -41,14 +40,20 @@ def verify_password(password: str, hashed: str) -> bool:
 
 
 def create_access_token(user_id: int) -> str:
-    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    payload = {"sub": str(user_id), "exp": expire, "iat": datetime.utcnow()}
+    now = datetime.now(timezone.utc)
+    expire = now + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+
+    payload = {
+        "sub": str(user_id),
+        "exp": expire,
+        "iat": now,
+    }
     token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
     return token
 
 
 def authenticate_user(db: Session, email: str, password: str) -> User | None:
-    user = db.query(User).filter(User.email == email.strip().lower()).first()
+    user: Optional[User] = db.query(User).filter(User.email == email.strip().lower()).first()
     if user is None:
         return None
     if not verify_password(password, user.password_hash):
@@ -80,7 +85,7 @@ def get_current_user(token: Annotated[str, Depends(oauth2_scheme)], db: DbSessio
         raise UnauthorizedError("Invalid token") from exc
 
     try:
-        user = db.query(User).filter(User.id == user_id).first()
+        user: User | None = db.query(User).filter(User.id == user_id).first()
         if user is None:
             logger.warning(
                 "Authenticated user not found",

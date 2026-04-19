@@ -1,7 +1,7 @@
 import logging
 from collections import defaultdict
-from datetime import date, datetime, timedelta
-from typing import Callable
+from datetime import date, datetime, timedelta, timezone
+from typing import Callable, cast
 
 from sqlalchemy.orm import Session
 
@@ -120,12 +120,13 @@ def create_notification(db: Session, payload: NotificationCreate, current_user_i
 
 def get_user_notifications(db: Session, user_id: int) -> list[Notification]:
     try:
-        return (
-            db.query(Notification)
-            .filter(Notification.user_id == user_id)
-            .order_by(Notification.created_at.desc())
+        notifications = db.query(Notification) \
+            .filter(Notification.user_id == user_id) \
+            .order_by(Notification.created_at.desc()) \
             .all()
-        )
+
+        return cast(list[Notification], notifications)
+
     except Exception as exc:
         logger.error("Failed to get notifications", exc_info=True)
         raise DatabaseError(f"Failed to get notifications: {exc}", "get_user_notifications") from exc
@@ -133,7 +134,8 @@ def get_user_notifications(db: Session, user_id: int) -> list[Notification]:
 
 def mark_notification_as_read(db: Session, notification_id: int, user_id: int) -> Notification:
     try:
-        notification = (
+        notification = cast(
+            Notification | None,
             db.query(Notification)
             .filter(Notification.id == notification_id, Notification.user_id == user_id)
             .first()
@@ -156,7 +158,8 @@ def mark_notification_as_read(db: Session, notification_id: int, user_id: int) -
 
 def delete_notification(db: Session, notification_id: int, user_id: int) -> dict[str, str]:
     try:
-        notification = (
+        notification = cast(
+            Notification | None,
             db.query(Notification)
             .filter(Notification.id == notification_id, Notification.user_id == user_id)
             .first()
@@ -230,7 +233,7 @@ def _event_occurs_within_window(next_occurrence: date, today: date) -> bool:
 
 
 def _resolve_occurrence_without_commit(event: Event, today: date) -> date | None:
-    current_next_occurrence = event.next_occurrence
+    current_next_occurrence = cast(date | None, event.next_occurrence)
     if current_next_occurrence is not None and current_next_occurrence >= today:
         return current_next_occurrence
     return calculate_next_occurrence(event)
@@ -263,13 +266,16 @@ def _today_reminder_pairs(db: Session, today: date) -> set[tuple[int, int]]:
 
 def process_event_reminders(db: Session, _within_hours: int = 24) -> int:
     try:
-        today = datetime.utcnow().date()
+        today = datetime.now(timezone.utc).date()
         created_count = 0
 
         users = db.query(User).all()
         memberships = db.query(FamilyMembership.user_id, FamilyMembership.family_id).all()
         family_ids = sorted({family_id for _, family_id in memberships})
-        events = db.query(Event).filter(Event.family_id.in_(family_ids)).all() if family_ids else []
+        events = cast(
+            list[Event],
+            db.query(Event).filter(Event.family_id.in_(family_ids)).all()
+        ) if family_ids else []
 
         events_by_family: dict[int, list[Event]] = defaultdict(list)
         for event in events:

@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -32,7 +32,7 @@ def get_user_family_ids(db: Session, user_id: int) -> list[int]:
 
 
 def ensure_user_in_family(db: Session, user_id: int, family_id: int) -> FamilyMembership:
-    membership = (
+    membership: FamilyMembership | None = (
         db.query(FamilyMembership)
         .filter(
             FamilyMembership.user_id == user_id,
@@ -65,7 +65,7 @@ def ensure_admin_in_family(db: Session, user_id: int, family_id: int) -> FamilyM
 
 def create_family(db: Session, name: str, actor_user_id: int) -> Family:
     try:
-        family = Family(name=name, created_at=datetime.utcnow())
+        family = Family(name=name, created_at=datetime.now(timezone.utc))
         db.add(family)
         db.flush()
 

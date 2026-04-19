@@ -1,6 +1,7 @@
 import logging
 from calendar import monthrange
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime, timezone
+from typing import cast
 
 from convertdate import hebrew
 
@@ -119,8 +120,7 @@ def convert_to_gregorian(year: int, month: int, day: int) -> tuple[int, int, int
 
 
 def _today() -> date:
-    return date.today()
-
+    return datetime.now(timezone.utc).date()
 
 def _resolve_hebrew_month_for_year(source_month: int, target_h_year: int) -> int:
     """Resolve Adar handling when translating a month into a target Hebrew year."""
@@ -246,7 +246,7 @@ def calculate_next_occurrence(
         "Calculating next occurrence",
         extra={
             "event_id": event.id,
-            "calendar_type": str(event.calendar_type),
+            "calendar_type": event.calendar_type.value,
             "repeat_type": event.repeat_type,
             "year": event.year,
             "month": event.month,
@@ -262,14 +262,14 @@ def calculate_next_occurrence(
         )
         raise ValidationError("Event month and day are required", "date")
 
-    event_month = event.month
-    event_day = event.day
+    event_month = cast(int, event.month)
+    event_day = cast(int, event.day)
 
     # One-time events
     if event.repeat_type == RepeatType.NONE:
         if event.year is None:
             raise ValidationError("One-time events require a year", "year")
-        event_year = event.year
+        event_year = cast(int | None, event.year)
 
         if event.calendar_type == CalendarType.GREGORIAN:
             validate_gregorian_date(event_year, event_month, event_day)
@@ -296,7 +296,7 @@ def calculate_next_occurrence(
     if event.repeat_type == RepeatType.DAILY:
         if event.year is None:
             raise ValidationError("Daily events require a year anchor", "year")
-        event_year = event.year
+        event_year = cast(int | None, event.year)
 
         if event.calendar_type == CalendarType.GREGORIAN:
             validate_gregorian_date(event_year, event_month, event_day)
@@ -323,7 +323,7 @@ def calculate_next_occurrence(
     if event.repeat_type == RepeatType.WEEKLY:
         if event.year is None:
             raise ValidationError("Weekly events require a year anchor", "year")
-        event_year = event.year
+        event_year = cast(int | None, event.year)
 
         if event.calendar_type == CalendarType.GREGORIAN:
             validate_gregorian_date(event_year, event_month, event_day)
@@ -397,7 +397,7 @@ def calculate_next_occurrence(
 def get_today_dates() -> DateConversionResponse:
     """Get today's date in both Gregorian and Hebrew formats."""
     try:
-        today = date.today()
+        today = _today()
         h_year, h_month, h_day = convert_to_hebrew(today.year, today.month, today.day)
 
         return DateConversionResponse(

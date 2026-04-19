@@ -1,6 +1,6 @@
 import logging
-from datetime import date, datetime, timedelta
-from typing import Any
+from datetime import datetime, timedelta, timezone
+from typing import Any, cast
 
 from sqlalchemy import and_
 from sqlalchemy.orm import Session
@@ -19,6 +19,7 @@ def create_event(db: Session, event: EventCreate, user_id: int) -> Event:
     try:
         ensure_user_in_family(db, user_id, event.family_id)
 
+        now = datetime.now(timezone.utc)
         db_event = Event(
             title=event.title,
             description=event.description,
@@ -31,8 +32,8 @@ def create_event(db: Session, event: EventCreate, user_id: int) -> Event:
             repeat_type=event.repeat_type,
             family_id=event.family_id,
             created_by=user_id,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
+            created_at=now,
+            updated_at=now,
         )
 
         db_event.next_occurrence = calculate_next_occurrence(db_event)
@@ -94,7 +95,7 @@ def get_events_for_date(
 
 def get_event_by_id(db: Session, event_id: int, user_id: int | None = None) -> Event:
     try:
-        event = db.query(Event).filter(Event.id == event_id).first()
+        event: Event | None = db.query(Event).filter(Event.id == event_id).first()
         if event is None:
             raise NotFoundError("Event", event_id)
         if user_id is not None:
@@ -187,23 +188,32 @@ def get_upcoming_events(
     try:
         if allowed_family_ids is not None and not allowed_family_ids:
             return []
+
         if family_id is not None and allowed_family_ids is not None and family_id not in allowed_family_ids:
             return []
 
-        today = date.today()
+        today = datetime.now(timezone.utc).date()
         end_date = today + timedelta(days=days)
-        query = db.query(Event).filter(and_(Event.next_occurrence >= today, Event.next_occurrence <= end_date))
+
+        query = db.query(Event).filter(
+            and_(Event.next_occurrence >= today, Event.next_occurrence <= end_date)
+        )
 
         if allowed_family_ids is not None:
             query = query.filter(Event.family_id.in_(allowed_family_ids))
-        if family_id:
+
+        if family_id is not None:
             query = query.filter(Event.family_id == family_id)
 
-        return query.order_by(Event.next_occurrence).all()
+        events = cast(list[Event], query.order_by(Event.next_occurrence).all())
+        return events
+
     except Exception as exc:
         logger.error("Failed to get upcoming events", exc_info=True)
-        raise DatabaseError(f"Failed to retrieve upcoming events: {exc}", "get_upcoming_events") from exc
-
+        raise DatabaseError(
+            f"Failed to retrieve upcoming events: {exc}",
+            "get_upcoming_events",
+        ) from exc
 
 def get_events_by_family(
     db: Session,
@@ -214,8 +224,10 @@ def get_events_by_family(
 ) -> dict[str, Any]:
     try:
         if allowed_family_ids is not None and family_id not in allowed_family_ids:
-            return {"events": [], "total": 0, "page": page, "per_page": per_page}
-
+            raise PermissionDeniedError(
+                "Not authorized to get this family events",
+                {"family_id": family_id},
+            )
         offset = (page - 1) * per_page
         query = db.query(Event).filter(Event.family_id == family_id)
         total = query.count()

@@ -16,17 +16,17 @@ DbSession = Annotated[Session, Depends(get_db)]
 CurrentUser = Annotated[User, Depends(get_current_user)]
 
 @router.post("/", response_model=NotificationResponse, status_code=201)
-def create_notification(payload: NotificationCreate, db: DbSession, current_user: CurrentUser) -> NotificationResponse:
+def create_notification(payload: NotificationCreate, db: DbSession, current_user: CurrentUser):
     return notification_service.create_notification(db, payload, current_user.id)
 
 
 @router.get("/", response_model=list[NotificationResponse])
-def get_notifications(db: DbSession, current_user: CurrentUser) -> list[NotificationResponse]:
+def get_notifications(db: DbSession, current_user: CurrentUser):
     return notification_service.get_user_notifications(db, current_user.id)
 
 
 @router.patch("/{notification_id}/read", response_model=NotificationResponse)
-def mark_read(notification_id: int, db: DbSession, current_user: CurrentUser) -> NotificationResponse:
+def mark_read(notification_id: int, db: DbSession, current_user: CurrentUser):
     return notification_service.mark_notification_as_read(db, notification_id, current_user.id)
 
 
