@@ -1,15 +1,12 @@
 from models.models import FamilyMembership
 
 
-def _auth_header(token: str) -> dict[str, str]:
-    return {"Authorization": f"Bearer {token}"}
 
-
-def test_create_family_success(client, auth_tokens) -> None:
+def test_create_family_success(client, auth_tokens, auth_header) -> None:
     response = client.post(
         "/families/",
         params={"name": "The Smiths"},
-        headers=_auth_header(auth_tokens["owner"]),
+        headers=auth_header(auth_tokens["owner"]),
     )
 
     assert response.status_code == 200
@@ -24,11 +21,11 @@ def test_create_family_requires_authentication(client) -> None:
     assert response.status_code == 401
 
 
-def test_add_family_member_success(client, auth_tokens, sample_family, sample_users) -> None:
+def test_add_family_member_success(client, auth_tokens, auth_header, sample_family, sample_users) -> None:
     response = client.post(
         f"/families/{sample_family.id}/members",
         params={"user_id": sample_users["outsider"].id},
-        headers=_auth_header(auth_tokens["owner"]),
+        headers=auth_header(auth_tokens["owner"]),
     )
 
     assert response.status_code == 200
@@ -36,12 +33,12 @@ def test_add_family_member_success(client, auth_tokens, sample_family, sample_us
 
 
 def test_add_family_member_fails_for_duplicate_membership(
-    client, auth_tokens, sample_family, sample_users
+    client, auth_tokens, sample_family, sample_users, auth_header
 ) -> None:
     response = client.post(
         f"/families/{sample_family.id}/members",
         params={"user_id": sample_users["member"].id},
-        headers=_auth_header(auth_tokens["owner"]),
+        headers=auth_header(auth_tokens["owner"]),
     )
 
     assert response.status_code == 409
@@ -49,12 +46,12 @@ def test_add_family_member_fails_for_duplicate_membership(
 
 
 def test_add_family_member_fails_for_non_admin_member(
-    client, auth_tokens, sample_family, sample_users
+    client, auth_tokens, sample_family, sample_users, auth_header
 ) -> None:
     response = client.post(
         f"/families/{sample_family.id}/members",
         params={"user_id": sample_users["outsider"].id},
-        headers=_auth_header(auth_tokens["member"]),
+        headers=auth_header(auth_tokens["member"]),
     )
 
     assert response.status_code == 403
@@ -62,12 +59,12 @@ def test_add_family_member_fails_for_non_admin_member(
 
 
 def test_add_family_member_fails_for_non_member(
-    client, auth_tokens, sample_family, sample_users
+    client, auth_tokens, sample_family, sample_users, auth_header
 ) -> None:
     response = client.post(
         f"/families/{sample_family.id}/members",
         params={"user_id": sample_users["owner"].id},
-        headers=_auth_header(auth_tokens["outsider"]),
+        headers=auth_header(auth_tokens["outsider"]),
     )
 
     assert response.status_code == 403
@@ -75,12 +72,12 @@ def test_add_family_member_fails_for_non_member(
 
 
 def test_create_family_assigns_creator_as_admin(
-    client, auth_tokens, sample_users, db_session
+    client, auth_tokens, sample_users, db_session, auth_header
 ) -> None:
     response = client.post(
         "/families/",
         params={"name": "Admin Assignment Family"},
-        headers=_auth_header(auth_tokens["owner"]),
+        headers=auth_header(auth_tokens["owner"]),
     )
 
     assert response.status_code == 200
@@ -96,3 +93,25 @@ def test_create_family_assigns_creator_as_admin(
     )
     assert membership is not None
     assert membership.role == "admin"
+
+
+def test_add_family_member_denies_for_missing_family_when_actor_not_member(client, auth_tokens, sample_users, auth_header) -> None:
+    response = client.post(
+        "/families/9999/members",
+        params={"user_id": sample_users["outsider"].id},
+        headers=auth_header(auth_tokens["owner"]),
+    )
+
+    assert response.status_code == 403
+    assert response.json()["message"] == "User not in family"
+
+
+def test_add_family_member_returns_not_found_for_missing_user(client, auth_tokens, sample_family, auth_header) -> None:
+    response = client.post(
+        f"/families/{sample_family.id}/members",
+        params={"user_id": 9999},
+        headers=auth_header(auth_tokens["owner"]),
+    )
+
+    assert response.status_code == 404
+    assert response.json()["message"] == "User with identifier '9999' not found"

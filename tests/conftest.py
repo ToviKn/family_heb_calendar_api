@@ -157,3 +157,11 @@ def event_payload(sample_family: Family, sample_users: dict[str, User]) -> dict[
         "repeat_type": "none",
         "family_id": sample_family.id,
     }
+
+
+@pytest.fixture(scope="function")
+def auth_header() -> Any:
+    def _auth_header(token: str) -> dict[str, str]:
+        return {"Authorization": f"Bearer {token}"}
+
+    return _auth_header

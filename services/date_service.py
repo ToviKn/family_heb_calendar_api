@@ -246,13 +246,24 @@ def calculate_next_occurrence(
         "Calculating next occurrence",
         extra={
             "event_id": event.id,
-            "calendar_type": event.calendar_type.value,
+            "calendar_type": getattr(event.calendar_type, "value", event.calendar_type),
             "repeat_type": event.repeat_type,
             "year": event.year,
             "month": event.month,
             "day": event.day,
             "today": today.isoformat(),
         },
+    )
+
+    event_calendar_type = (
+        event.calendar_type
+        if isinstance(event.calendar_type, CalendarType)
+        else CalendarType(str(event.calendar_type))
+    )
+    event_repeat_type = (
+        event.repeat_type
+        if isinstance(event.repeat_type, RepeatType)
+        else RepeatType(str(event.repeat_type))
     )
 
     if event.month is None or event.day is None:
@@ -266,19 +277,19 @@ def calculate_next_occurrence(
     event_day = cast(int, event.day)
 
     # One-time events
-    if event.repeat_type == RepeatType.NONE:
+    if event_repeat_type == RepeatType.NONE:
         if event.year is None:
             raise ValidationError("One-time events require a year", "year")
         event_year = cast(int | None, event.year)
 
-        if event.calendar_type == CalendarType.GREGORIAN:
+        if event_calendar_type == CalendarType.GREGORIAN:
             validate_gregorian_date(event_year, event_month, event_day)
             occurrence = date(event_year, event_month, event_day)
-        elif event.calendar_type == CalendarType.HEBREW:
+        elif event_calendar_type == CalendarType.HEBREW:
             occurrence = _gregorian_for_hebrew(event_year, event_month, event_day)
         else:
             raise ValidationError(
-                f"Unsupported calendar type: {event.calendar_type}", "calendar_type"
+                f"Unsupported calendar type: {event_calendar_type}", "calendar_type"
             )
 
         if occurrence >= today:
@@ -293,19 +304,19 @@ def calculate_next_occurrence(
         )
         return None
 
-    if event.repeat_type == RepeatType.DAILY:
+    if event_repeat_type == RepeatType.DAILY:
         if event.year is None:
             raise ValidationError("Daily events require a year anchor", "year")
         event_year = cast(int | None, event.year)
 
-        if event.calendar_type == CalendarType.GREGORIAN:
+        if event_calendar_type == CalendarType.GREGORIAN:
             validate_gregorian_date(event_year, event_month, event_day)
             anchor = date(event_year, event_month, event_day)
-        elif event.calendar_type == CalendarType.HEBREW:
+        elif event_calendar_type == CalendarType.HEBREW:
             anchor = _gregorian_for_hebrew(event_year, event_month, event_day)
         else:
             raise ValidationError(
-                f"Unsupported calendar type: {event.calendar_type}", "calendar_type"
+                f"Unsupported calendar type: {event_calendar_type}", "calendar_type"
             )
 
         occurrence = max(anchor, today)
@@ -320,19 +331,19 @@ def calculate_next_occurrence(
         return occurrence
 
     # Weekly events rely on the weekday of a concrete anchor date.
-    if event.repeat_type == RepeatType.WEEKLY:
+    if event_repeat_type == RepeatType.WEEKLY:
         if event.year is None:
             raise ValidationError("Weekly events require a year anchor", "year")
         event_year = cast(int | None, event.year)
 
-        if event.calendar_type == CalendarType.GREGORIAN:
+        if event_calendar_type == CalendarType.GREGORIAN:
             validate_gregorian_date(event_year, event_month, event_day)
             anchor = date(event_year, event_month, event_day)
-        elif event.calendar_type == CalendarType.HEBREW:
+        elif event_calendar_type == CalendarType.HEBREW:
             anchor = _gregorian_for_hebrew(event_year, event_month, event_day)
         else:
             raise ValidationError(
-                f"Unsupported calendar type: {event.calendar_type}", "calendar_type"
+                f"Unsupported calendar type: {event_calendar_type}", "calendar_type"
             )
 
         occurrence = _next_weekly(anchor.weekday(), today)
@@ -346,15 +357,15 @@ def calculate_next_occurrence(
         )
         return occurrence
 
-    if event.calendar_type == CalendarType.HEBREW:
-        if event.repeat_type == RepeatType.YEARLY:
+    if event_calendar_type == CalendarType.HEBREW:
+        if event_repeat_type == RepeatType.YEARLY:
             occurrence = _next_yearly_hebrew(event_month, event_day, today)
             logger.debug(
                 "Resolved yearly Hebrew occurrence",
                 extra={"event_id": event.id, "occurrence": occurrence.isoformat()},
             )
             return occurrence
-        if event.repeat_type == RepeatType.MONTHLY:
+        if event_repeat_type == RepeatType.MONTHLY:
             occurrence = _next_monthly_hebrew(event_day, today)
             logger.debug(
                 "Resolved monthly Hebrew occurrence",
@@ -362,12 +373,12 @@ def calculate_next_occurrence(
             )
             return occurrence
         raise ValidationError(
-            f"Unsupported repeat type for Hebrew calendar: {event.repeat_type}",
+            f"Unsupported repeat type for Hebrew calendar: {event_repeat_type}",
             "repeat_type",
         )
 
-    if event.calendar_type == CalendarType.GREGORIAN:
-        if event.repeat_type == RepeatType.YEARLY:
+    if event_calendar_type == CalendarType.GREGORIAN:
+        if event_repeat_type == RepeatType.YEARLY:
             validate_gregorian_date(
                 2024 if event_month == 2 else today.year, event_month, event_day
             )
@@ -377,7 +388,7 @@ def calculate_next_occurrence(
                 extra={"event_id": event.id, "occurrence": occurrence.isoformat()},
             )
             return occurrence
-        if event.repeat_type == RepeatType.MONTHLY:
+        if event_repeat_type == RepeatType.MONTHLY:
             if event_day < 1 or event_day > 31:
                 raise ValidationError("Day must be between 1 and 31", "day")
             occurrence = _next_monthly_gregorian(event_day, today)
@@ -387,11 +398,11 @@ def calculate_next_occurrence(
             )
             return occurrence
         raise ValidationError(
-            f"Unsupported repeat type for Gregorian calendar: {event.repeat_type}",
+            f"Unsupported repeat type for Gregorian calendar: {event_repeat_type}",
             "repeat_type",
         )
 
-    raise ValidationError(f"Unsupported calendar type: {event.calendar_type}", "calendar_type")
+    raise ValidationError(f"Unsupported calendar type: {event_calendar_type}", "calendar_type")
 
 
 def get_today_dates() -> DateConversionResponse:
