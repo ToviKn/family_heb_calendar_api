@@ -417,3 +417,24 @@ def test_delete_notification_not_found_for_user(client, auth_tokens, auth_header
 
     assert response.status_code == 404
     assert response.json()["message"] == "Notification with identifier '9999' not found"
+
+
+def test_mark_notification_as_read_returns_not_found_for_other_user(
+    client, db_session, auth_tokens, sample_users, auth_header
+) -> None:
+    notification = Notification(
+        user_id=sample_users["owner"].id,
+        message="private",
+        type="system",
+        is_read=False,
+    )
+    db_session.add(notification)
+    db_session.commit()
+
+    response = client.patch(
+        f"/notifications/{notification.id}/read",
+        headers=auth_header(auth_tokens["member"]),
+    )
+
+    assert response.status_code == 404
+    assert response.json()["message"] == f"Notification with identifier '{notification.id}' not found"

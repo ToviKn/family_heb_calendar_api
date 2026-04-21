@@ -85,7 +85,7 @@ Optional:
 
 ```bash
 python -m venv .venv
-source .venv/bin/activate
+source venv\Scripts\activate 
 pip install --upgrade pip
 pip install -r requirements.txt
 cp .env.example .env
@@ -170,3 +170,32 @@ https://family-heb-calendar-api.onrender.com/health
 - Restrict `ALLOWED_ORIGINS` to trusted frontend domains.
 - Keep `DEBUG=false` in production.
 - Use managed PostgreSQL for production workloads.
+
+
+## Testing with Coverage
+
+Install coverage plugin (if missing):
+
+```bash
+pip install pytest-cov
+```
+
+Run tests with coverage (requested command):
+
+```bash
+pytest --cov=app --cov-report=term-missing
+```
+
+> Note: in this repository the Python package is not named `app`, so the command above may fail unless an `app/` package is introduced.
+
+Practical command for current layout:
+
+```bash
+pytest --cov=. --cov-report=term-missing
+```
+
+Low-coverage areas to prioritize next:
+- Global exception handlers in `main.py` (hard to trigger all branches).
+- `routes/debug.py` (debug endpoint currently under-tested).
+- Error branches in service-layer `DatabaseError` fallbacks (require injected DB failures).
+- Structured logging utilities (`logging_config.py`) branch-level behavior.

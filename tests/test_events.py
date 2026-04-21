@@ -362,3 +362,21 @@ def test_family_events_denied_for_user_outside_family(client, auth_tokens, event
     )
 
     assert response.status_code == 500
+
+
+def test_search_events_by_date_requires_all_query_params(client, auth_tokens, auth_header) -> None:
+    response = client.get(
+        "/events/?year=2026&month=5",
+        headers=auth_header(auth_tokens["owner"]),
+    )
+
+    assert response.status_code == 422
+
+
+def test_upcoming_events_rejects_out_of_range_days(client, auth_tokens, auth_header) -> None:
+    response = client.get(
+        "/events/upcoming?days=366",
+        headers=auth_header(auth_tokens["owner"]),
+    )
+
+    assert response.status_code == 422
