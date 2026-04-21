@@ -47,3 +47,14 @@ def test_login_token_contains_string_subject(client, sample_users) -> None:
     )
     assert isinstance(decoded["sub"], str)
     assert decoded["sub"] == str(sample_users["owner"].id)
+
+
+def test_invalid_token_rejected_on_protected_route(client) -> None:
+    response = client.post(
+        "/families/",
+        params={"name": "Invalid Token Family"},
+        headers={"Authorization": "Bearer invalid-token"},
+    )
+
+    assert response.status_code == 401
+    assert response.json()["message"] == "Invalid token"

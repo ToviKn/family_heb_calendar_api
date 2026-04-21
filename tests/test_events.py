@@ -2,14 +2,11 @@ from datetime import date
 
 from sqlalchemy import text
 
-def _auth_header(token: str) -> dict[str, str]:
-    return {"Authorization": f"Bearer {token}"}
-
-def test_create_event_success(client, auth_tokens, event_payload) -> None:
+def test_create_event_success(client, auth_tokens, event_payload, auth_header) -> None:
     response = client.post(
         "/events/",
         json=event_payload,
-        headers=_auth_header(auth_tokens["owner"]),
+        headers=auth_header(auth_tokens["owner"]),
     )
 
     assert response.status_code == 201
@@ -19,20 +16,20 @@ def test_create_event_success(client, auth_tokens, event_payload) -> None:
     assert data["created_by"] > 0
 
 
-def test_create_event_ignores_client_created_by(client, auth_tokens, event_payload) -> None:
+def test_create_event_ignores_client_created_by(client, auth_tokens, auth_header, event_payload) -> None:
     payload = event_payload.copy()
     payload["created_by"] = 999999
 
     response = client.post(
         "/events/",
         json=payload,
-        headers=_auth_header(auth_tokens["owner"]),
+        headers=auth_header(auth_tokens["owner"]),
     )
 
     assert response.status_code == 201
     assert response.json()["created_by"] != 999999
 
-def test_create_event_accepts_time_only_inputs(client, auth_tokens, event_payload) -> None:
+def test_create_event_accepts_time_only_inputs(client, auth_tokens, auth_header, event_payload) -> None:
     payload = event_payload.copy()
     payload["start_time"] = "18:00:00"
     payload["end_time"] = "20:00:00"
@@ -40,7 +37,7 @@ def test_create_event_accepts_time_only_inputs(client, auth_tokens, event_payloa
     response = client.post(
         "/events/",
         json=payload,
-        headers=_auth_header(auth_tokens["owner"]),
+        headers=auth_header(auth_tokens["owner"]),
     )
 
     assert response.status_code == 201
@@ -49,7 +46,7 @@ def test_create_event_accepts_time_only_inputs(client, auth_tokens, event_payloa
 
 
 
-def test_create_event_normalizes_hh_mm_inputs_to_seconds(client, auth_tokens, event_payload) -> None:
+def test_create_event_normalizes_hh_mm_inputs_to_seconds(client, auth_tokens, auth_header, event_payload) -> None:
     payload = event_payload.copy()
     payload["start_time"] = "18:00"
     payload["end_time"] = "20:00"
@@ -57,7 +54,7 @@ def test_create_event_normalizes_hh_mm_inputs_to_seconds(client, auth_tokens, ev
     response = client.post(
         "/events/",
         json=payload,
-        headers=_auth_header(auth_tokens["owner"]),
+        headers=auth_header(auth_tokens["owner"]),
     )
 
     assert response.status_code == 201
@@ -75,7 +72,7 @@ def test_openapi_event_create_time_fields_are_time_only(client) -> None:
     assert schema["end_time"]["anyOf"][0]["format"] == "time"
     assert schema["end_time"]["example"] == "20:00:00"
 
-def test_create_event_rejects_datetime_time_inputs(client, auth_tokens, event_payload) -> None:
+def test_create_event_rejects_datetime_time_inputs(client, auth_tokens, auth_header, event_payload) -> None:
     payload = event_payload.copy()
     payload["start_time"] = "2026-05-20T18:00:00"
     payload["end_time"] = "2026-05-20T20:00:00"
@@ -83,12 +80,12 @@ def test_create_event_rejects_datetime_time_inputs(client, auth_tokens, event_pa
     response = client.post(
         "/events/",
         json=payload,
-        headers=_auth_header(auth_tokens["owner"]),
+        headers=auth_header(auth_tokens["owner"]),
     )
 
     assert response.status_code == 422
 
-def test_create_event_rejects_placeholder_date(client, auth_tokens, event_payload) -> None:
+def test_create_event_rejects_placeholder_date(client, auth_tokens, auth_header, event_payload) -> None:
     payload = event_payload.copy()
     payload["year"] = 1
     payload["month"] = 1
@@ -97,12 +94,12 @@ def test_create_event_rejects_placeholder_date(client, auth_tokens, event_payloa
     response = client.post(
         "/events/",
         json=payload,
-        headers=_auth_header(auth_tokens["owner"]),
+        headers=auth_header(auth_tokens["owner"]),
     )
 
     assert response.status_code == 422
 
-def test_create_event_rejects_end_time_before_start_time(client, auth_tokens, event_payload) -> None:
+def test_create_event_rejects_end_time_before_start_time(client, auth_tokens, auth_header, event_payload) -> None:
     payload = event_payload.copy()
     payload["start_time"] = "20:00:00"
     payload["end_time"] = "18:00:00"
@@ -110,13 +107,13 @@ def test_create_event_rejects_end_time_before_start_time(client, auth_tokens, ev
     response = client.post(
         "/events/",
         json=payload,
-        headers=_auth_header(auth_tokens["owner"]),
+        headers=auth_header(auth_tokens["owner"]),
     )
 
     assert response.status_code == 422
 
 def test_create_event_validation_failure(
-    client, auth_tokens, sample_family
+    client, auth_tokens, sample_family, auth_header
 ) -> None:
     invalid_payload = {
         "title": "",
@@ -130,51 +127,51 @@ def test_create_event_validation_failure(
     response = client.post(
         "/events/",
         json=invalid_payload,
-        headers=_auth_header(auth_tokens["owner"]),
+        headers=auth_header(auth_tokens["owner"]),
     )
 
     assert response.status_code == 422
 
-def test_get_event_by_id_success(client, auth_tokens, event_payload) -> None:
+def test_get_event_by_id_success(client, auth_tokens, auth_header, event_payload) -> None:
     create_response = client.post(
         "/events/",
         json=event_payload,
-        headers=_auth_header(auth_tokens["owner"]),
+        headers=auth_header(auth_tokens["owner"]),
     )
     event_id = create_response.json()["id"]
 
-    response = client.get(f"/events/{event_id}", headers=_auth_header(auth_tokens["owner"]))
+    response = client.get(f"/events/{event_id}", headers=auth_header(auth_tokens["owner"]))
 
     assert response.status_code == 200
     assert response.json()["id"] == event_id
 
-def test_get_event_by_id_not_found(client, auth_tokens) -> None:
-    response = client.get("/events/9999", headers=_auth_header(auth_tokens["owner"]))
+def test_get_event_by_id_not_found(client, auth_tokens, auth_header) -> None:
+    response = client.get("/events/9999", headers=auth_header(auth_tokens["owner"]))
     assert response.status_code == 404
 
-def test_update_event_success(client, auth_tokens, event_payload) -> None:
+def test_update_event_success(client, auth_tokens, auth_header, event_payload) -> None:
     create_response = client.post(
         "/events/",
         json=event_payload,
-        headers=_auth_header(auth_tokens["owner"]),
+        headers=auth_header(auth_tokens["owner"]),
     )
     event_id = create_response.json()["id"]
 
     response = client.put(
         f"/events/{event_id}",
         json={"title": "Updated Event"},
-        headers=_auth_header(auth_tokens["owner"]),
+        headers=auth_header(auth_tokens["owner"]),
     )
 
     assert response.status_code == 200
     assert response.json()["title"] == "Updated Event"
 
 
-def test_update_event_ignores_client_created_by(client, auth_tokens, event_payload) -> None:
+def test_update_event_ignores_client_created_by(client, auth_tokens, auth_header, event_payload) -> None:
     create_response = client.post(
         "/events/",
         json=event_payload,
-        headers=_auth_header(auth_tokens["owner"]),
+        headers=auth_header(auth_tokens["owner"]),
     )
     event_id = create_response.json()["id"]
     original_created_by = create_response.json()["created_by"]
@@ -182,88 +179,94 @@ def test_update_event_ignores_client_created_by(client, auth_tokens, event_paylo
     response = client.put(
         f"/events/{event_id}",
         json={"title": "Updated Event", "created_by": 999999},
-        headers=_auth_header(auth_tokens["owner"]),
+        headers=auth_header(auth_tokens["owner"]),
     )
 
     assert response.status_code == 200
     assert response.json()["created_by"] == original_created_by
 
-def test_update_event_not_found(client, auth_tokens) -> None:
+def test_update_event_not_found(client, auth_tokens, auth_header) -> None:
     response = client.put(
         "/events/9999",
         json={"title": "Ghost Event"},
-        headers=_auth_header(auth_tokens["owner"]),
+        headers=auth_header(auth_tokens["owner"]),
     )
     assert response.status_code == 404
 
-def test_delete_event_success(client, auth_tokens, event_payload) -> None:
+def test_delete_event_success(client, auth_tokens, auth_header, event_payload) -> None:
     create_response = client.post(
         "/events/",
         json=event_payload,
-        headers=_auth_header(auth_tokens["owner"]),
+        headers=auth_header(auth_tokens["owner"]),
     )
     event_id = create_response.json()["id"]
 
     delete_response = client.delete(
-        f"/events/{event_id}", headers=_auth_header(auth_tokens["owner"])
+        f"/events/{event_id}", headers=auth_header(auth_tokens["owner"])
     )
 
     assert delete_response.status_code == 200
     assert delete_response.json()["message"] == "Event deleted successfully"
 
-def test_delete_event_not_found(client, auth_tokens) -> None:
-    response = client.delete("/events/9999", headers=_auth_header(auth_tokens["owner"]))
+def test_delete_event_not_found(client, auth_tokens, auth_header) -> None:
+    response = client.delete("/events/9999", headers=auth_header(auth_tokens["owner"]))
     assert response.status_code == 404
 
-def test_search_events_by_date_success(client, auth_tokens, event_payload) -> None:
+def test_search_events_by_date_success(client, auth_tokens, auth_header, event_payload) -> None:
     client.post(
-        "/events/", json=event_payload, headers=_auth_header(auth_tokens["owner"])
+        "/events/", json=event_payload, headers=auth_header(auth_tokens["owner"])
     )
 
     response = client.get(
         f"/events/?year={event_payload['year']}&month={event_payload['month']}&day={event_payload['day']}",
-        headers=_auth_header(auth_tokens["owner"]),
+        headers=auth_header(auth_tokens["owner"]),
     )
 
     assert response.status_code == 200
-    assert len(response.json()) == 1
+    body = response.json()
+    assert body["total"] == 1
+    assert len(body["events"]) == 1
 
-def test_search_events_by_date_invalid_query(client, auth_tokens) -> None:
+def test_search_events_by_date_invalid_query(client, auth_tokens, auth_header) -> None:
     response = client.get(
-        "/events/?year=2026&month=13&day=1", headers=_auth_header(auth_tokens["owner"])
+        "/events/?year=2026&month=13&day=1", headers=auth_header(auth_tokens["owner"])
     )
     assert response.status_code == 422
 
-def test_today_events_endpoint_returns_list(client, auth_tokens) -> None:
-    response = client.get("/events/today", headers=_auth_header(auth_tokens["owner"]))
+def test_today_events_endpoint_returns_list(client, auth_tokens, auth_header) -> None:
+    response = client.get("/events/today", headers=auth_header(auth_tokens["owner"]))
     assert response.status_code == 200
-    assert isinstance(response.json(), list)
+    body = response.json()
+    assert isinstance(body["events"], list)
+    assert body["total"] == len(body["events"])
 
-def test_upcoming_events_includes_created_event(client, auth_tokens, event_payload) -> None:
+def test_upcoming_events_includes_created_event(client, auth_tokens, auth_header, event_payload) -> None:
     payload = event_payload.copy()
     today = date.today()
     payload["year"] = today.year
     payload["month"] = today.month
     payload["day"] = today.day
 
-    client.post("/events/", json=payload, headers=_auth_header(auth_tokens["owner"]))
-    response = client.get("/events/upcoming?days=30", headers=_auth_header(auth_tokens["owner"]))
+    client.post("/events/", json=payload, headers=auth_header(auth_tokens["owner"]))
+    response = client.get("/events/upcoming?days=30", headers=auth_header(auth_tokens["owner"]))
 
     assert response.status_code == 200
-    assert len(response.json()) >= 1
+    body = response.json()
+    assert len(body["events"]) >= 1
+    assert body["total"] >= 1
 
-def test_upcoming_events_rejects_invalid_days(client, auth_tokens) -> None:
-    response = client.get("/events/upcoming?days=0", headers=_auth_header(auth_tokens["owner"]))
+def test_upcoming_events_rejects_invalid_days(client, auth_tokens, auth_header) -> None:
+    response = client.get("/events/upcoming?days=0", headers=auth_header(auth_tokens["owner"]))
     assert response.status_code == 422
 
-def test_family_events_pagination(client, auth_tokens, event_payload) -> None:
+def test_family_events_pagination(client, auth_tokens, auth_header, event_payload) -> None:
     client.post(
-        "/events/", json=event_payload, headers=_auth_header(auth_tokens["owner"])
+        "/events/", json=event_payload, headers=auth_header(auth_tokens["owner"])
     )
 
     response = client.get(
         f"/events/family/{event_payload['family_id']}?page=1&per_page=1",
-        headers=_auth_header(auth_tokens["owner"]),
+        headers=auth_header(auth_tokens["owner"]),
     )
 
     assert response.status_code == 200
@@ -274,7 +277,7 @@ def test_family_events_pagination(client, auth_tokens, event_payload) -> None:
     assert isinstance(data["events"], list)
 
 def test_create_event_stores_repeat_type_as_lowercase_string(
-    client, auth_tokens, event_payload, db_session
+    client, auth_tokens, event_payload, db_session, auth_header
 ) -> None:
     payload = event_payload.copy()
     payload["repeat_type"] = "weekly"
@@ -282,7 +285,7 @@ def test_create_event_stores_repeat_type_as_lowercase_string(
     response = client.post(
         "/events/",
         json=payload,
-        headers=_auth_header(auth_tokens["owner"]),
+        headers=auth_header(auth_tokens["owner"]),
     )
 
     assert response.status_code == 201
@@ -296,7 +299,7 @@ def test_create_event_stores_repeat_type_as_lowercase_string(
     assert stored_repeat_type == "weekly"
 
 def test_create_event_rejects_uppercase_repeat_type(
-    client, auth_tokens, event_payload
+    client, auth_tokens, event_payload, auth_header
 ) -> None:
     payload = event_payload.copy()
     payload["repeat_type"] = "WEEKLY"
@@ -304,7 +307,76 @@ def test_create_event_rejects_uppercase_repeat_type(
     response = client.post(
         "/events/",
         json=payload,
-        headers=_auth_header(auth_tokens["owner"]),
+        headers=auth_header(auth_tokens["owner"]),
+    )
+
+    assert response.status_code == 422
+
+
+def test_update_event_denied_for_non_creator(client, auth_tokens, event_payload, auth_header) -> None:
+    create_response = client.post(
+        "/events/",
+        json=event_payload,
+        headers=auth_header(auth_tokens["owner"]),
+    )
+    event_id = create_response.json()["id"]
+
+    response = client.put(
+        f"/events/{event_id}",
+        json={"title": "Hacked"},
+        headers=auth_header(auth_tokens["member"]),
+    )
+
+    assert response.status_code == 403
+    assert response.json()["message"] == "Not authorized to update this event"
+
+
+def test_delete_event_denied_for_non_creator(client, auth_tokens, event_payload, auth_header) -> None:
+    create_response = client.post(
+        "/events/",
+        json=event_payload,
+        headers=auth_header(auth_tokens["owner"]),
+    )
+    event_id = create_response.json()["id"]
+
+    response = client.delete(
+        f"/events/{event_id}",
+        headers=auth_header(auth_tokens["member"]),
+    )
+
+    assert response.status_code == 403
+    assert response.json()["message"] == "Not authorized to delete this event"
+
+
+def test_family_events_denied_for_user_outside_family(client, auth_tokens, event_payload, auth_header) -> None:
+    create_response = client.post(
+        "/events/",
+        json=event_payload,
+        headers=auth_header(auth_tokens["owner"]),
+    )
+    family_id = create_response.json()["family_id"]
+
+    response = client.get(
+        f"/events/family/{family_id}",
+        headers=auth_header(auth_tokens["outsider"]),
+    )
+
+    assert response.status_code == 403
+
+
+def test_search_events_by_date_requires_all_query_params(client, auth_tokens, auth_header) -> None:
+    response = client.get(
+        "/events/?year=2026&month=5",
+        headers=auth_header(auth_tokens["owner"]),
+    )
+
+    assert response.status_code == 422
+
+
+def test_upcoming_events_rejects_out_of_range_days(client, auth_tokens, auth_header) -> None:
+    response = client.get(
+        "/events/upcoming?days=366",
+        headers=auth_header(auth_tokens["owner"]),
     )
 
     assert response.status_code == 422

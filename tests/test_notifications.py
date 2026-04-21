@@ -3,16 +3,14 @@ from datetime import date
 from models.models import Notification
 from services import notification_service
 
-def _auth_header(token: str) -> dict[str, str]:
-    return {"Authorization": f"Bearer {token}"}
 
 def test_event_creation_creates_notifications_for_family_members(
-    client, db_session, auth_tokens, event_payload, sample_users
+    client, db_session, auth_tokens, event_payload, sample_users, auth_header
 ) -> None:
     response = client.post(
         "/events/",
         json=event_payload,
-        headers=_auth_header(auth_tokens["owner"]),
+        headers=auth_header(auth_tokens["owner"]),
     )
 
     assert response.status_code == 201
@@ -26,7 +24,7 @@ def test_event_creation_creates_notifications_for_family_members(
     assert len(notifications) == 1
     assert notifications[0].user_id == sample_users["member"].id
 
-def test_get_and_mark_read_notifications(client, db_session, auth_tokens, sample_users) -> None:
+def test_get_and_mark_read_notifications(client, db_session, auth_tokens, sample_users, auth_header) -> None:
     notification = Notification(
         user_id=sample_users["owner"].id,
         message="Hello",
@@ -38,25 +36,27 @@ def test_get_and_mark_read_notifications(client, db_session, auth_tokens, sample
     db_session.refresh(notification)
 
     get_response = client.get(
-        "/notifications/", headers=_auth_header(auth_tokens["owner"])
+        "/notifications/", headers=auth_header(auth_tokens["owner"])
     )
     assert get_response.status_code == 200
-    assert len(get_response.json()) == 1
+    payload = get_response.json()
+    assert payload["total"] == 1
+    assert len(payload["events"]) == 1
 
     mark_response = client.patch(
         f"/notifications/{notification.id}/read",
-        headers=_auth_header(auth_tokens["owner"]),
+        headers=auth_header(auth_tokens["owner"]),
     )
     assert mark_response.status_code == 200
     assert mark_response.json()["is_read"] is True
 
 def test_create_notification_creates_server_driven_event_reminder(
-    client, auth_tokens, event_payload, sample_users
+    client, auth_tokens, event_payload, sample_users, auth_header
 ) -> None:
     event_response = client.post(
         "/events/",
         json=event_payload,
-        headers=_auth_header(auth_tokens["owner"]),
+        headers=auth_header(auth_tokens["owner"]),
     )
     event_data = event_response.json()
     event_id = event_data["id"]
@@ -64,7 +64,7 @@ def test_create_notification_creates_server_driven_event_reminder(
     response = client.post(
         "/notifications/",
         json={"event_id": event_id},
-        headers=_auth_header(auth_tokens["owner"]),
+        headers=auth_header(auth_tokens["owner"]),
     )
 
     assert response.status_code == 201
@@ -78,24 +78,24 @@ def test_create_notification_creates_server_driven_event_reminder(
     )
 
 def test_create_notification_prevents_duplicate_user_event_type(
-    client, db_session, auth_tokens, event_payload, sample_users
+    client, db_session, auth_tokens, event_payload, sample_users, auth_header
 ) -> None:
     event_response = client.post(
         "/events/",
         json=event_payload,
-        headers=_auth_header(auth_tokens["owner"]),
+        headers=auth_header(auth_tokens["owner"]),
     )
     event_id = event_response.json()["id"]
 
     first_response = client.post(
         "/notifications/",
         json={"event_id": event_id},
-        headers=_auth_header(auth_tokens["owner"]),
+        headers=auth_header(auth_tokens["owner"]),
     )
     second_response = client.post(
         "/notifications/",
         json={"event_id": event_id},
-        headers=_auth_header(auth_tokens["owner"]),
+        headers=auth_header(auth_tokens["owner"]),
     )
 
     assert first_response.status_code == 201
@@ -113,37 +113,37 @@ def test_create_notification_prevents_duplicate_user_event_type(
     )
     assert len(notifications) == 1
 
-def test_create_notification_returns_404_for_missing_event(client, auth_tokens) -> None:
+def test_create_notification_returns_404_for_missing_event(client, auth_tokens, auth_header) -> None:
     response = client.post(
         "/notifications/",
         json={"event_id": 999999},
-        headers=_auth_header(auth_tokens["owner"]),
+        headers=auth_header(auth_tokens["owner"]),
     )
 
     assert response.status_code == 404
-    assert response.json()["message"] == "Event not found"
+    assert response.json()["message"] == "Event with identifier '999999' not found"
 
 def test_create_notification_returns_403_for_non_family_member(
-    client, auth_tokens, event_payload
+    client, auth_tokens, event_payload, auth_header
 ) -> None:
     event_response = client.post(
         "/events/",
         json=event_payload,
-        headers=_auth_header(auth_tokens["owner"]),
+        headers=auth_header(auth_tokens["owner"]),
     )
     event_id = event_response.json()["id"]
 
     response = client.post(
         "/notifications/",
         json={"event_id": event_id},
-        headers=_auth_header(auth_tokens["outsider"]),
+        headers=auth_header(auth_tokens["outsider"]),
     )
 
     assert response.status_code == 403
-    assert response.json()["message"] == "User not in event family"
+    assert response.json()["message"] == "User not in family"
 
 def test_process_event_reminders_creates_due_reminders_once(
-    client, db_session, auth_tokens, event_payload
+    client, db_session, auth_tokens, event_payload, auth_header
 ) -> None:
     due_payload = {
         **event_payload,
@@ -157,7 +157,7 @@ def test_process_event_reminders_creates_due_reminders_once(
     event_response = client.post(
         "/events/",
         json=due_payload,
-        headers=_auth_header(auth_tokens["owner"]),
+        headers=auth_header(auth_tokens["owner"]),
     )
     event_id = event_response.json()["id"]
 
@@ -173,11 +173,11 @@ def test_process_event_reminders_creates_due_reminders_once(
 
     first_process = client.post(
         "/notifications/reminders/process",
-        headers=_auth_header(auth_tokens["owner"]),
+        headers=auth_header(auth_tokens["owner"]),
     )
     second_process = client.post(
         "/notifications/reminders/process",
-        headers=_auth_header(auth_tokens["owner"]),
+        headers=auth_header(auth_tokens["owner"]),
     )
 
     assert first_process.status_code == 200
@@ -196,7 +196,7 @@ def test_process_event_reminders_creates_due_reminders_once(
     assert len(reminder_notifications) == 2
 
 def test_process_event_reminders_includes_today_events_without_time(
-    client, db_session, auth_tokens, event_payload
+    client, db_session, auth_tokens, event_payload, auth_header
 ) -> None:
     today_payload = {
         **event_payload,
@@ -210,13 +210,13 @@ def test_process_event_reminders_includes_today_events_without_time(
     event_response = client.post(
         "/events/",
         json=today_payload,
-        headers=_auth_header(auth_tokens["owner"]),
+        headers=auth_header(auth_tokens["owner"]),
     )
     event_id = event_response.json()["id"]
 
     process_response = client.post(
         "/notifications/reminders/process",
-        headers=_auth_header(auth_tokens["owner"]),
+        headers=auth_header(auth_tokens["owner"]),
     )
 
     assert process_response.status_code == 200
@@ -232,7 +232,7 @@ def test_process_event_reminders_includes_today_events_without_time(
     )
 
 def test_process_event_reminders_includes_tomorrow_events(
-    client, db_session, auth_tokens, event_payload
+    client, db_session, auth_tokens, event_payload, auth_header
 ) -> None:
     tomorrow = date.today().fromordinal(date.today().toordinal() + 1)
     tomorrow_payload = {
@@ -247,13 +247,13 @@ def test_process_event_reminders_includes_tomorrow_events(
     event_response = client.post(
         "/events/",
         json=tomorrow_payload,
-        headers=_auth_header(auth_tokens["owner"]),
+        headers=auth_header(auth_tokens["owner"]),
     )
     event_id = event_response.json()["id"]
 
     process_response = client.post(
         "/notifications/reminders/process",
-        headers=_auth_header(auth_tokens["owner"]),
+        headers=auth_header(auth_tokens["owner"]),
     )
 
     assert process_response.status_code == 200
@@ -269,7 +269,7 @@ def test_process_event_reminders_includes_tomorrow_events(
     )
 
 def test_process_event_reminders_skips_events_outside_one_day_window(
-    client, db_session, auth_tokens, event_payload
+    client, db_session, auth_tokens, event_payload, auth_header
 ) -> None:
     future = date.today().fromordinal(date.today().toordinal() + 2)
     future_payload = {
@@ -284,13 +284,13 @@ def test_process_event_reminders_skips_events_outside_one_day_window(
     event_response = client.post(
         "/events/",
         json=future_payload,
-        headers=_auth_header(auth_tokens["owner"]),
+        headers=auth_header(auth_tokens["owner"]),
     )
     event_id = event_response.json()["id"]
 
     process_response = client.post(
         "/notifications/reminders/process",
-        headers=_auth_header(auth_tokens["owner"]),
+        headers=auth_header(auth_tokens["owner"]),
     )
 
     assert process_response.status_code == 200
@@ -306,7 +306,7 @@ def test_process_event_reminders_skips_events_outside_one_day_window(
     )
 
 def test_process_event_reminders_is_idempotent_for_recurring_events(
-    client, db_session, auth_tokens, event_payload
+    client, db_session, auth_tokens, event_payload, auth_header
 ) -> None:
     recurring_payload = {
         **event_payload,
@@ -321,17 +321,17 @@ def test_process_event_reminders_is_idempotent_for_recurring_events(
     event_response = client.post(
         "/events/",
         json=recurring_payload,
-        headers=_auth_header(auth_tokens["owner"]),
+        headers=auth_header(auth_tokens["owner"]),
     )
     event_id = event_response.json()["id"]
 
     first_process = client.post(
         "/notifications/reminders/process",
-        headers=_auth_header(auth_tokens["owner"]),
+        headers=auth_header(auth_tokens["owner"]),
     )
     second_process = client.post(
         "/notifications/reminders/process",
-        headers=_auth_header(auth_tokens["owner"]),
+        headers=auth_header(auth_tokens["owner"]),
     )
 
     assert first_process.status_code == 200
@@ -349,7 +349,7 @@ def test_process_event_reminders_is_idempotent_for_recurring_events(
     )
 
 def test_process_event_reminders_uses_stored_next_occurrence(
-    client, db_session, auth_tokens, event_payload, monkeypatch
+    client, db_session, auth_tokens, event_payload, monkeypatch, auth_header
 ) -> None:
     today_payload = {
         **event_payload,
@@ -361,7 +361,7 @@ def test_process_event_reminders_uses_stored_next_occurrence(
     event_response = client.post(
         "/events/",
         json=today_payload,
-        headers=_auth_header(auth_tokens["owner"]),
+        headers=auth_header(auth_tokens["owner"]),
     )
     event_id = event_response.json()["id"]
 
@@ -384,3 +384,59 @@ def test_process_event_reminders_uses_stored_next_occurrence(
         .count()
         == 2
     )
+
+
+def test_get_notifications_returns_empty_list_for_new_user(client, auth_tokens, auth_header) -> None:
+    response = client.get("/notifications/", headers=auth_header(auth_tokens["owner"]))
+
+    assert response.status_code == 200
+    assert response.json() == {"events": [], "total": 0}
+
+
+def test_delete_notification_success(client, db_session, auth_tokens, sample_users, auth_header) -> None:
+    notification = Notification(
+        user_id=sample_users["owner"].id,
+        message="delete-me",
+        type="system",
+        is_read=False,
+    )
+    db_session.add(notification)
+    db_session.commit()
+
+    response = client.delete(
+        f"/notifications/{notification.id}",
+        headers=auth_header(auth_tokens["owner"]),
+    )
+
+    assert response.status_code == 204
+
+
+def test_delete_notification_not_found_for_user(client, auth_tokens, auth_header) -> None:
+    response = client.delete(
+        "/notifications/9999",
+        headers=auth_header(auth_tokens["owner"]),
+    )
+
+    assert response.status_code == 404
+    assert response.json()["message"] == "Notification with identifier '9999' not found"
+
+
+def test_mark_notification_as_read_returns_not_found_for_other_user(
+    client, db_session, auth_tokens, sample_users, auth_header
+) -> None:
+    notification = Notification(
+        user_id=sample_users["owner"].id,
+        message="private",
+        type="system",
+        is_read=False,
+    )
+    db_session.add(notification)
+    db_session.commit()
+
+    response = client.patch(
+        f"/notifications/{notification.id}/read",
+        headers=auth_header(auth_tokens["member"]),
+    )
+
+    assert response.status_code == 404
+    assert response.json()["message"] == f"Notification with identifier '{notification.id}' not found"

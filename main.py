@@ -141,8 +141,6 @@ async def calendar_api_exception_handler(
         content={
             "message": exc.message,
             "details": exc.details,
-            "type": exc.__class__.__name__,
-            "request_id": getattr(request.state, "request_id", "-"),
         },
     )
 
@@ -159,13 +157,18 @@ async def http_exception_handler(request: Request, exc: HTTPException) -> JSONRe
             "error_type": "HTTPException",
         },
     )
+    detail_payload = exc.detail
+    if isinstance(detail_payload, dict) and "message" in detail_payload and "details" in detail_payload:
+        response_body = {
+            "message": detail_payload["message"],
+            "details": detail_payload["details"],
+        }
+    else:
+        response_body = {"message": str(detail_payload), "details": {}}
+
     return JSONResponse(
         status_code=exc.status_code,
-        content={
-            "message": exc.detail,
-            "type": "HTTPException",
-            "request_id": getattr(request.state, "request_id", "-"),
-        },
+        content=response_body,
     )
 
 
@@ -183,8 +186,7 @@ async def general_exception_handler(request: Request, exc: Exception) -> JSONRes
         status_code=500,
         content={
             "message": "An unexpected error occurred.",
-            "type": "InternalServerError",
-            "request_id": getattr(request.state, "request_id", "-"),
+            "details": {},
         },
     )
 

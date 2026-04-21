@@ -37,19 +37,31 @@ A production-oriented FastAPI backend for managing family events across Gregoria
 │   ├── events.py               # Event CRUD and search endpoints
 │   ├── families.py             # Family + membership endpoints
 │   ├── notifications.py        # Notification endpoints and reminder trigger
-│   ├── convert.py              # Date conversion endpoints
+│   └── convert.py              # Date conversion endpoints
 ├── services/                # Business logic layer
 │   ├── auth_service.py         # Password hashing, JWT, current-user resolution
 │   ├── user_service.py         # User creation logic
+│   ├── family_service.py       # Family + membership creation logic
 │   ├── event_service.py        # Event rules, queries, and mutation logic
 │   ├── date_service.py         # Date validation/conversion/recurrence calculations
 │   └── notification_service.py # Notification and reminder workflows
-├── models/                  # ORM and API schema models
 ├── storage/                 # Database/session/migration helpers
 │   ├── database.py             # Engine/session configuration and DB session dependency
 │   ├── enums.py                # Shared enum values
 │   └── schema_migrations.py    # Runtime-safe schema migration helpers
+├── utils/                   # Shared utility module
+│   └── date_utils.py           # Hebrew month length calculations
 ├── tests/                   # Automated tests
+│   ├── conftest.py             # Shared pytest fixtures (DB, client, auth helpers)
+│   ├── test_authentication.py  # Auth/login and token-related API tests
+│   ├── test_convert.py         # Date conversion endpoint tests
+│   ├── test_date_service.py    # Recurrence/date service unit tests
+│   ├── test_endpoint_failures_parametrized.py # Parameterized negative API tests
+│   ├── test_events.py          # Event endpoint and authorization tests
+│   ├── test_families.py        # Family/membership endpoint tests
+│   ├── test_notifications.py   # Notification/reminder endpoint tests
+│   ├── test_permissions.py     # Cross-endpoint permission/token tests
+│   └── test_notification_migrations.py # Notification schema migration tests
 ├── logging_config.py        # Structured logging config
 ├── exceptions.py            # Domain/API exception types
 ├── requirements.txt         # Runtime dependencies
@@ -83,7 +95,7 @@ Optional:
 
 ```bash
 python -m venv .venv
-source .venv/bin/activate
+source venv\Scripts\activate 
 pip install --upgrade pip
 pip install -r requirements.txt
 cp .env.example .env

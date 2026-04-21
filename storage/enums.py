@@ -12,3 +12,10 @@ class RepeatType(str, Enum):
     YEARLY = "yearly"
     MONTHLY = "monthly"
     WEEKLY = "weekly"
+
+
+class NotificationType(str, Enum):
+    EVENT_REMINDER = "EVENT_REMINDER"
+    EVENT_REMINDER_LEGACY = "event reminder"
+    INVITE = "invite"
+    SYSTEM = "system"

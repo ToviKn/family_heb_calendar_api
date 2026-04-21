@@ -6,7 +6,7 @@ from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Index, String, Text,
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from storage.database import Base
-from storage.enums import CalendarType, RepeatType
+from storage.enums import CalendarType, NotificationType, RepeatType
 
 
 class User(Base):
@@ -117,7 +117,9 @@ class Notification(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     event_id: Mapped[int | None] = mapped_column(ForeignKey("events.id"), nullable=True)
     message: Mapped[str] = mapped_column(Text, nullable=False)
-    type: Mapped[str] = mapped_column(String(50), default="system")
+    type: Mapped[NotificationType] = mapped_column(
+        String(50), default=NotificationType.SYSTEM.value
+    )
     is_read: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 

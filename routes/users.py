@@ -12,15 +12,6 @@ router = APIRouter(prefix="/users", tags=["users"])
 logger = logging.getLogger(__name__)
 DbSession = Annotated[Session, Depends(get_db)]
 
-
 @router.post("/", response_model=UserResponse)
 def create_user(user: UserCreate, db: DbSession) -> UserResponse:
-    logger.info("Create user request received", extra={"operation": "create_user"})
-    created_user = cast(
-        UserResponse, user_service.create_user(db, user.email, user.name, user.password)
-    )
-    logger.info(
-        "Create user request completed",
-        extra={"operation": "create_user", "user_id": created_user.id},
-    )
-    return created_user
+    return cast(UserResponse, user_service.create_user(db, user.email, user.name, user.password))
