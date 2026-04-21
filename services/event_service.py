@@ -233,6 +233,8 @@ def get_events_by_family(
         total = query.count()
         events = query.offset(offset).limit(per_page).all()
         return {"events": events, "total": total, "page": page, "per_page": per_page}
+    except CalendarAPIException:
+        raise
     except Exception as exc:
         logger.error("Failed to get family events", exc_info=True)
         raise DatabaseError(f"Failed to retrieve family events: {exc}", "get_events_by_family") from exc

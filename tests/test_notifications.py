@@ -39,7 +39,9 @@ def test_get_and_mark_read_notifications(client, db_session, auth_tokens, sample
         "/notifications/", headers=auth_header(auth_tokens["owner"])
     )
     assert get_response.status_code == 200
-    assert len(get_response.json()) == 1
+    payload = get_response.json()
+    assert payload["total"] == 1
+    assert len(payload["events"]) == 1
 
     mark_response = client.patch(
         f"/notifications/{notification.id}/read",
@@ -388,7 +390,7 @@ def test_get_notifications_returns_empty_list_for_new_user(client, auth_tokens, 
     response = client.get("/notifications/", headers=auth_header(auth_tokens["owner"]))
 
     assert response.status_code == 200
-    assert response.json() == []
+    assert response.json() == {"events": [], "total": 0}
 
 
 def test_delete_notification_success(client, db_session, auth_tokens, sample_users, auth_header) -> None:

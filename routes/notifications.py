@@ -5,7 +5,11 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from models.models import User
-from models.notification import NotificationCreate, NotificationResponse
+from models.notification import (
+    NotificationCreate,
+    NotificationListResponse,
+    NotificationResponse,
+)
 from services import notification_service
 from services.auth_service import get_current_user
 from storage.database import get_db
@@ -20,9 +24,10 @@ def create_notification(payload: NotificationCreate, db: DbSession, current_user
     return notification_service.create_notification(db, payload, current_user.id)
 
 
-@router.get("/", response_model=list[NotificationResponse])
-def get_notifications(db: DbSession, current_user: CurrentUser):
-    return notification_service.get_user_notifications(db, current_user.id)
+@router.get("/", response_model=NotificationListResponse)
+def get_notifications(db: DbSession, current_user: CurrentUser) -> NotificationListResponse:
+    notifications = notification_service.get_user_notifications(db, current_user.id)
+    return NotificationListResponse(events=notifications, total=len(notifications))
 
 
 @router.patch("/{notification_id}/read", response_model=NotificationResponse)

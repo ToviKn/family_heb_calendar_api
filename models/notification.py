@@ -19,3 +19,9 @@ class NotificationResponse(BaseModel):
     is_read: bool
 
     model_config = ConfigDict(from_attributes=True)
+
+
+
+class NotificationListResponse(BaseModel):
+    events: list[NotificationResponse]
+    total: int
