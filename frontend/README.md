@@ -102,3 +102,10 @@ Additional checks:
 - `POST /auth/login` is used for login from `/login`.
 - JWT access token is stored in `localStorage` and attached as `Authorization: Bearer <token>` for subsequent API requests.
 - Routes under `/` are protected and redirect unauthenticated users to `/login`.
+
+
+## Implemented screens
+
+- `/login` - Sign in form using `POST /auth/login`.
+- `/register` - User registration using `POST /users/`.
+- `/events` - Protected page with event list, create form, edit, and delete actions using events API endpoints.
