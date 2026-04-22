@@ -103,3 +103,15 @@ export interface NotificationListResponse {
   events: NotificationResponse[];
   total: number;
 }
+
+export interface UserCreateRequest {
+  email: string;
+  name: string;
+  password: string;
+}
+
+export interface UserResponse {
+  id: number;
+  email: string;
+  name: string;
+}

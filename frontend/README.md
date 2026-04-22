@@ -94,3 +94,11 @@ Additional checks:
 - Confirm `frontend/.npmrc` points to `https://registry.npmjs.org/`.
 - If your organization uses a private mirror (Artifactory/Nexus), authenticate with `npm login` and verify read permissions.
 - Check user/global `.npmrc` files for conflicting registry/proxy settings.
+
+
+## Authentication flow
+
+- `POST /users/` is used for registration from `/register`.
+- `POST /auth/login` is used for login from `/login`.
+- JWT access token is stored in `localStorage` and attached as `Authorization: Bearer <token>` for subsequent API requests.
+- Routes under `/` are protected and redirect unauthenticated users to `/login`.
