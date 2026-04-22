@@ -1,4 +1,5 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 
 import { login as loginRequest } from '../../lib/api/auth';
 import { setApiAuthToken } from '../../lib/api/axios';
@@ -26,7 +27,7 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(() => getStoredToken());
 
   useEffect(() => {
@@ -38,21 +39,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setApiAuthToken(undefined);
   }, [token]);
 
-  async function login(payload: LoginPayload): Promise<void> {
+  const login = useCallback(async (payload: LoginPayload): Promise<void> => {
     const response = await loginRequest({ username: payload.email, password: payload.password });
     storeToken(response.access_token);
     setToken(response.access_token);
-  }
+  }, []);
 
-  async function register(payload: RegisterPayload): Promise<void> {
+  const register = useCallback(async (payload: RegisterPayload): Promise<void> => {
     await createUser(payload);
-  }
+  }, []);
 
-  function logout(): void {
+  const logout = useCallback((): void => {
     clearStoredToken();
     setApiAuthToken(undefined);
     setToken(null);
-  }
+  }, []);
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -62,7 +63,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       register,
       logout,
     }),
-    [token]
+    [token, login, register, logout]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

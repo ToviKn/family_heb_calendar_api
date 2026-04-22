@@ -3,6 +3,12 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 import { useAuth } from '../features/auth/AuthContext';
 
+interface RedirectState {
+  from?: {
+    pathname?: string;
+  };
+}
+
 export function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -13,7 +19,7 @@ export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const redirectTo = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname ?? '/';
+  const redirectTo = (location.state as RedirectState | null)?.from?.pathname ?? '/';
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
