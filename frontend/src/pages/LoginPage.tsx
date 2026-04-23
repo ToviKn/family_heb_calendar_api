@@ -10,7 +10,7 @@ interface RedirectState {
 }
 
 export function LoginPage() {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -27,7 +27,7 @@ export function LoginPage() {
     setIsSubmitting(true);
 
     try {
-      await login({ email, password });
+      await login({ username, password });
       navigate(redirectTo, { replace: true });
     } catch {
       setError('Login failed. Please check your credentials.');
@@ -43,12 +43,12 @@ export function LoginPage() {
 
       <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
         <label className="block text-sm font-medium text-slate-700">
-          Email
+          Username
           <input
             className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 outline-none focus:border-blue-500"
-            type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
+            type="text"
+            value={username}
+            onChange={(event) => setUsername(event.target.value)}
             required
           />
         </label>

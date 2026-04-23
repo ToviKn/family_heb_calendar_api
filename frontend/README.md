@@ -99,7 +99,7 @@ Additional checks:
 ## Authentication flow
 
 - `POST /users/` is used for registration from `/register`.
-- `POST /auth/login` is used for login from `/login`.
+- `POST /auth/login` is used for login from `/login` using OAuth2 form fields (`username`, `password`) as `application/x-www-form-urlencoded`.
 - JWT access token is stored in `localStorage` and attached as `Authorization: Bearer <token>` for subsequent API requests.
 - Routes under `/` are protected and redirect unauthenticated users to `/login`.
 

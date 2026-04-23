@@ -13,7 +13,7 @@ interface RegisterPayload {
 }
 
 interface LoginPayload {
-  email: string;
+  username: string;
   password: string;
 }
 
@@ -40,7 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [token]);
 
   const login = useCallback(async (payload: LoginPayload): Promise<void> => {
-    const response = await loginRequest({ username: payload.email, password: payload.password });
+    const response = await loginRequest({ username: payload.username, password: payload.password });
     storeToken(response.access_token);
     setToken(response.access_token);
   }, []);
