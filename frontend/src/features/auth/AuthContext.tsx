@@ -19,6 +19,7 @@ interface LoginPayload {
 
 interface AuthContextValue {
   token: string | null;
+  userId: number | null;
   isAuthenticated: boolean;
   login: (payload: LoginPayload) => Promise<void>;
   register: (payload: RegisterPayload) => Promise<void>;
@@ -26,6 +27,29 @@ interface AuthContextValue {
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+
+function decodeUserIdFromToken(token: string | null): number | null {
+  if (!token) {
+    return null;
+  }
+
+  try {
+    const [, payloadBase64] = token.split('.');
+    if (!payloadBase64) {
+      return null;
+    }
+
+    const payload = JSON.parse(atob(payloadBase64)) as { sub?: string | number };
+    if (payload.sub === undefined || payload.sub === null) {
+      return null;
+    }
+
+    const parsed = Number(payload.sub);
+    return Number.isFinite(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(() => getStoredToken());
@@ -55,15 +79,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(null);
   }, []);
 
+  const userId = useMemo(() => decodeUserIdFromToken(token), [token]);
+
   const value = useMemo<AuthContextValue>(
     () => ({
       token,
+      userId,
       isAuthenticated: Boolean(token),
       login,
       register,
       logout,
     }),
-    [token, login, register, logout]
+    [token, userId, login, register, logout]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

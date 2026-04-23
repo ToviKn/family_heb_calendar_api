@@ -1,10 +1,10 @@
 import { FormEvent, useState } from 'react';
 
+import { useAuth } from '../features/auth/AuthContext';
 import { addFamilyMember, getFamilyEvents, type EventResponse, type FamilyMembershipResponse } from '../lib/api';
 
 interface JoinFamilyForm {
   familyId: string;
-  userId: string;
 }
 
 interface FamilyEventsForm {
@@ -14,7 +14,9 @@ interface FamilyEventsForm {
 }
 
 export function FamiliesPage() {
-  const [joinForm, setJoinForm] = useState<JoinFamilyForm>({ familyId: '', userId: '' });
+  const { userId } = useAuth();
+
+  const [joinForm, setJoinForm] = useState<JoinFamilyForm>({ familyId: '' });
   const [joinResult, setJoinResult] = useState<FamilyMembershipResponse | null>(null);
   const [joinError, setJoinError] = useState<string | null>(null);
   const [isJoining, setIsJoining] = useState(false);
@@ -29,13 +31,19 @@ export function FamiliesPage() {
     event.preventDefault();
     setJoinError(null);
     setJoinResult(null);
+
+    if (!userId) {
+      setJoinError('Unable to resolve your user ID from token. Please login again.');
+      return;
+    }
+
     setIsJoining(true);
 
     try {
-      const result = await addFamilyMember(Number(joinForm.familyId), Number(joinForm.userId));
+      const result = await addFamilyMember(Number(joinForm.familyId), userId);
       setJoinResult(result);
     } catch {
-      setJoinError('Unable to join family. Verify family ID and user ID.');
+      setJoinError('Unable to join family. Verify family ID and your permissions.');
     } finally {
       setIsJoining(false);
     }
@@ -71,6 +79,7 @@ export function FamiliesPage() {
       <div className="grid gap-6 lg:grid-cols-2">
         <article className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-lg font-semibold text-slate-900">Join family</h2>
+          <p className="mt-2 text-sm text-slate-600">Current user ID: {userId ?? 'unknown'}</p>
 
           <form className="mt-4 space-y-3" onSubmit={handleJoinFamily}>
             <input
@@ -80,15 +89,6 @@ export function FamiliesPage() {
               placeholder="Family ID"
               value={joinForm.familyId}
               onChange={(event) => setJoinForm((prev) => ({ ...prev, familyId: event.target.value }))}
-              required
-            />
-            <input
-              className="w-full rounded-md border border-slate-300 px-3 py-2"
-              type="number"
-              min={1}
-              placeholder="User ID"
-              value={joinForm.userId}
-              onChange={(event) => setJoinForm((prev) => ({ ...prev, userId: event.target.value }))}
               required
             />
 

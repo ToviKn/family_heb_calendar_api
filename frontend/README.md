@@ -109,4 +109,4 @@ Additional checks:
 - `/login` - Sign in form using `POST /auth/login`.
 - `/register` - User registration using `POST /users/`.
 - `/events` - Protected page with event list, create form, edit, and delete actions using events API endpoints.
-- `/families` - Protected page to join a family (`POST /families/{family_id}/members`) and view family events (`GET /events/family/{family_id}`).
+- `/families` - Protected page to join a family for the authenticated user (JWT `sub`) via `POST /families/{family_id}/members`, and view family events via `GET /events/family/{family_id}`.
