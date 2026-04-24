@@ -97,6 +97,7 @@ export interface NotificationResponse {
 
 export interface NotificationListResponse {
   events: NotificationResponse[];
+  notifications?: NotificationResponse[];
   total: number;
 }
 

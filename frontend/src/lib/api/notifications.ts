@@ -11,7 +11,12 @@ export interface ProcessRemindersResponse {
 
 export async function getNotifications(): Promise<NotificationListResponse> {
   const { data } = await apiClient.get<NotificationListResponse>('/notifications/');
-  return data;
+
+  return {
+    events: data.events ?? data.notifications ?? [],
+    notifications: data.notifications ?? data.events ?? [],
+    total: data.total,
+  };
 }
 
 export async function createNotification(payload: NotificationCreate): Promise<NotificationResponse> {

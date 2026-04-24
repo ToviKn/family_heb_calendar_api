@@ -28,6 +28,12 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
+function decodeBase64Url(value: string): string {
+  const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
+  const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
+  return atob(padded);
+}
+
 function decodeUserIdFromToken(token: string | null): number | null {
   if (!token) {
     return null;
@@ -39,7 +45,7 @@ function decodeUserIdFromToken(token: string | null): number | null {
       return null;
     }
 
-    const payload = JSON.parse(atob(payloadBase64)) as { sub?: string | number };
+    const payload = JSON.parse(decodeBase64Url(payloadBase64)) as { sub?: string | number };
     if (payload.sub === undefined || payload.sub === null) {
       return null;
     }

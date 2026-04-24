@@ -14,7 +14,7 @@ export function NotificationsPage() {
 
     try {
       const response = await getNotifications();
-      setNotifications(response.events);
+      setNotifications(response.notifications ?? response.events);
     } catch {
       setError('Unable to load notifications.');
     } finally {
