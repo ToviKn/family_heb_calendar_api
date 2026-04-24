@@ -110,3 +110,4 @@ Additional checks:
 - `/register` - User registration using `POST /users/`.
 - `/events` - Protected page with event list, create form, edit, and delete actions using events API endpoints.
 - `/families` - Protected page to join a family for the authenticated user (JWT `sub`) via `POST /families/{family_id}/members`, and view family events via `GET /events/family/{family_id}`.
+- `/notifications` - Protected page that lists notifications (`GET /notifications/`) and allows marking notifications as read (`PATCH /notifications/{notification_id}/read`).

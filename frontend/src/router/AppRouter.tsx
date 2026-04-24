@@ -7,6 +7,7 @@ import { FamiliesPage } from '../pages/FamiliesPage';
 import { HomePage } from '../pages/HomePage';
 import { LoginPage } from '../pages/LoginPage';
 import { NotFoundPage } from '../pages/NotFoundPage';
+import { NotificationsPage } from '../pages/NotificationsPage';
 import { RegisterPage } from '../pages/RegisterPage';
 
 export function AppRouter() {
@@ -20,6 +21,7 @@ export function AppRouter() {
           <Route index element={<HomePage />} />
           <Route path="events" element={<EventsPage />} />
           <Route path="families" element={<FamiliesPage />} />
+          <Route path="notifications" element={<NotificationsPage />} />
         </Route>
       </Route>
 
