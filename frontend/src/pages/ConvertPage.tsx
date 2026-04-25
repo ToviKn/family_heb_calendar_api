@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { FormEvent, useState } from 'react';
 
 import {
@@ -13,16 +14,27 @@ interface HebrewFormState {
   day: string;
 }
 
+type ActiveAction = 'gregorian_to_hebrew' | 'hebrew_to_gregorian' | 'today' | null;
+
 function getErrorMessage(error: unknown): string {
-  if (typeof error === 'object' && error !== null && 'response' in error) {
-    const response = (error as { response?: { data?: { message?: string } } }).response;
-    const message = response?.data?.message;
-    if (message) {
-      return message;
+  if (axios.isAxiosError(error)) {
+    const apiMessage = error.response?.data?.message;
+    if (typeof apiMessage === 'string' && apiMessage.trim().length > 0) {
+      return apiMessage;
     }
   }
 
   return 'Unable to convert date. Please verify your input and try again.';
+}
+
+function parseGregorianDate(value: string): { year: number; month: number; day: number } | null {
+  const [year, month, day] = value.split('-').map(Number);
+
+  if ([year, month, day].some((part) => Number.isNaN(part))) {
+    return null;
+  }
+
+  return { year, month, day };
 }
 
 export function ConvertPage() {
@@ -30,36 +42,37 @@ export function ConvertPage() {
   const [hebrewForm, setHebrewForm] = useState<HebrewFormState>({ year: '', month: '', day: '' });
 
   const [result, setResult] = useState<DateConversionResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [activeAction, setActiveAction] = useState<ActiveAction>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const isLoading = activeAction !== null;
 
   async function handleGregorianToHebrew(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!gregorianDate) {
-      setError('Please select a Gregorian date in YYYY-MM-DD format.');
+    const parsedDate = parseGregorianDate(gregorianDate);
+    if (!parsedDate) {
+      setError('Please select a valid Gregorian date in YYYY-MM-DD format.');
       return;
     }
 
-    const [year, month, day] = gregorianDate.split('-').map(Number);
-
-    setIsLoading(true);
+    setActiveAction('gregorian_to_hebrew');
     setError(null);
 
     try {
-      const data = await convertGregorianToHebrew({ year, month, day });
+      const data = await convertGregorianToHebrew(parsedDate);
       setResult(data);
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
-      setIsLoading(false);
+      setActiveAction(null);
     }
   }
 
   async function handleHebrewToGregorian(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    setIsLoading(true);
+    setActiveAction('hebrew_to_gregorian');
     setError(null);
 
     try {
@@ -72,12 +85,12 @@ export function ConvertPage() {
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
-      setIsLoading(false);
+      setActiveAction(null);
     }
   }
 
   async function handleGetToday() {
-    setIsLoading(true);
+    setActiveAction('today');
     setError(null);
 
     try {
@@ -86,7 +99,7 @@ export function ConvertPage() {
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
-      setIsLoading(false);
+      setActiveAction(null);
     }
   }
 
@@ -119,7 +132,7 @@ export function ConvertPage() {
               type="submit"
               disabled={isLoading}
             >
-              {isLoading ? 'Converting...' : 'Convert Gregorian → Hebrew'}
+              {activeAction === 'gregorian_to_hebrew' ? 'Converting...' : 'Convert Gregorian → Hebrew'}
             </button>
           </form>
         </article>
@@ -165,7 +178,7 @@ export function ConvertPage() {
               type="submit"
               disabled={isLoading}
             >
-              {isLoading ? 'Converting...' : 'Convert Hebrew → Gregorian'}
+              {activeAction === 'hebrew_to_gregorian' ? 'Converting...' : 'Convert Hebrew → Gregorian'}
             </button>
           </form>
         </article>
@@ -180,7 +193,7 @@ export function ConvertPage() {
             onClick={() => void handleGetToday()}
             disabled={isLoading}
           >
-            {isLoading ? 'Loading...' : "Get today's date (both formats)"}
+            {activeAction === 'today' ? 'Loading...' : "Get today's date (both formats)"}
           </button>
         </div>
 
