@@ -58,7 +58,11 @@ function decodeUserIdFromToken(token: string | null): number | null {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [token, setToken] = useState<string | null>(() => getStoredToken());
+  const [token, setToken] = useState<string | null>(() => {
+    const storedToken = getStoredToken();
+    setApiAuthToken(storedToken ?? undefined);
+    return storedToken;
+  });
 
   useEffect(() => {
     if (token) {
@@ -72,6 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(async (payload: LoginPayload): Promise<void> => {
     const response = await loginRequest({ username: payload.username, password: payload.password });
     storeToken(response.access_token);
+    setApiAuthToken(response.access_token);
     setToken(response.access_token);
   }, []);
 
