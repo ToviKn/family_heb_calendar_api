@@ -8,8 +8,10 @@ import {
   getTodayEvents,
   getUpcomingEvents,
   updateEvent,
+  type CalendarType,
   type EventCreate,
   type EventResponse,
+  type RepeatType,
 } from '../lib/api';
 
 type EventsViewMode = 'date' | 'today' | 'upcoming';
@@ -21,6 +23,10 @@ interface EventFormState {
   month: string;
   day: string;
   year: string;
+  startTime: string;
+  endTime: string;
+  calendarType: CalendarType;
+  repeatType: RepeatType;
 }
 
 function toDateInputValue(date: Date): string {
@@ -43,8 +49,10 @@ function buildCreatePayload(form: EventFormState): EventCreate {
     month: Number(form.month),
     day: Number(form.day),
     year: form.year ? Number(form.year) : null,
-    calendar_type: 'gregorian',
-    repeat_type: 'none',
+    calendar_type: form.calendarType,
+    repeat_type: form.repeatType,
+    start_time: form.startTime || null,
+    end_time: form.endTime || null,
   };
 }
 
@@ -58,6 +66,10 @@ function getDefaultFormState(date: string): EventFormState {
     month: String(month),
     day: String(day),
     year: String(year),
+    startTime: '',
+    endTime: '',
+    calendarType: 'gregorian',
+    repeatType: 'none',
   };
 }
 
@@ -71,6 +83,14 @@ function getEmptyMessage(mode: EventsViewMode): string {
   }
 
   return 'No events found for this date.';
+}
+
+function hasInvalidTimeRange(startTime: string, endTime: string): boolean {
+  if (!startTime || !endTime) {
+    return false;
+  }
+
+  return endTime <= startTime;
 }
 
 export function EventsPage() {
@@ -133,6 +153,12 @@ export function EventsPage() {
 
   async function handleCreateOrUpdate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (hasInvalidTimeRange(form.startTime, form.endTime)) {
+      setError('End time must be after start time.');
+      return;
+    }
+
     setIsSubmitting(true);
     setError(null);
 
@@ -144,7 +170,9 @@ export function EventsPage() {
           month: Number(form.month),
           day: Number(form.day),
           year: form.year ? Number(form.year) : null,
-          repeat_type: 'none',
+          repeat_type: form.repeatType,
+          start_time: form.startTime || null,
+          end_time: form.endTime || null,
         });
       } else {
         await createEvent(buildCreatePayload(form));
@@ -168,6 +196,10 @@ export function EventsPage() {
       month: String(eventItem.month),
       day: String(eventItem.day),
       year: eventItem.year ? String(eventItem.year) : '',
+      startTime: eventItem.start_time ?? '',
+      endTime: eventItem.end_time ?? '',
+      calendarType: eventItem.calendar_type ?? 'gregorian',
+      repeatType: eventItem.repeat_type ?? 'none',
     });
   }
 
@@ -229,7 +261,7 @@ export function EventsPage() {
                 className="rounded-md border border-slate-300 px-3 py-2"
                 type="number"
                 min={1}
-                max={12}
+                max={13}
                 placeholder="Month"
                 value={form.month}
                 onChange={(e) => setForm((prev) => ({ ...prev, month: e.target.value }))}
@@ -248,12 +280,62 @@ export function EventsPage() {
               <input
                 className="rounded-md border border-slate-300 px-3 py-2"
                 type="number"
-                min={1900}
-                max={3000}
+                min={1}
+                max={9999}
                 placeholder="Year"
                 value={form.year}
                 onChange={(e) => setForm((prev) => ({ ...prev, year: e.target.value }))}
+                required={form.repeatType === 'none'}
               />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <input
+                className="rounded-md border border-slate-300 px-3 py-2"
+                type="time"
+                placeholder="Start time"
+                value={form.startTime}
+                onChange={(e) => setForm((prev) => ({ ...prev, startTime: e.target.value }))}
+              />
+              <input
+                className="rounded-md border border-slate-300 px-3 py-2"
+                type="time"
+                placeholder="End time"
+                value={form.endTime}
+                onChange={(e) => setForm((prev) => ({ ...prev, endTime: e.target.value }))}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <label className="text-sm text-slate-700">
+                Calendar type
+                <select
+                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
+                  value={form.calendarType}
+                  onChange={(e) => setForm((prev) => ({ ...prev, calendarType: e.target.value as CalendarType }))}
+                  disabled={editingEventId !== null}
+                  required
+                >
+                  <option value="gregorian">Gregorian</option>
+                  <option value="hebrew">Hebrew</option>
+                </select>
+              </label>
+
+              <label className="text-sm text-slate-700">
+                Repeat type
+                <select
+                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
+                  value={form.repeatType}
+                  onChange={(e) => setForm((prev) => ({ ...prev, repeatType: e.target.value as RepeatType }))}
+                  required
+                >
+                  <option value="none">none</option>
+                  <option value="daily">daily</option>
+                  <option value="weekly">weekly</option>
+                  <option value="monthly">monthly</option>
+                  <option value="yearly">yearly</option>
+                </select>
+              </label>
             </div>
 
             <div className="flex gap-3">
