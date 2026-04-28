@@ -32,6 +32,7 @@ export function EventDetailsPage() {
     async function loadEventDetails(idValue: string) {
       setIsLoading(true);
       setError(null);
+      setEvent(null);
 
       try {
         const eventDetails = await getEventById(Number(idValue));
@@ -44,11 +45,13 @@ export function EventDetailsPage() {
     }
 
     if (!eventId) {
+      setEvent(null);
       setError('Event ID is missing.');
       return;
     }
 
     if (Number.isNaN(Number(eventId))) {
+      setEvent(null);
       setError('Invalid event ID.');
       return;
     }

@@ -287,7 +287,7 @@ export function EventsPage() {
                   setForm(getDefaultFormState(event.target.value));
                 }
               }}
-              disabled={isLoading && viewMode !== 'date'}
+              disabled={viewMode !== 'date'}
             />
           </div>
 
@@ -326,6 +326,7 @@ export function EventsPage() {
 
           {viewMode === 'today' ? <p className="mt-3 text-xs text-slate-500">Showing events for today.</p> : null}
           {viewMode === 'upcoming' ? <p className="mt-3 text-xs text-slate-500">Showing upcoming events (default API window).</p> : null}
+          {viewMode !== 'date' ? <p className="mt-1 text-xs text-slate-500">Date picker is active only in "By date" mode.</p> : null}
 
           {error ? <p className="mt-4 text-sm text-red-600">{error}</p> : null}
 
