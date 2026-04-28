@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 
 import {
   createEvent,
@@ -338,7 +339,11 @@ export function EventsPage() {
                 <li key={eventItem.id} className="rounded-md border border-slate-200 p-3">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <h3 className="font-medium text-slate-900">{eventItem.title}</h3>
+                      <h3 className="font-medium text-slate-900">
+                        <Link className="hover:text-blue-700 hover:underline" to={`/events/${eventItem.id}`}>
+                          {eventItem.title}
+                        </Link>
+                      </h3>
                       <p className="text-sm text-slate-600">{eventItem.description || 'No description'}</p>
                       <p className="mt-1 text-xs text-slate-500">
                         Family {eventItem.family_id} • {eventItem.month}/{eventItem.day}
