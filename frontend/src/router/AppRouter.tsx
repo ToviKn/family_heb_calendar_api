@@ -2,6 +2,8 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 
 import { ProtectedRoute } from './ProtectedRoute';
 import { AppLayout } from '../layouts/AppLayout';
+import { ConvertPage } from '../pages/ConvertPage';
+import { EventDetailsPage } from '../pages/EventDetailsPage';
 import { EventsPage } from '../pages/EventsPage';
 import { FamiliesPage } from '../pages/FamiliesPage';
 import { HomePage } from '../pages/HomePage';
@@ -20,6 +22,8 @@ export function AppRouter() {
         <Route element={<AppLayout />}>
           <Route index element={<HomePage />} />
           <Route path="events" element={<EventsPage />} />
+          <Route path="events/:eventId" element={<EventDetailsPage />} />
+          <Route path="convert" element={<ConvertPage />} />
           <Route path="families" element={<FamiliesPage />} />
           <Route path="notifications" element={<NotificationsPage />} />
         </Route>

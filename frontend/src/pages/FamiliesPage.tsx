@@ -1,7 +1,18 @@
 import { FormEvent, useState } from 'react';
 
 import { useAuth } from '../features/auth/AuthContext';
-import { addFamilyMember, getFamilyEvents, type EventResponse, type FamilyMembershipResponse } from '../lib/api';
+import {
+  addFamilyMember,
+  createFamily,
+  getFamilyEvents,
+  type EventResponse,
+  type FamilyMembershipResponse,
+  type FamilyResponse,
+} from '../lib/api';
+
+interface CreateFamilyForm {
+  name: string;
+}
 
 interface JoinFamilyForm {
   familyId: string;
@@ -16,6 +27,11 @@ interface FamilyEventsForm {
 export function FamiliesPage() {
   const { userId } = useAuth();
 
+  const [createForm, setCreateForm] = useState<CreateFamilyForm>({ name: '' });
+  const [createdFamily, setCreatedFamily] = useState<FamilyResponse | null>(null);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [isCreatingFamily, setIsCreatingFamily] = useState(false);
+
   const [joinForm, setJoinForm] = useState<JoinFamilyForm>({ familyId: '' });
   const [joinResult, setJoinResult] = useState<FamilyMembershipResponse | null>(null);
   const [joinError, setJoinError] = useState<string | null>(null);
@@ -26,6 +42,33 @@ export function FamiliesPage() {
   const [eventsTotal, setEventsTotal] = useState(0);
   const [eventsError, setEventsError] = useState<string | null>(null);
   const [isLoadingEvents, setIsLoadingEvents] = useState(false);
+
+  async function handleCreateFamily(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const trimmedName = createForm.name.trim();
+    if (!trimmedName) {
+      setCreateError('Family name is required.');
+      setCreatedFamily(null);
+      return;
+    }
+
+    setCreateError(null);
+    setCreatedFamily(null);
+    setIsCreatingFamily(true);
+
+    try {
+      const family = await createFamily(trimmedName);
+      setCreatedFamily(family);
+      setCreateForm({ name: '' });
+      setJoinForm((prev) => ({ ...prev, familyId: String(family.id) }));
+      setEventsForm((prev) => ({ ...prev, familyId: String(family.id) }));
+    } catch {
+      setCreateError('Unable to create family. Please try a different name.');
+    } finally {
+      setIsCreatingFamily(false);
+    }
+  }
 
   async function handleJoinFamily(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -73,10 +116,51 @@ export function FamiliesPage() {
     <section className="space-y-6">
       <header className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
         <h1 className="text-2xl font-semibold text-slate-900">Families</h1>
-        <p className="mt-2 text-slate-600">Join a family and view events for a family.</p>
+        <p className="mt-2 text-slate-600">Create or join a family, then view family events.</p>
       </header>
 
       <div className="grid gap-6 lg:grid-cols-2">
+        <article className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-lg font-semibold text-slate-900">Create family</h2>
+
+          <form className="mt-4 space-y-3" onSubmit={handleCreateFamily}>
+            <input
+              className="w-full rounded-md border border-slate-300 px-3 py-2"
+              type="text"
+              minLength={1}
+              maxLength={120}
+              placeholder="Family name"
+              value={createForm.name}
+              onChange={(event) => {
+                setCreateForm({ name: event.target.value });
+                if (createError) {
+                  setCreateError(null);
+                }
+                if (createdFamily) {
+                  setCreatedFamily(null);
+                }
+              }}
+              required
+            />
+
+            <button
+              className="rounded-md bg-emerald-600 px-4 py-2 text-white hover:bg-emerald-700 disabled:bg-emerald-300"
+              type="submit"
+              disabled={isCreatingFamily}
+            >
+              {isCreatingFamily ? 'Creating...' : 'Create family'}
+            </button>
+          </form>
+
+          {createError ? <p className="mt-3 text-sm text-red-600">{createError}</p> : null}
+
+          {createdFamily ? (
+            <div className="mt-3 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+              Family "{createdFamily.name}" created (ID: {createdFamily.id}).
+            </div>
+          ) : null}
+        </article>
+
         <article className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-lg font-semibold text-slate-900">Join family</h2>
           <p className="mt-2 text-sm text-slate-600">Current user ID: {userId ?? 'unknown'}</p>
@@ -110,7 +194,7 @@ export function FamiliesPage() {
           ) : null}
         </article>
 
-        <article className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+        <article className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm lg:col-span-2">
           <h2 className="text-lg font-semibold text-slate-900">View family events</h2>
 
           <form className="mt-4 grid gap-3 md:grid-cols-3" onSubmit={handleLoadFamilyEvents}>
