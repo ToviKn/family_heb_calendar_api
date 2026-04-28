@@ -4,10 +4,14 @@ import {
   createEvent,
   deleteEvent,
   getEventsByDate,
+  getTodayEvents,
+  getUpcomingEvents,
   updateEvent,
   type EventCreate,
   type EventResponse,
 } from '../lib/api';
+
+type EventsViewMode = 'date' | 'today' | 'upcoming';
 
 interface EventFormState {
   title: string;
@@ -56,6 +60,18 @@ function getDefaultFormState(date: string): EventFormState {
   };
 }
 
+function getEmptyMessage(mode: EventsViewMode): string {
+  if (mode === 'today') {
+    return 'No events found for today.';
+  }
+
+  if (mode === 'upcoming') {
+    return 'No upcoming events found.';
+  }
+
+  return 'No events found for this date.';
+}
+
 export function EventsPage() {
   const [selectedDate, setSelectedDate] = useState<string>(() => toDateInputValue(new Date()));
   const [events, setEvents] = useState<EventResponse[]>([]);
@@ -63,11 +79,12 @@ export function EventsPage() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingEventId, setEditingEventId] = useState<number | null>(null);
+  const [viewMode, setViewMode] = useState<EventsViewMode>('date');
 
   const [form, setForm] = useState<EventFormState>(() => getDefaultFormState(toDateInputValue(new Date())));
 
-  async function loadEvents(dateValue: string) {
-    if (!dateValue) {
+  async function loadEvents(mode: EventsViewMode, dateValue: string) {
+    if (mode === 'date' && !dateValue) {
       setEvents([]);
       return;
     }
@@ -76,19 +93,39 @@ export function EventsPage() {
     setError(null);
 
     try {
+      if (mode === 'today') {
+        const result = await getTodayEvents();
+        setEvents(result.events);
+        return;
+      }
+
+      if (mode === 'upcoming') {
+        const result = await getUpcomingEvents();
+        setEvents(result.events);
+        return;
+      }
+
       const parsed = parseDateInput(dateValue);
       const result = await getEventsByDate(parsed);
       setEvents(result.events);
     } catch {
-      setError('Unable to load events for the selected date.');
+      if (mode === 'today') {
+        setError('Unable to load today\'s events.');
+      } else if (mode === 'upcoming') {
+        setError('Unable to load upcoming events.');
+      } else {
+        setError('Unable to load events for the selected date.');
+      }
     } finally {
       setIsLoading(false);
     }
   }
 
   useEffect(() => {
-    void loadEvents(selectedDate);
-  }, [selectedDate]);
+    if (viewMode === 'date') {
+      void loadEvents('date', selectedDate);
+    }
+  }, [selectedDate, viewMode]);
 
   function resetForm() {
     setForm(getDefaultFormState(selectedDate));
@@ -114,7 +151,7 @@ export function EventsPage() {
         await createEvent(buildCreatePayload(form));
       }
 
-      await loadEvents(selectedDate);
+      await loadEvents(viewMode, selectedDate);
       resetForm();
     } catch {
       setError('Unable to save event. Please verify all required fields.');
@@ -140,7 +177,7 @@ export function EventsPage() {
 
     try {
       await deleteEvent(eventId);
-      await loadEvents(selectedDate);
+      await loadEvents(viewMode, selectedDate);
       if (editingEventId === eventId) {
         resetForm();
       }
@@ -238,7 +275,7 @@ export function EventsPage() {
         </article>
 
         <article className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
             <h2 className="text-lg font-semibold text-slate-900">Events list</h2>
             <input
               className="rounded-md border border-slate-300 px-3 py-2"
@@ -246,6 +283,7 @@ export function EventsPage() {
               value={selectedDate}
               onChange={(event) => {
                 setSelectedDate(event.target.value);
+                setViewMode('date');
                 if (!editingEventId) {
                   setForm(getDefaultFormState(event.target.value));
                 }
@@ -253,11 +291,50 @@ export function EventsPage() {
             />
           </div>
 
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              className={`rounded-md px-3 py-2 text-sm ${viewMode === 'date' ? 'bg-blue-600 text-white' : 'border border-slate-300 text-slate-700 hover:bg-slate-50'}`}
+              type="button"
+              onClick={() => {
+                setViewMode('date');
+                void loadEvents('date', selectedDate);
+              }}
+              disabled={isLoading}
+            >
+              By date
+            </button>
+            <button
+              className={`rounded-md px-3 py-2 text-sm ${viewMode === 'today' ? 'bg-blue-600 text-white' : 'border border-slate-300 text-slate-700 hover:bg-slate-50'}`}
+              type="button"
+              onClick={() => {
+                setViewMode('today');
+                void loadEvents('today', selectedDate);
+              }}
+              disabled={isLoading}
+            >
+              Today
+            </button>
+            <button
+              className={`rounded-md px-3 py-2 text-sm ${viewMode === 'upcoming' ? 'bg-blue-600 text-white' : 'border border-slate-300 text-slate-700 hover:bg-slate-50'}`}
+              type="button"
+              onClick={() => {
+                setViewMode('upcoming');
+                void loadEvents('upcoming', selectedDate);
+              }}
+              disabled={isLoading}
+            >
+              Upcoming
+            </button>
+          </div>
+
+          {viewMode === 'today' ? <p className="mt-3 text-xs text-slate-500">Showing events for today.</p> : null}
+          {viewMode === 'upcoming' ? <p className="mt-3 text-xs text-slate-500">Showing upcoming events (default API window).</p> : null}
+
           {error ? <p className="mt-4 text-sm text-red-600">{error}</p> : null}
 
           {isLoading ? <p className="mt-4 text-slate-600">Loading events...</p> : null}
 
-          {!isLoading && events.length === 0 ? <p className="mt-4 text-slate-600">No events found for this date.</p> : null}
+          {!isLoading && events.length === 0 ? <p className="mt-4 text-slate-600">{getEmptyMessage(viewMode)}</p> : null}
 
           {!isLoading && events.length > 0 ? (
             <ul className="mt-4 space-y-3">
