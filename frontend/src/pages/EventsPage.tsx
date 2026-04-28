@@ -103,6 +103,7 @@ export function EventsPage() {
   const [viewMode, setViewMode] = useState<EventsViewMode>('date');
 
   const [form, setForm] = useState<EventFormState>(() => getDefaultFormState(toDateInputValue(new Date())));
+  const monthMax = form.calendarType === 'hebrew' ? 13 : 12;
 
   async function loadEvents(mode: EventsViewMode, dateValue: string) {
     if (mode === 'date' && !dateValue) {
@@ -261,8 +262,8 @@ export function EventsPage() {
                 className="rounded-md border border-slate-300 px-3 py-2"
                 type="number"
                 min={1}
-                max={13}
-                placeholder="Month"
+                max={monthMax}
+                placeholder={`Month (1-${monthMax})`}
                 value={form.month}
                 onChange={(e) => setForm((prev) => ({ ...prev, month: e.target.value }))}
                 required

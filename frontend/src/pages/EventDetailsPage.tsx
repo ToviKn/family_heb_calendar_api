@@ -6,8 +6,12 @@ import { getEventById, type EventResponse } from '../lib/api';
 function formatDate(event: EventResponse): string {
   const month = String(event.month).padStart(2, '0');
   const day = String(event.day).padStart(2, '0');
-  const year = event.year ? String(event.year) : 'Recurring';
-  return `${year}-${month}-${day}`;
+
+  if (!event.year) {
+    return `${month}/${day}`;
+  }
+
+  return `${event.year}-${month}-${day}`;
 }
 
 function formatTimeRange(event: EventResponse): string {
