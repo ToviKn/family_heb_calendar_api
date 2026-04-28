@@ -29,7 +29,7 @@ export function AppLayout() {
               <NavLink
                 key={item.to}
                 to={item.to}
-                end={item.end}
+                end={item.to === '/'}
                 className={({ isActive }) => navLinkClassName(isActive)}
               >
                 {item.label}
