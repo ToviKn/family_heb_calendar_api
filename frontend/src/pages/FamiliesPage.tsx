@@ -45,14 +45,24 @@ export function FamiliesPage() {
 
   async function handleCreateFamily(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    const trimmedName = createForm.name.trim();
+    if (!trimmedName) {
+      setCreateError('Family name is required.');
+      setCreatedFamily(null);
+      return;
+    }
+
     setCreateError(null);
     setCreatedFamily(null);
     setIsCreatingFamily(true);
 
     try {
-      const family = await createFamily(createForm.name.trim());
+      const family = await createFamily(trimmedName);
       setCreatedFamily(family);
       setCreateForm({ name: '' });
+      setJoinForm((prev) => ({ ...prev, familyId: String(family.id) }));
+      setEventsForm((prev) => ({ ...prev, familyId: String(family.id) }));
     } catch {
       setCreateError('Unable to create family. Please try a different name.');
     } finally {
@@ -121,7 +131,15 @@ export function FamiliesPage() {
               maxLength={120}
               placeholder="Family name"
               value={createForm.name}
-              onChange={(event) => setCreateForm({ name: event.target.value })}
+              onChange={(event) => {
+                setCreateForm({ name: event.target.value });
+                if (createError) {
+                  setCreateError(null);
+                }
+                if (createdFamily) {
+                  setCreatedFamily(null);
+                }
+              }}
               required
             />
 
