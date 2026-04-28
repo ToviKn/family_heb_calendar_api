@@ -122,9 +122,7 @@ export function EventsPage() {
   }
 
   useEffect(() => {
-    if (viewMode === 'date') {
-      void loadEvents('date', selectedDate);
-    }
+    void loadEvents(viewMode, selectedDate);
   }, [selectedDate, viewMode]);
 
   function resetForm() {
@@ -288,6 +286,7 @@ export function EventsPage() {
                   setForm(getDefaultFormState(event.target.value));
                 }
               }}
+              disabled={isLoading && viewMode !== 'date'}
             />
           </div>
 
@@ -297,7 +296,6 @@ export function EventsPage() {
               type="button"
               onClick={() => {
                 setViewMode('date');
-                void loadEvents('date', selectedDate);
               }}
               disabled={isLoading}
             >
@@ -308,7 +306,6 @@ export function EventsPage() {
               type="button"
               onClick={() => {
                 setViewMode('today');
-                void loadEvents('today', selectedDate);
               }}
               disabled={isLoading}
             >
@@ -319,7 +316,6 @@ export function EventsPage() {
               type="button"
               onClick={() => {
                 setViewMode('upcoming');
-                void loadEvents('upcoming', selectedDate);
               }}
               disabled={isLoading}
             >
