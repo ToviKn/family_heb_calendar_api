@@ -1,28 +1,47 @@
-# Frontend (React + TypeScript + Vite)
+# Family Calendar Frontend
 
-This folder contains the frontend scaffold for the Family Hebrew Calendar app.
+A React + TypeScript frontend for the **Family Hebrew Calendar** application. It provides authenticated user flows for managing events, families, notifications, and Hebrew/Gregorian date conversion.
 
-## Stack
+## 1) Project Overview
 
-- React + TypeScript
-- Vite
-- React Router
-- Axios
-- Tailwind CSS
+This app is the client-side dashboard for end users of the Family Calendar system.
 
-## Folder structure
+Main implemented feature areas:
+
+- **Authentication**: register, login, logout, and protected routes.
+- **Events**: create, edit, delete, list by date, list today, list upcoming, and view details.
+- **Families**: create a family, join a family, and view events for a family.
+- **Notifications**: list, create, delete, mark as read, and process reminders.
+- **Conversion**: convert Gregorian ⇄ Hebrew dates and fetch today in both formats.
+
+## 2) Tech Stack
+
+- **React 18**
+- **TypeScript**
+- **Vite**
+- **Tailwind CSS**
+- **Axios**
+- **React Router**
+
+## 3) Project Structure
 
 ```text
 frontend/
 ├── src/
-│   ├── app/            # App root component
-│   ├── layouts/        # Shared route layouts
-│   ├── lib/api/        # Axios client and typed API clients
-│   ├── pages/          # Route-level pages
-│   ├── router/         # React Router definitions
-│   └── styles/         # Global styles (Tailwind entrypoint)
+│   ├── app/                    # App shell and root app component
+│   ├── components/             # Shared UI feedback components (error/success/loading/empty)
+│   ├── features/auth/          # Auth context and auth state management
+│   ├── layouts/                # Shared authenticated layout + navigation
+│   ├── lib/
+│   │   ├── api/                # Axios instance + typed API clients
+│   │   ├── auth/               # Token persistence helpers
+│   │   └── notifications/      # Notification formatting helpers
+│   ├── pages/                  # Route pages (Login, Register, Events, Families, etc.)
+│   ├── router/                 # Routing + protected route guard
+│   ├── styles/                 # Global styles / Tailwind entry
+│   ├── main.tsx                # React app bootstrap
+│   └── vite-env.d.ts
 ├── .env.example
-├── .npmrc
 ├── index.html
 ├── package.json
 ├── postcss.config.cjs
@@ -31,83 +50,109 @@ frontend/
 └── vite.config.ts
 ```
 
-## Run locally
+## 4) Setup Instructions
 
-### 1) Start backend API
+### Prerequisites
 
-From repo root (example):
+- **Node.js 20+**
+- **npm 10+**
 
-```bash
-cp .env.example .env
-# set DATABASE_URL, JWT_SECRET_KEY, ALLOWED_ORIGINS in .env
-pip install -r requirements.txt
-gunicorn -k uvicorn.workers.UvicornWorker -w 2 -b 0.0.0.0:8000 main:app
-```
-
-### 2) Start frontend
-
-In a second terminal:
+### Install and run
 
 ```bash
 cd frontend
-cp .env.example .env
 npm install
 npm run dev
 ```
 
-Open: <http://localhost:5173>
+Default dev URL: <http://localhost:5173>
 
-## Build + preview
+### Environment variables
 
-```bash
-npm run build
-npm run preview
+Create a `.env` file in `frontend/` (or copy from `.env.example`) and set:
+
+```env
+VITE_API_BASE_URL=http://localhost:8000
 ```
 
-## Type-check
+## 5) Available Features (User-Level)
+
+### Authentication
+
+- Register a new account.
+- Login using email/password.
+- Logout from the authenticated session.
+- Protected routes redirect unauthenticated users to `/login`.
+
+### Events
+
+- Create events.
+- Edit events.
+- Delete events.
+- List events by a selected date.
+- View **today's** events.
+- View **upcoming** events.
+- Open event details page.
+
+### Families
+
+- Create a family.
+- Join a family by family ID.
+- View events for a specific family.
+
+### Notifications
+
+- List notifications.
+- Create a notification by event ID.
+- Delete notification.
+- Mark notification as read.
+- Process reminder notifications via backend processing endpoint.
+
+### Conversion
+
+- Convert **Gregorian → Hebrew** date.
+- Convert **Hebrew → Gregorian** date.
+- Retrieve **today's date** in both systems.
+
+## 6) API Integration
+
+- The frontend communicates with the backend using an Axios client configured with `VITE_API_BASE_URL`.
+- After login, JWT access token is stored locally and attached to API requests as:
+  - `Authorization: Bearer <token>`
+- API modules are grouped under `src/lib/api` by domain (`auth`, `events`, `families`, `notifications`, `convert`, `users`).
+
+## 7) Error Handling & UX
+
+Implemented UX patterns include:
+
+- **Loading states** for async actions and initial data fetches.
+- **Error messages** displayed when API requests fail.
+- **Success feedback** for actions such as create/update/process flows.
+- **Empty states** when lists (such as notifications/events) have no data.
+
+## 8) Scripts
+
+From `frontend/`:
 
 ```bash
+npm run dev      # start dev server
+npm run build    # type-check + production build
+npm run preview  # preview built app locally
 npm run typecheck
 ```
 
-## npm 403 troubleshooting
+## 9) Known Limitations
 
-If `npm install` fails with HTTP 403, run:
+- Family membership join flow requires a numeric family ID input.
+- Some pages expose backend-oriented fields (for example IDs) directly rather than using richer pickers.
+- UX and visual design are functional but minimal (utility-first styling, no advanced component library).
 
-```bash
-npm config set registry https://registry.npmjs.org/
-npm config delete _auth
-npm config delete _authToken
-npm config delete proxy
-npm config delete https-proxy
-npm cache clean --force
-```
+## 10) Future Improvements (Optional)
 
-Then retry:
+Potential next steps:
 
-```bash
-npm install
-```
-
-Additional checks:
-
-- Confirm `frontend/.npmrc` points to `https://registry.npmjs.org/`.
-- If your organization uses a private mirror (Artifactory/Nexus), authenticate with `npm login` and verify read permissions.
-- Check user/global `.npmrc` files for conflicting registry/proxy settings.
-
-
-## Authentication flow
-
-- `POST /users/` is used for registration from `/register`.
-- `POST /auth/login` is used for login from `/login` using OAuth2 form fields (`username`, `password`) as `application/x-www-form-urlencoded`.
-- JWT access token is stored in `localStorage` and attached as `Authorization: Bearer <token>` for subsequent API requests.
-- Routes under `/` are protected and redirect unauthenticated users to `/login`.
-
-
-## Implemented screens
-
-- `/login` - Sign in form using `POST /auth/login`.
-- `/register` - User registration using `POST /users/`.
-- `/events` - Protected page with event list, create form, edit, and delete actions using events API endpoints.
-- `/families` - Protected page to join a family for the authenticated user (JWT `sub`) via `POST /families/{family_id}/members`, and view family events via `GET /events/family/{family_id}`.
-- `/notifications` - Protected page that lists notifications (`GET /notifications/`) and allows marking notifications as read (`PATCH /notifications/{notification_id}/read`).
+- Add stronger form validation and field-level error mapping.
+- Improve discoverability with selectors/autocomplete for entities (events/families).
+- Add pagination/filters where backend supports larger datasets.
+- Expand automated frontend tests (component/integration/e2e).
+- Improve responsive UX polish and accessibility refinements.
