@@ -8,6 +8,17 @@ export interface ApiMessageResponse {
   message: string;
 }
 
+export interface SimpleDate {
+  year: number;
+  month: number;
+  day: number;
+}
+
+export interface DateConversionResponse {
+  gregorian_date: SimpleDate;
+  hebrew_date: SimpleDate;
+}
+
 export interface AuthLoginRequest {
   username: string;
   password: string;

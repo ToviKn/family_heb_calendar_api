@@ -28,6 +28,9 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
+const initialStoredToken = getStoredToken();
+setApiAuthToken(initialStoredToken ?? undefined);
+
 function decodeBase64Url(value: string): string {
   const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
   const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
@@ -58,7 +61,7 @@ function decodeUserIdFromToken(token: string | null): number | null {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [token, setToken] = useState<string | null>(() => getStoredToken());
+  const [token, setToken] = useState<string | null>(initialStoredToken);
 
   useEffect(() => {
     if (token) {
@@ -72,6 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(async (payload: LoginPayload): Promise<void> => {
     const response = await loginRequest({ username: payload.username, password: payload.password });
     storeToken(response.access_token);
+    setApiAuthToken(response.access_token);
     setToken(response.access_token);
   }, []);
 
