@@ -1,4 +1,4 @@
-import { ErrorMessage, EmptyMessage, SuccessMessage } from '../components/Feedback';
+import { EmptyMessage, ErrorMessage, LoadingMessage, SuccessMessage } from '../components/Feedback';
 import { FormEvent, useState } from 'react';
 
 import { useAuth } from '../features/auth/AuthContext';
@@ -236,6 +236,7 @@ export function FamiliesPage() {
           </form>
 
           {eventsError ? <ErrorMessage message={eventsError} /> : null}
+          {isLoadingEvents ? <LoadingMessage message="Loading family events..." /> : null}
 
           {!eventsError && !isLoadingEvents && familyEvents.length === 0 ? <EmptyMessage message="No family events loaded yet." /> : null}
 

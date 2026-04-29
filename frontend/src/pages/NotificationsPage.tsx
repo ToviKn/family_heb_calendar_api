@@ -117,6 +117,8 @@ export function NotificationsPage() {
 
   async function handleProcessReminders() {
     setProcessSuccess(null);
+    setCreateError(null);
+    setCreateSuccess(null);
     setError(null);
     setIsProcessingReminders(true);
 
