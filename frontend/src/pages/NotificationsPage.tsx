@@ -1,3 +1,4 @@
+import { EmptyMessage, ErrorMessage, LoadingMessage, SuccessMessage } from '../components/Feedback';
 import { FormEvent, useEffect, useState } from 'react';
 
 import {
@@ -202,8 +203,8 @@ export function NotificationsPage() {
             </button>
           </form>
 
-          {createError ? <p className="mt-3 text-sm text-red-600">{createError}</p> : null}
-          {createSuccess ? <p className="mt-3 text-sm text-emerald-700">{createSuccess}</p> : null}
+          {createError ? <ErrorMessage message={createError} /> : null}
+          {createSuccess ? <SuccessMessage message={createSuccess} /> : null}
         </article>
 
         <article className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
@@ -219,7 +220,7 @@ export function NotificationsPage() {
             {isProcessingReminders ? 'Processing...' : 'Process reminders'}
           </button>
 
-          {processSuccess ? <p className="mt-3 text-sm text-emerald-700">{processSuccess}</p> : null}
+          {processSuccess ? <SuccessMessage message={processSuccess} /> : null}
         </article>
       </div>
 
@@ -236,10 +237,10 @@ export function NotificationsPage() {
           </button>
         </div>
 
-        {error ? <p className="mt-4 text-sm text-red-600">{error}</p> : null}
-        {isLoading ? <p className="mt-4 text-slate-600">Loading...</p> : null}
+        {error ? <ErrorMessage message={error} /> : null}
+        {isLoading ? <LoadingMessage message="Loading..." /> : null}
 
-        {!isLoading && notifications.length === 0 ? <p className="mt-4 text-slate-600">No notifications available.</p> : null}
+        {!isLoading && notifications.length === 0 ? <EmptyMessage message="No notifications available." /> : null}
 
         {!isLoading && notifications.length > 0 ? (
           <ul className="mt-4 space-y-3">

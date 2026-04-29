@@ -1,3 +1,4 @@
+import { EmptyMessage, ErrorMessage, LoadingMessage, SuccessMessage } from '../components/Feedback';
 import { FormEvent, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -411,9 +412,9 @@ export function EventsPage() {
           {viewMode === 'upcoming' ? <p className="mt-3 text-xs text-slate-500">Showing upcoming events (default API window).</p> : null}
           {viewMode !== 'date' ? <p className="mt-1 text-xs text-slate-500">Date picker is active only in "By date" mode.</p> : null}
 
-          {error ? <p className="mt-4 text-sm text-red-600">{error}</p> : null}
+          {error ? <ErrorMessage message={error} /> : null}
 
-          {isLoading ? <p className="mt-4 text-slate-600">Loading events...</p> : null}
+          {isLoading ? <LoadingMessage message="Loading events..." /> : null}
 
           {!isLoading && events.length === 0 ? <p className="mt-4 text-slate-600">{getEmptyMessage(viewMode)}</p> : null}
 

@@ -1,3 +1,4 @@
+import { EmptyMessage, ErrorMessage, LoadingMessage, SuccessMessage } from '../components/Feedback';
 import axios from 'axios';
 import { FormEvent, useState } from 'react';
 
@@ -221,7 +222,7 @@ export function ConvertPage() {
           </button>
         </div>
 
-        {error ? <p className="mt-4 text-sm text-red-600">{error}</p> : null}
+        {error ? <ErrorMessage message={error} /> : null}
 
         {result ? (
           <div className="mt-4 rounded-md border border-emerald-200 bg-emerald-50 p-4">

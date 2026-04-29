@@ -1,3 +1,4 @@
+import { EmptyMessage, ErrorMessage, LoadingMessage, SuccessMessage } from '../components/Feedback';
 import { FormEvent, useState } from 'react';
 
 import { useAuth } from '../features/auth/AuthContext';
@@ -152,7 +153,7 @@ export function FamiliesPage() {
             </button>
           </form>
 
-          {createError ? <p className="mt-3 text-sm text-red-600">{createError}</p> : null}
+          {createError ? <ErrorMessage message={createError} /> : null}
 
           {createdFamily ? (
             <div className="mt-3 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
