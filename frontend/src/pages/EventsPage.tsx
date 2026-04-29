@@ -263,20 +263,20 @@ export function EventsPage() {
                 className="rounded-md border border-slate-300 px-3 py-2"
                 type="number"
                 min={1}
-                max={monthMax}
-                placeholder={`Month (1-${monthMax})`}
-                value={form.month}
-                onChange={(e) => setForm((prev) => ({ ...prev, month: e.target.value }))}
+                max={31}
+                placeholder="Day"
+                value={form.day}
+                onChange={(e) => setForm((prev) => ({ ...prev, day: e.target.value }))}
                 required
               />
               <input
                 className="rounded-md border border-slate-300 px-3 py-2"
                 type="number"
                 min={1}
-                max={31}
-                placeholder="Day"
-                value={form.day}
-                onChange={(e) => setForm((prev) => ({ ...prev, day: e.target.value }))}
+                max={monthMax}
+                placeholder={`Month (1-${monthMax})`}
+                value={form.month}
+                onChange={(e) => setForm((prev) => ({ ...prev, month: e.target.value }))}
                 required
               />
               <input
