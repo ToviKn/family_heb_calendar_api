@@ -107,6 +107,8 @@ export function FamiliesPage() {
       setFamilyEvents(result.events);
       setEventsTotal(result.total);
     } catch {
+      setFamilyEvents([]);
+      setEventsTotal(0);
       setEventsError('Unable to load family events. Verify family ID and permissions.');
     } finally {
       setIsLoadingEvents(false);

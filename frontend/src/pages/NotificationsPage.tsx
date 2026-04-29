@@ -89,6 +89,7 @@ export function NotificationsPage() {
   async function handleMarkAsRead(notificationId: number) {
     setUpdatingId(notificationId);
     setError(null);
+    setProcessSuccess(null);
 
     try {
       const updated = await markNotificationRead(notificationId);
@@ -111,6 +112,7 @@ export function NotificationsPage() {
   async function handleDeleteNotification(notificationId: number) {
     setDeletingId(notificationId);
     setError(null);
+    setProcessSuccess(null);
 
     try {
       await deleteNotification(notificationId);
@@ -134,6 +136,7 @@ export function NotificationsPage() {
 
     setCreateError(null);
     setCreateSuccess(null);
+    setError(null);
     setIsCreating(true);
 
     try {

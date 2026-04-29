@@ -74,6 +74,7 @@ export function ConvertPage() {
 
     const parsedDate = parseGregorianDate(gregorianDate);
     if (!parsedDate) {
+      setResult(null);
       setError('Please select a valid Gregorian date in YYYY-MM-DD format.');
       return;
     }
@@ -85,6 +86,7 @@ export function ConvertPage() {
       const data = await convertGregorianToHebrew(parsedDate);
       setResult(data);
     } catch (err) {
+      setResult(null);
       setError(getErrorMessage(err));
     } finally {
       setActiveAction(null);
@@ -96,6 +98,7 @@ export function ConvertPage() {
 
     const parsed = validateHebrewInput(hebrewForm);
     if (!parsed) {
+      setResult(null);
       setError('Please enter a valid Hebrew date. Day must be between 1 and 30.');
       return;
     }
@@ -107,6 +110,7 @@ export function ConvertPage() {
       const data = await convertHebrewToGregorian(parsed);
       setResult(data);
     } catch (err) {
+      setResult(null);
       setError(getErrorMessage(err));
     } finally {
       setActiveAction(null);
@@ -121,6 +125,7 @@ export function ConvertPage() {
       const data = await getTodayConvertedDates();
       setResult(data);
     } catch (err) {
+      setResult(null);
       setError(getErrorMessage(err));
     } finally {
       setActiveAction(null);
