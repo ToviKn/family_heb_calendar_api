@@ -37,6 +37,27 @@ function parseGregorianDate(value: string): { year: number; month: number; day: 
   return { year, month, day };
 }
 
+
+function validateHebrewInput(form: HebrewFormState): { year: number; month: number; day: number } | null {
+  const year = Number(form.year);
+  const month = Number(form.month);
+  const day = Number(form.day);
+
+  if ([year, month, day].some((part) => Number.isNaN(part))) {
+    return null;
+  }
+
+  if (month < 1 || month > 13) {
+    return null;
+  }
+
+  if (day < 1 || day > 30) {
+    return null;
+  }
+
+  return { year, month, day };
+}
+
 export function ConvertPage() {
   const [gregorianDate, setGregorianDate] = useState('');
   const [hebrewForm, setHebrewForm] = useState<HebrewFormState>({ year: '', month: '', day: '' });
@@ -72,15 +93,17 @@ export function ConvertPage() {
   async function handleHebrewToGregorian(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    const parsed = validateHebrewInput(hebrewForm);
+    if (!parsed) {
+      setError('Please enter a valid Hebrew date. Day must be between 1 and 30.');
+      return;
+    }
+
     setActiveAction('hebrew_to_gregorian');
     setError(null);
 
     try {
-      const data = await convertHebrewToGregorian({
-        year: Number(hebrewForm.year),
-        month: Number(hebrewForm.month),
-        day: Number(hebrewForm.day),
-      });
+      const data = await convertHebrewToGregorian(parsed);
       setResult(data);
     } catch (err) {
       setError(getErrorMessage(err));
@@ -165,13 +188,14 @@ export function ConvertPage() {
                 className="rounded-md border border-slate-300 px-3 py-2"
                 type="number"
                 min={1}
-                max={31}
+                max={30}
                 placeholder="Day"
                 value={hebrewForm.day}
                 onChange={(event) => setHebrewForm((prev) => ({ ...prev, day: event.target.value }))}
                 required
               />
             </div>
+            <p className="text-xs text-slate-500">Day range: 1-30 for Hebrew conversion input.</p>
 
             <button
               className="rounded-md bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700 disabled:bg-indigo-300"
