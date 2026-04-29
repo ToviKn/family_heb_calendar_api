@@ -124,12 +124,19 @@ export function NotificationsPage() {
   async function handleCreateNotification(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    const parsedEventId = Number(createForm.eventId);
+    if (!Number.isInteger(parsedEventId) || parsedEventId <= 0) {
+      setCreateError('Please enter a valid Event ID greater than 0.');
+      setCreateSuccess(null);
+      return;
+    }
+
     setCreateError(null);
     setCreateSuccess(null);
     setIsCreating(true);
 
     try {
-      const created = await createNotification({ event_id: Number(createForm.eventId) });
+      const created = await createNotification({ event_id: parsedEventId });
       setNotifications((previous) => [created, ...previous]);
       setCreateForm({ eventId: '' });
       setCreateSuccess('Notification created successfully.');
@@ -236,15 +243,18 @@ export function NotificationsPage() {
 
         {!isLoading && notifications.length > 0 ? (
           <ul className="mt-4 space-y-3">
-            {notifications.map((notification) => (
+            {notifications.map((notification) => {
+              const summary = getNotificationSummary(notification);
+
+              return (
               <li
                 key={notification.id}
                 className={`rounded-md border p-3 ${notification.is_read ? 'border-slate-200 bg-slate-50' : 'border-blue-200 bg-blue-50'}`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="font-medium text-slate-900">{getNotificationSummary(notification).title}</p>
-                    <p className="mt-1 text-sm text-slate-600">{getNotificationSummary(notification).subtitle}</p>
+                    <p className="font-medium text-slate-900">{summary.title || 'Notification'}</p>
+                    <p className="mt-1 text-sm text-slate-600">{summary.subtitle || 'No details available.'}</p>
                     <p className="mt-1 text-xs text-slate-500">
                       Created: {formatCreatedAt(notification.created_at)}
                       {notification.event_id ? ` • Event ID: ${notification.event_id}` : ''}
@@ -276,7 +286,8 @@ export function NotificationsPage() {
                   </div>
                 </div>
               </li>
-            ))}
+            );
+            })}
           </ul>
         ) : null}
       </article>
