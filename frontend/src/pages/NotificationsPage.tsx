@@ -1,6 +1,7 @@
 import { EmptyMessage, ErrorMessage, LoadingMessage, SuccessMessage } from '../components/Feedback';
 import { FormEvent, useEffect, useState } from 'react';
 
+import { formatNotificationCreatedAt, getNotificationSummary } from '../lib/notifications/formatters';
 import {
   createNotification,
   deleteNotification,
@@ -14,43 +15,6 @@ interface CreateNotificationForm {
   eventId: string;
 }
 
-
-function formatCreatedAt(value: string): string {
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
-    return value;
-  }
-  return parsed.toLocaleString();
-}
-
-function getNotificationSummary(notification: NotificationResponse): { title: string; subtitle: string } {
-  if (notification.type === 'EVENT_REMINDER' || notification.type === 'event reminder') {
-    const reminderMatch = notification.message.match(/^Reminder:\s*(.+?)\s+on\s+(.+)$/i);
-    if (reminderMatch) {
-      return {
-        title: `Reminder: ${reminderMatch[1]}`,
-        subtitle: `Scheduled for ${reminderMatch[2]}`,
-      };
-    }
-
-    return {
-      title: 'Event reminder',
-      subtitle: notification.message,
-    };
-  }
-
-  if (notification.type === 'invite') {
-    return {
-      title: 'Family invitation',
-      subtitle: notification.message,
-    };
-  }
-
-  return {
-    title: notification.message,
-    subtitle: `Type: ${notification.type}`,
-  };
-}
 
 export function NotificationsPage() {
   const [notifications, setNotifications] = useState<NotificationResponse[]>([]);
@@ -260,7 +224,7 @@ export function NotificationsPage() {
                     <p className="font-medium text-slate-900">{summary.title || 'Notification'}</p>
                     <p className="mt-1 text-sm text-slate-600">{summary.subtitle || 'No details available.'}</p>
                     <p className="mt-1 text-xs text-slate-500">
-                      Created: {formatCreatedAt(notification.created_at)}
+                      Created: {formatNotificationCreatedAt(notification.created_at)}
                       {notification.event_id ? ` • Event ID: ${notification.event_id}` : ''}
                     </p>
                   </div>
