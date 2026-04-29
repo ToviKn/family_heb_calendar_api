@@ -13,6 +13,44 @@ interface CreateNotificationForm {
   eventId: string;
 }
 
+
+function formatCreatedAt(value: string): string {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+  return parsed.toLocaleString();
+}
+
+function getNotificationSummary(notification: NotificationResponse): { title: string; subtitle: string } {
+  if (notification.type === 'EVENT_REMINDER' || notification.type === 'event reminder') {
+    const reminderMatch = notification.message.match(/^Reminder:\s*(.+?)\s+on\s+(.+)$/i);
+    if (reminderMatch) {
+      return {
+        title: `Reminder: ${reminderMatch[1]}`,
+        subtitle: `Scheduled for ${reminderMatch[2]}`,
+      };
+    }
+
+    return {
+      title: 'Event reminder',
+      subtitle: notification.message,
+    };
+  }
+
+  if (notification.type === 'invite') {
+    return {
+      title: 'Family invitation',
+      subtitle: notification.message,
+    };
+  }
+
+  return {
+    title: notification.message,
+    subtitle: `Type: ${notification.type}`,
+  };
+}
+
 export function NotificationsPage() {
   const [notifications, setNotifications] = useState<NotificationResponse[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -205,8 +243,12 @@ export function NotificationsPage() {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="font-medium text-slate-900">{notification.message}</p>
-                    <p className="mt-1 text-xs text-slate-500">Type: {notification.type}</p>
+                    <p className="font-medium text-slate-900">{getNotificationSummary(notification).title}</p>
+                    <p className="mt-1 text-sm text-slate-600">{getNotificationSummary(notification).subtitle}</p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      Created: {formatCreatedAt(notification.created_at)}
+                      {notification.event_id ? ` • Event ID: ${notification.event_id}` : ''}
+                    </p>
                   </div>
 
                   <div className="flex gap-2">
