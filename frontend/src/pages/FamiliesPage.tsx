@@ -1,4 +1,4 @@
-import { EmptyMessage, ErrorMessage, LoadingMessage, SuccessMessage } from '../components/Feedback';
+import { ErrorMessage, EmptyMessage, SuccessMessage } from '../components/Feedback';
 import { FormEvent, useState } from 'react';
 
 import { useAuth } from '../features/auth/AuthContext';
@@ -186,13 +186,9 @@ export function FamiliesPage() {
             </button>
           </form>
 
-          {joinError ? <p className="mt-3 text-sm text-red-600">{joinError}</p> : null}
+          {joinError ? <ErrorMessage message={joinError} /> : null}
 
-          {joinResult ? (
-            <div className="mt-3 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
-              Added user {joinResult.user_id} to family {joinResult.family_id}.
-            </div>
-          ) : null}
+          {joinResult ? <SuccessMessage message={`Added user ${joinResult.user_id} to family ${joinResult.family_id}.`} /> : null}
         </article>
 
         <article className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm lg:col-span-2">
@@ -237,7 +233,9 @@ export function FamiliesPage() {
             </div>
           </form>
 
-          {eventsError ? <p className="mt-3 text-sm text-red-600">{eventsError}</p> : null}
+          {eventsError ? <ErrorMessage message={eventsError} /> : null}
+
+          {!eventsError && !isLoadingEvents && familyEvents.length === 0 ? <EmptyMessage message="No family events loaded yet." /> : null}
 
           {!eventsError && familyEvents.length > 0 ? (
             <>

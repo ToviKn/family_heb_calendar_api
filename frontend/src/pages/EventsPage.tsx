@@ -1,4 +1,4 @@
-import { EmptyMessage, ErrorMessage, LoadingMessage, SuccessMessage } from '../components/Feedback';
+import { EmptyMessage, ErrorMessage, LoadingMessage } from '../components/Feedback';
 import { FormEvent, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -416,7 +416,7 @@ export function EventsPage() {
 
           {isLoading ? <LoadingMessage message="Loading events..." /> : null}
 
-          {!isLoading && events.length === 0 ? <p className="mt-4 text-slate-600">{getEmptyMessage(viewMode)}</p> : null}
+          {!isLoading && events.length === 0 ? <EmptyMessage message={getEmptyMessage(viewMode)} /> : null}
 
           {!isLoading && events.length > 0 ? (
             <ul className="mt-4 space-y-3">
