@@ -18,3 +18,8 @@ class UserResponse(BaseModel):
 class ChangePasswordRequest(BaseModel):
     current_password: str
     new_password: str
+
+
+class ChangePasswordResponse(BaseModel):
+    status: str
+    message: str

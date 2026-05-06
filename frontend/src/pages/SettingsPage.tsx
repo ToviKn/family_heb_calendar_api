@@ -1,8 +1,8 @@
-import axios from 'axios';
-import { FormEvent, useState } from 'react';
+import { useState } from 'react';
+import type { FormEvent } from 'react';
 
-import { ErrorMessage, SuccessMessage } from '../components/Feedback';
-import { changePassword } from '../lib/api';
+import { ErrorMessage, LoadingMessage, SuccessMessage } from '../components/Feedback';
+import { changePassword, getApiErrorMessage } from '../lib/api';
 
 interface ChangePasswordFormState {
   currentPassword: string;
@@ -16,17 +16,6 @@ const initialFormState: ChangePasswordFormState = {
   confirmNewPassword: '',
 };
 
-function getChangePasswordErrorMessage(error: unknown): string {
-  if (axios.isAxiosError(error)) {
-    const apiMessage = error.response?.data?.message;
-    if (typeof apiMessage === 'string' && apiMessage.trim().length > 0) {
-      return apiMessage;
-    }
-  }
-
-  return 'Unable to change password. Please verify your current password and try again.';
-}
-
 export function SettingsPage() {
   const [form, setForm] = useState<ChangePasswordFormState>(initialFormState);
   const [error, setError] = useState<string | null>(null);
@@ -34,6 +23,8 @@ export function SettingsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const passwordsMatch = form.newPassword === form.confirmNewPassword;
+  const showPasswordMismatch = Boolean(form.confirmNewPassword) && !passwordsMatch;
+  const isSubmitDisabled = isSubmitting || showPasswordMismatch;
 
   function updateField(field: keyof ChangePasswordFormState, value: string): void {
     setForm((previous) => ({ ...previous, [field]: value }));
@@ -66,7 +57,9 @@ export function SettingsPage() {
       setForm(initialFormState);
       setSuccess(response.message || 'Password updated successfully.');
     } catch (caughtError) {
-      setError(getChangePasswordErrorMessage(caughtError));
+      setError(
+        getApiErrorMessage(caughtError, 'Unable to change password. Please verify your current password and try again.')
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -85,12 +78,14 @@ export function SettingsPage() {
           Enter your current password and choose a new password for your account.
         </p>
 
-        <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
-          <label className="block text-sm font-medium text-slate-700">
+        <form aria-busy={isSubmitting} className="mt-6 space-y-4" onSubmit={handleSubmit}>
+          <label className="block text-sm font-medium text-slate-700" htmlFor="current-password">
             Current password
             <input
+              id="current-password"
               autoComplete="current-password"
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 outline-none focus:border-blue-500"
+              disabled={isSubmitting}
+              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 outline-none focus:border-blue-500 disabled:bg-slate-100"
               type="password"
               value={form.currentPassword}
               onChange={(event) => updateField('currentPassword', event.target.value)}
@@ -98,11 +93,14 @@ export function SettingsPage() {
             />
           </label>
 
-          <label className="block text-sm font-medium text-slate-700">
+          <label className="block text-sm font-medium text-slate-700" htmlFor="new-password">
             New password
             <input
+              id="new-password"
               autoComplete="new-password"
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 outline-none focus:border-blue-500"
+              aria-describedby="password-policy"
+              disabled={isSubmitting}
+              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 outline-none focus:border-blue-500 disabled:bg-slate-100"
               type="password"
               value={form.newPassword}
               onChange={(event) => updateField('newPassword', event.target.value)}
@@ -110,11 +108,14 @@ export function SettingsPage() {
             />
           </label>
 
-          <label className="block text-sm font-medium text-slate-700">
+          <label className="block text-sm font-medium text-slate-700" htmlFor="confirm-new-password">
             Confirm new password
             <input
+              id="confirm-new-password"
               autoComplete="new-password"
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 outline-none focus:border-blue-500"
+              aria-invalid={showPasswordMismatch}
+              disabled={isSubmitting}
+              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 outline-none focus:border-blue-500 disabled:bg-slate-100"
               type="password"
               value={form.confirmNewPassword}
               onChange={(event) => updateField('confirmNewPassword', event.target.value)}
@@ -122,17 +123,23 @@ export function SettingsPage() {
             />
           </label>
 
-          {!passwordsMatch && form.confirmNewPassword ? (
+          <p id="password-policy" className="text-sm text-slate-600">
+            New password must be at least 10 characters and include uppercase, lowercase, number, and special
+            characters.
+          </p>
+
+          {showPasswordMismatch ? (
             <p className="text-sm text-red-600">New password and confirmation must match.</p>
           ) : null}
 
+          {isSubmitting ? <LoadingMessage message="Updating your password..." /> : null}
           {error ? <ErrorMessage message={error} /> : null}
           {success ? <SuccessMessage message={success} /> : null}
 
           <button
             className="rounded-md bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300"
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitDisabled}
           >
             {isSubmitting ? 'Updating password...' : 'Update password'}
           </button>

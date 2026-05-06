@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from models.models import User
-from models.user import ChangePasswordRequest, UserCreate, UserResponse
+from models.user import ChangePasswordRequest, ChangePasswordResponse, UserCreate, UserResponse
 from services.auth_service import get_current_user
 from services import user_service
 from storage.database import get_db
@@ -19,11 +19,11 @@ def create_user(user: UserCreate, db: DbSession) -> UserResponse:
     return cast(UserResponse, user_service.create_user(db, user.email, user.name, user.password))
 
 
-@router.post("/change-password")
+@router.post("/change-password", response_model=ChangePasswordResponse)
 def change_password(
     payload: ChangePasswordRequest,
     db: DbSession,
     current_user: Annotated[User, Depends(get_current_user)],
-) -> dict[str, str]:
+) -> ChangePasswordResponse:
     user_service.change_password(db, current_user, payload.current_password, payload.new_password)
-    return {"status": "success", "message": "Password updated successfully"}
+    return ChangePasswordResponse(status="success", message="Password updated successfully")

@@ -1,11 +1,12 @@
 import { ErrorMessage } from '../components/Feedback';
-import axios from 'axios';
-import { FormEvent, useState } from 'react';
+import { useState } from 'react';
+import type { FormEvent } from 'react';
 
 import {
   convertGregorianToHebrew,
   convertHebrewToGregorian,
   getTodayConvertedDates,
+  getApiErrorMessage,
   type DateConversionResponse,
 } from '../lib/api';
 
@@ -16,17 +17,6 @@ interface HebrewFormState {
 }
 
 type ActiveAction = 'gregorian_to_hebrew' | 'hebrew_to_gregorian' | 'today' | null;
-
-function getErrorMessage(error: unknown): string {
-  if (axios.isAxiosError(error)) {
-    const apiMessage = error.response?.data?.message;
-    if (typeof apiMessage === 'string' && apiMessage.trim().length > 0) {
-      return apiMessage;
-    }
-  }
-
-  return 'Unable to convert date. Please verify your input and try again.';
-}
 
 function parseGregorianDate(value: string): { year: number; month: number; day: number } | null {
   const [year, month, day] = value.split('-').map(Number);
@@ -87,7 +77,7 @@ export function ConvertPage() {
       setResult(data);
     } catch (err) {
       setResult(null);
-      setError(getErrorMessage(err));
+      setError(getApiErrorMessage(err, 'Unable to convert date. Please verify your input and try again.'));
     } finally {
       setActiveAction(null);
     }
@@ -111,7 +101,7 @@ export function ConvertPage() {
       setResult(data);
     } catch (err) {
       setResult(null);
-      setError(getErrorMessage(err));
+      setError(getApiErrorMessage(err, 'Unable to convert date. Please verify your input and try again.'));
     } finally {
       setActiveAction(null);
     }
@@ -126,7 +116,7 @@ export function ConvertPage() {
       setResult(data);
     } catch (err) {
       setResult(null);
-      setError(getErrorMessage(err));
+      setError(getApiErrorMessage(err, 'Unable to convert date. Please verify your input and try again.'));
     } finally {
       setActiveAction(null);
     }

@@ -104,3 +104,21 @@ def test_change_password_rejects_reuse_of_current_password(client, db_session, a
     assert response.json()["message"] == "New password must be different from current password"
     db_session.refresh(sample_users["owner"])
     assert sample_users["owner"].password_hash == old_hash
+
+
+def test_change_password_returns_password_policy_errors(
+    client, db_session, auth_tokens, sample_users, auth_header
+) -> None:
+    old_hash = sample_users["owner"].password_hash
+    response = client.post(
+        "/users/change-password",
+        json={"current_password": "owner-password", "new_password": "short"},
+        headers=auth_header(auth_tokens["owner"]),
+    )
+
+    assert response.status_code == 400
+    assert response.json()["message"] == "Password must be at least 10 characters"
+    assert response.json()["details"] == {"field": "new_password"}
+
+    db_session.refresh(sample_users["owner"])
+    assert sample_users["owner"].password_hash == old_hash
