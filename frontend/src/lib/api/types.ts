@@ -112,6 +112,16 @@ export interface NotificationListResponse {
   total: number;
 }
 
+
+export interface ChangePasswordRequest {
+  current_password: string;
+  new_password: string;
+}
+
+export interface ChangePasswordResponse extends ApiMessageResponse {
+  status: string;
+}
+
 export interface UserCreateRequest {
   email: string;
   name: string;
