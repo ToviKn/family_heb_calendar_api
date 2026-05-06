@@ -2,7 +2,7 @@ export type CalendarType = 'gregorian' | 'hebrew';
 
 export type RepeatType = 'none' | 'daily' | 'yearly' | 'monthly' | 'weekly';
 
-export type NotificationType = 'EVENT_REMINDER' | 'event reminder' | 'invite' | 'system';
+export type NotificationType = 'EVENT_REMINDER' | 'event reminder' | 'invite' | 'join_request' | 'system';
 
 export interface ApiMessageResponse {
   message: string;
@@ -91,6 +91,35 @@ export interface FamilyMembershipResponse {
   role: string;
   joined_at: string;
 }
+
+export interface FamilyJoinRequestResponse {
+  status: 'pending' | 'rejected' | string;
+  message: string;
+}
+
+export interface FamilyJoinRequestUserResponse {
+  id: number;
+  name: string;
+  email: string;
+}
+
+export interface FamilyJoinRequestDetailResponse {
+  id: number;
+  user_id: number;
+  family_id: number;
+  requested_by: number;
+  status: string;
+  created_at: string;
+  user: FamilyJoinRequestUserResponse;
+  requested_by_user: FamilyJoinRequestUserResponse;
+}
+
+export interface FamilyJoinRequestListResponse {
+  requests: FamilyJoinRequestDetailResponse[];
+  total: number;
+}
+
+export type FamilyMemberAddResponse = FamilyMembershipResponse | FamilyJoinRequestResponse;
 
 export interface NotificationCreate {
   event_id: number;

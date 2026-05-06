@@ -4,9 +4,15 @@ import { FormEvent, useState } from 'react';
 import { useAuth } from '../features/auth/AuthContext';
 import {
   addFamilyMember,
+  approveFamilyJoinRequest,
   createFamily,
+  getApiErrorMessage,
   getFamilyEvents,
+  listFamilyJoinRequests,
+  rejectFamilyJoinRequest,
   type EventResponse,
+  type FamilyJoinRequestDetailResponse,
+  type FamilyMemberAddResponse,
   type FamilyMembershipResponse,
   type FamilyResponse,
 } from '../lib/api';
@@ -25,6 +31,16 @@ interface FamilyEventsForm {
   perPage: string;
 }
 
+interface JoinRequestsForm {
+  familyId: string;
+}
+
+function isJoinRequestResponse(
+  result: FamilyMemberAddResponse,
+): result is Extract<FamilyMemberAddResponse, { status: string }> {
+  return 'status' in result && result.status === 'pending';
+}
+
 export function FamiliesPage() {
   const { userId } = useAuth();
 
@@ -35,8 +51,16 @@ export function FamiliesPage() {
 
   const [joinForm, setJoinForm] = useState<JoinFamilyForm>({ familyId: '' });
   const [joinResult, setJoinResult] = useState<FamilyMembershipResponse | null>(null);
+  const [joinPendingMessage, setJoinPendingMessage] = useState<string | null>(null);
   const [joinError, setJoinError] = useState<string | null>(null);
   const [isJoining, setIsJoining] = useState(false);
+
+  const [joinRequestsForm, setJoinRequestsForm] = useState<JoinRequestsForm>({ familyId: '' });
+  const [joinRequests, setJoinRequests] = useState<FamilyJoinRequestDetailResponse[]>([]);
+  const [joinRequestsError, setJoinRequestsError] = useState<string | null>(null);
+  const [joinRequestsSuccess, setJoinRequestsSuccess] = useState<string | null>(null);
+  const [isLoadingJoinRequests, setIsLoadingJoinRequests] = useState(false);
+  const [activeRequestId, setActiveRequestId] = useState<number | null>(null);
 
   const [eventsForm, setEventsForm] = useState<FamilyEventsForm>({ familyId: '', page: '1', perPage: '20' });
   const [familyEvents, setFamilyEvents] = useState<EventResponse[]>([]);
@@ -63,9 +87,10 @@ export function FamiliesPage() {
       setCreatedFamily(family);
       setCreateForm({ name: '' });
       setJoinForm((prev) => ({ ...prev, familyId: String(family.id) }));
+      setJoinRequestsForm((prev) => ({ ...prev, familyId: String(family.id) }));
       setEventsForm((prev) => ({ ...prev, familyId: String(family.id) }));
-    } catch {
-      setCreateError('Unable to create family. Please try a different name.');
+    } catch (error) {
+      setCreateError(getApiErrorMessage(error, 'Unable to create family. Please try a different name.'));
     } finally {
       setIsCreatingFamily(false);
     }
@@ -75,6 +100,7 @@ export function FamiliesPage() {
     event.preventDefault();
     setJoinError(null);
     setJoinResult(null);
+    setJoinPendingMessage(null);
 
     if (!userId) {
       setJoinError('Unable to resolve your user ID from token. Please login again.');
@@ -85,11 +111,53 @@ export function FamiliesPage() {
 
     try {
       const result = await addFamilyMember(Number(joinForm.familyId), userId);
+      if (isJoinRequestResponse(result)) {
+        setJoinPendingMessage('Join request sent. Waiting for approval.');
+        return;
+      }
       setJoinResult(result);
-    } catch {
-      setJoinError('Unable to join family. Verify family ID and your permissions.');
+    } catch (error) {
+      setJoinError(getApiErrorMessage(error, 'Unable to request family access. Verify family ID and try again.'));
     } finally {
       setIsJoining(false);
+    }
+  }
+
+  async function handleLoadJoinRequests(event?: FormEvent<HTMLFormElement>) {
+    event?.preventDefault();
+    setJoinRequestsError(null);
+    setJoinRequestsSuccess(null);
+    setIsLoadingJoinRequests(true);
+
+    try {
+      const result = await listFamilyJoinRequests(Number(joinRequestsForm.familyId));
+      setJoinRequests(result.requests);
+    } catch (error) {
+      setJoinRequests([]);
+      setJoinRequestsError(getApiErrorMessage(error, 'Unable to load join requests. Verify family ID and admin permissions.'));
+    } finally {
+      setIsLoadingJoinRequests(false);
+    }
+  }
+
+  async function handleJoinRequestAction(requestId: number, action: 'approve' | 'reject') {
+    setJoinRequestsError(null);
+    setJoinRequestsSuccess(null);
+    setActiveRequestId(requestId);
+
+    try {
+      if (action === 'approve') {
+        const membership = await approveFamilyJoinRequest(Number(joinRequestsForm.familyId), requestId);
+        setJoinRequestsSuccess(`Approved user ${membership.user_id} for family ${membership.family_id}.`);
+      } else {
+        await rejectFamilyJoinRequest(Number(joinRequestsForm.familyId), requestId);
+        setJoinRequestsSuccess('Join request rejected.');
+      }
+      setJoinRequests((prev) => prev.filter((request) => request.id !== requestId));
+    } catch (error) {
+      setJoinRequestsError(getApiErrorMessage(error, `Unable to ${action} join request. Please try again.`));
+    } finally {
+      setActiveRequestId(null);
     }
   }
 
@@ -106,14 +174,16 @@ export function FamiliesPage() {
 
       setFamilyEvents(result.events);
       setEventsTotal(result.total);
-    } catch {
+    } catch (error) {
       setFamilyEvents([]);
       setEventsTotal(0);
-      setEventsError('Unable to load family events. Verify family ID and permissions.');
+      setEventsError(getApiErrorMessage(error, 'Unable to load family events. Verify family ID and permissions.'));
     } finally {
       setIsLoadingEvents(false);
     }
   }
+
+  const isJoinRequestPending = Boolean(joinPendingMessage);
 
   return (
     <section className="space-y-6">
@@ -159,7 +229,7 @@ export function FamiliesPage() {
 
           {createdFamily ? (
             <div className="mt-3 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
-              Family "{createdFamily.name}" created (ID: {createdFamily.id}).
+              Family &quot;{createdFamily.name}&quot; created (ID: {createdFamily.id}).
             </div>
           ) : null}
         </article>
@@ -175,22 +245,100 @@ export function FamiliesPage() {
               min={1}
               placeholder="Family ID"
               value={joinForm.familyId}
-              onChange={(event) => setJoinForm((prev) => ({ ...prev, familyId: event.target.value }))}
+              onChange={(event) => {
+                setJoinForm((prev) => ({ ...prev, familyId: event.target.value }));
+                setJoinPendingMessage(null);
+                setJoinResult(null);
+                setJoinError(null);
+              }}
               required
             />
 
             <button
               className="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:bg-blue-300"
               type="submit"
-              disabled={isJoining}
+              disabled={isJoining || isJoinRequestPending}
             >
-              {isJoining ? 'Joining...' : 'Join family'}
+              {isJoining ? 'Sending...' : 'Request to Join'}
             </button>
           </form>
 
           {joinError ? <ErrorMessage message={joinError} /> : null}
-
+          {joinPendingMessage ? <SuccessMessage message={joinPendingMessage} /> : null}
           {joinResult ? <SuccessMessage message={`Added user ${joinResult.user_id} to family ${joinResult.family_id}.`} /> : null}
+        </article>
+
+        <article className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm lg:col-span-2">
+          <h2 className="text-lg font-semibold text-slate-900">Join Requests</h2>
+          <p className="mt-2 text-sm text-slate-600">Family admins can review pending requests for a family.</p>
+
+          <form className="mt-4 flex flex-col gap-3 md:flex-row" onSubmit={handleLoadJoinRequests}>
+            <input
+              className="rounded-md border border-slate-300 px-3 py-2 md:w-64"
+              type="number"
+              min={1}
+              placeholder="Family ID"
+              value={joinRequestsForm.familyId}
+              onChange={(event) => {
+                setJoinRequestsForm({ familyId: event.target.value });
+                setJoinRequestsError(null);
+                setJoinRequestsSuccess(null);
+              }}
+              required
+            />
+
+            <button
+              className="rounded-md bg-slate-800 px-4 py-2 text-white hover:bg-slate-900 disabled:bg-slate-400"
+              type="submit"
+              disabled={isLoadingJoinRequests}
+            >
+              {isLoadingJoinRequests ? 'Loading...' : 'Load join requests'}
+            </button>
+          </form>
+
+          {joinRequestsError ? <ErrorMessage message={joinRequestsError} /> : null}
+          {joinRequestsSuccess ? <SuccessMessage message={joinRequestsSuccess} /> : null}
+          {isLoadingJoinRequests ? <LoadingMessage message="Loading join requests..." /> : null}
+          {!joinRequestsError && !isLoadingJoinRequests && joinRequests.length === 0 ? (
+            <EmptyMessage message="No pending join requests loaded." />
+          ) : null}
+
+          {!joinRequestsError && joinRequests.length > 0 ? (
+            <ul className="mt-4 space-y-3">
+              {joinRequests.map((request) => (
+                <li key={request.id} className="rounded-md border border-slate-200 p-4">
+                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                    <div>
+                      <p className="font-medium text-slate-900">{request.user.name}</p>
+                      <p className="text-sm text-slate-600">{request.user.email}</p>
+                      <p className="text-xs text-slate-500">
+                        Requested by {request.requested_by_user.name} on {new Date(request.created_at).toLocaleString()}
+                      </p>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <button
+                        className="rounded-md bg-emerald-600 px-3 py-2 text-sm text-white hover:bg-emerald-700 disabled:bg-emerald-300"
+                        type="button"
+                        disabled={activeRequestId === request.id}
+                        onClick={() => void handleJoinRequestAction(request.id, 'approve')}
+                      >
+                        {activeRequestId === request.id ? 'Working...' : 'Approve'}
+                      </button>
+                      <button
+                        className="rounded-md bg-red-600 px-3 py-2 text-sm text-white hover:bg-red-700 disabled:bg-red-300"
+                        type="button"
+                        disabled={activeRequestId === request.id}
+                        onClick={() => void handleJoinRequestAction(request.id, 'reject')}
+                      >
+                        {activeRequestId === request.id ? 'Working...' : 'Reject'}
+                      </button>
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : null}
         </article>
 
         <article className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm lg:col-span-2">

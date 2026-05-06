@@ -29,3 +29,27 @@ class FamilyListResponse(BaseModel):
 class FamilyJoinRequestResponse(BaseModel):
     status: str
     message: str
+
+
+class FamilyJoinRequestUserResponse(BaseModel):
+    id: int
+    name: str
+    email: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class FamilyJoinRequestDetailResponse(BaseModel):
+    id: int
+    user_id: int
+    family_id: int
+    requested_by: int
+    status: str
+    created_at: datetime
+    user: FamilyJoinRequestUserResponse
+    requested_by_user: FamilyJoinRequestUserResponse
+
+
+class FamilyJoinRequestListResponse(BaseModel):
+    requests: list[FamilyJoinRequestDetailResponse]
+    total: int

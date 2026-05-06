@@ -2,7 +2,7 @@ import logging
 from datetime import datetime, timezone
 
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, aliased
 
 from exceptions import (
     CalendarAPIException,
@@ -223,3 +223,161 @@ def add_member(db: Session, family_id: int, user_id: int, actor_user_id: int) ->
             extra={"operation": "add_family_member", "user_id": actor_user_id, "family_id": family_id},
         )
         raise DatabaseError(f"Failed to add family member: {exc}", "add_member") from exc
+
+
+def _get_family_or_raise(db: Session, family_id: int) -> Family:
+    family = db.query(Family).filter(Family.id == family_id).first()
+    if family is None:
+        raise NotFoundError("Family", family_id)
+    return family
+
+
+def list_pending_join_requests(db: Session, family_id: int, actor_user_id: int) -> list[dict[str, object]]:
+    _get_family_or_raise(db, family_id)
+    ensure_admin_in_family(db, actor_user_id, family_id)
+
+    request_user = aliased(User)
+    requester_user = aliased(User)
+    requests = (
+        db.query(FamilyJoinRequest, request_user, requester_user)
+        .join(request_user, FamilyJoinRequest.user_id == request_user.id)
+        .join(requester_user, FamilyJoinRequest.requested_by == requester_user.id)
+        .filter(
+            FamilyJoinRequest.family_id == family_id,
+            FamilyJoinRequest.status == "pending",
+        )
+        .order_by(FamilyJoinRequest.created_at.asc())
+        .all()
+    )
+
+    return [
+        {
+            "id": join_request.id,
+            "user_id": join_request.user_id,
+            "family_id": join_request.family_id,
+            "requested_by": join_request.requested_by,
+            "status": join_request.status,
+            "created_at": join_request.created_at,
+            "user": {
+                "id": user.id,
+                "name": user.name,
+                "email": user.email,
+            },
+            "requested_by_user": {
+                "id": requested_by_user.id,
+                "name": requested_by_user.name,
+                "email": requested_by_user.email,
+            },
+        }
+        for join_request, user, requested_by_user in requests
+    ]
+
+
+def approve_join_request(db: Session, family_id: int, request_id: int, actor_user_id: int) -> FamilyMembership:
+    try:
+        _get_family_or_raise(db, family_id)
+        ensure_admin_in_family(db, actor_user_id, family_id)
+
+        join_request = (
+            db.query(FamilyJoinRequest)
+            .filter(
+                FamilyJoinRequest.id == request_id,
+                FamilyJoinRequest.family_id == family_id,
+                FamilyJoinRequest.status == "pending",
+            )
+            .first()
+        )
+        if join_request is None:
+            raise NotFoundError("Family join request", request_id)
+
+        existing_membership = (
+            db.query(FamilyMembership)
+            .filter(
+                FamilyMembership.user_id == join_request.user_id,
+                FamilyMembership.family_id == family_id,
+            )
+            .first()
+        )
+        if existing_membership is not None:
+            db.delete(join_request)
+            db.commit()
+            db.refresh(existing_membership)
+            return existing_membership
+
+        membership = FamilyMembership(user_id=join_request.user_id, family_id=family_id)
+        db.add(membership)
+        db.delete(join_request)
+        db.commit()
+        db.refresh(membership)
+
+        logger.info(
+            "Join request approved",
+            extra={
+                "operation": "approve_join_request",
+                "user_id": actor_user_id,
+                "family_id": family_id,
+                "entity_id": request_id,
+                "added_user_id": membership.user_id,
+            },
+        )
+        return membership
+    except CalendarAPIException:
+        db.rollback()
+        raise
+    except IntegrityError as exc:
+        db.rollback()
+        raise ConflictError(
+            "Membership already exists or invalid join request",
+            {"family_id": family_id, "request_id": request_id},
+        ) from exc
+    except Exception as exc:
+        db.rollback()
+        logger.error(
+            "Failed to approve join request",
+            exc_info=True,
+            extra={"operation": "approve_join_request", "user_id": actor_user_id, "family_id": family_id},
+        )
+        raise DatabaseError(f"Failed to approve join request: {exc}", "approve_join_request") from exc
+
+
+def reject_join_request(db: Session, family_id: int, request_id: int, actor_user_id: int) -> dict[str, str]:
+    try:
+        _get_family_or_raise(db, family_id)
+        ensure_admin_in_family(db, actor_user_id, family_id)
+
+        join_request = (
+            db.query(FamilyJoinRequest)
+            .filter(
+                FamilyJoinRequest.id == request_id,
+                FamilyJoinRequest.family_id == family_id,
+                FamilyJoinRequest.status == "pending",
+            )
+            .first()
+        )
+        if join_request is None:
+            raise NotFoundError("Family join request", request_id)
+
+        db.delete(join_request)
+        db.commit()
+
+        logger.info(
+            "Join request rejected",
+            extra={
+                "operation": "reject_join_request",
+                "user_id": actor_user_id,
+                "family_id": family_id,
+                "entity_id": request_id,
+            },
+        )
+        return {"status": "rejected", "message": "Join request rejected"}
+    except CalendarAPIException:
+        db.rollback()
+        raise
+    except Exception as exc:
+        db.rollback()
+        logger.error(
+            "Failed to reject join request",
+            exc_info=True,
+            extra={"operation": "reject_join_request", "user_id": actor_user_id, "family_id": family_id},
+        )
+        raise DatabaseError(f"Failed to reject join request: {exc}", "reject_join_request") from exc

@@ -168,3 +168,134 @@ def test_add_family_member_returns_not_found_for_missing_user(client, auth_token
 
     assert response.status_code == 404
     assert response.json()["message"] == "User with identifier '9999' not found"
+
+
+def test_admin_can_list_pending_join_requests(
+    client, auth_tokens, sample_family, sample_users, auth_header
+) -> None:
+    create_response = client.post(
+        f"/families/{sample_family.id}/members",
+        params={"user_id": sample_users["outsider"].id},
+        headers=auth_header(auth_tokens["outsider"]),
+    )
+    assert create_response.status_code == 200
+
+    response = client.get(
+        f"/families/{sample_family.id}/join-requests",
+        headers=auth_header(auth_tokens["owner"]),
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total"] == 1
+    request = data["requests"][0]
+    assert request["user_id"] == sample_users["outsider"].id
+    assert request["requested_by"] == sample_users["outsider"].id
+    assert request["status"] == "pending"
+    assert request["user"] == {
+        "id": sample_users["outsider"].id,
+        "name": sample_users["outsider"].name,
+        "email": sample_users["outsider"].email,
+    }
+
+
+def test_non_admin_cannot_list_pending_join_requests(
+    client, auth_tokens, sample_family, auth_header
+) -> None:
+    response = client.get(
+        f"/families/{sample_family.id}/join-requests",
+        headers=auth_header(auth_tokens["member"]),
+    )
+
+    assert response.status_code == 403
+
+
+def test_admin_can_approve_join_request(
+    client, auth_tokens, sample_family, sample_users, auth_header, db_session
+) -> None:
+    create_response = client.post(
+        f"/families/{sample_family.id}/members",
+        params={"user_id": sample_users["outsider"].id},
+        headers=auth_header(auth_tokens["outsider"]),
+    )
+    assert create_response.status_code == 200
+    join_request = (
+        db_session.query(FamilyJoinRequest)
+        .filter(
+            FamilyJoinRequest.user_id == sample_users["outsider"].id,
+            FamilyJoinRequest.family_id == sample_family.id,
+            FamilyJoinRequest.status == "pending",
+        )
+        .first()
+    )
+    assert join_request is not None
+
+    response = client.post(
+        f"/families/{sample_family.id}/join-requests/{join_request.id}/approve",
+        headers=auth_header(auth_tokens["owner"]),
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["user_id"] == sample_users["outsider"].id
+    assert data["family_id"] == sample_family.id
+
+    membership = (
+        db_session.query(FamilyMembership)
+        .filter(
+            FamilyMembership.user_id == sample_users["outsider"].id,
+            FamilyMembership.family_id == sample_family.id,
+        )
+        .first()
+    )
+    assert membership is not None
+    assert (
+        db_session.query(FamilyJoinRequest)
+        .filter(FamilyJoinRequest.id == join_request.id)
+        .first()
+        is None
+    )
+
+
+def test_admin_can_reject_join_request(
+    client, auth_tokens, sample_family, sample_users, auth_header, db_session
+) -> None:
+    create_response = client.post(
+        f"/families/{sample_family.id}/members",
+        params={"user_id": sample_users["outsider"].id},
+        headers=auth_header(auth_tokens["outsider"]),
+    )
+    assert create_response.status_code == 200
+    join_request = (
+        db_session.query(FamilyJoinRequest)
+        .filter(
+            FamilyJoinRequest.user_id == sample_users["outsider"].id,
+            FamilyJoinRequest.family_id == sample_family.id,
+            FamilyJoinRequest.status == "pending",
+        )
+        .first()
+    )
+    assert join_request is not None
+
+    response = client.delete(
+        f"/families/{sample_family.id}/join-requests/{join_request.id}",
+        headers=auth_header(auth_tokens["owner"]),
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "rejected"
+    assert (
+        db_session.query(FamilyJoinRequest)
+        .filter(FamilyJoinRequest.id == join_request.id)
+        .first()
+        is None
+    )
+    assert (
+        db_session.query(FamilyMembership)
+        .filter(
+            FamilyMembership.user_id == sample_users["outsider"].id,
+            FamilyMembership.family_id == sample_family.id,
+        )
+        .first()
+        is None
+    )
