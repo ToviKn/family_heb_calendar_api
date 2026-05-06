@@ -11,6 +11,7 @@ import { LoginPage } from '../pages/LoginPage';
 import { NotFoundPage } from '../pages/NotFoundPage';
 import { NotificationsPage } from '../pages/NotificationsPage';
 import { RegisterPage } from '../pages/RegisterPage';
+import { SettingsPage } from '../pages/SettingsPage';
 
 export function AppRouter() {
   return (
@@ -26,6 +27,7 @@ export function AppRouter() {
           <Route path="convert" element={<ConvertPage />} />
           <Route path="families" element={<FamiliesPage />} />
           <Route path="notifications" element={<NotificationsPage />} />
+          <Route path="settings" element={<SettingsPage />} />
         </Route>
       </Route>
 

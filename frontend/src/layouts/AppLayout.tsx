@@ -8,6 +8,7 @@ const navItems = [
   { to: '/families', label: 'Families' },
   { to: '/notifications', label: 'Notifications' },
   { to: '/convert', label: 'Conversion' },
+  { to: '/settings', label: 'Settings' },
 ] as const;
 
 function navLinkClassName(isActive: boolean): string {

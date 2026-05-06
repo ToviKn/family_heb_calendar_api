@@ -115,12 +115,13 @@ def change_password(db: Session, user: User, current_password: str, new_password
         raise CalendarAPIException("New password must be different from current password", 400, {"field": "new_password"})
     try:
         validate_password(new_password, user.email)
-    except ValidationError:
+    except ValidationError as exc:
         logger.warning(
             "Weak new password attempt",
             extra={"operation": "change_password", "user_id": user.id},
         )
-        raise CalendarAPIException("New password does not meet password policy requirements", 400, {"field": "new_password"})
+        details = {**exc.details, "field": "new_password"}
+        raise CalendarAPIException(exc.message, 400, details) from exc
     user.password_hash = hash_password(new_password)
 
     try:
