@@ -50,6 +50,25 @@ def test_get_and_mark_read_notifications(client, db_session, auth_tokens, sample
     assert mark_response.status_code == 200
     assert mark_response.json()["is_read"] is True
 
+
+def test_get_notifications_normalizes_legacy_event_reminder_type(
+    client, db_session, auth_tokens, sample_users, auth_header
+) -> None:
+    notification = Notification(
+        user_id=sample_users["owner"].id,
+        message="Legacy reminder",
+        type="event reminder",
+        is_read=False,
+    )
+    db_session.add(notification)
+    db_session.commit()
+
+    response = client.get("/notifications/", headers=auth_header(auth_tokens["owner"]))
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["events"][0]["type"] == "EVENT_REMINDER"
+
 def test_create_notification_creates_server_driven_event_reminder(
     client, auth_tokens, event_payload, sample_users, auth_header
 ) -> None:

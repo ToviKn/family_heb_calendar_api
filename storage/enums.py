@@ -16,6 +16,6 @@ class RepeatType(str, Enum):
 
 class NotificationType(str, Enum):
     EVENT_REMINDER = "EVENT_REMINDER"
-    EVENT_REMINDER_LEGACY = "event reminder"
     INVITE = "invite"
     SYSTEM = "system"
+    JOIN_REQUEST = "join_request"

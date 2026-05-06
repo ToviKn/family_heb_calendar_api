@@ -24,3 +24,8 @@ class FamilyMembershipResponse(BaseModel):
 class FamilyListResponse(BaseModel):
     families: list[FamilyResponse]
     total: int
+
+
+class FamilyJoinRequestResponse(BaseModel):
+    status: str
+    message: str

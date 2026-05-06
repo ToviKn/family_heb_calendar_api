@@ -73,6 +73,18 @@ def test_run_safe_schema_migrations_upgrades_legacy_notifications_table(tmp_path
             )
         )
 
+        connection.execute(
+            text(
+                """
+                INSERT INTO notifications (
+                    id, user_id, event_id, type, send_at, sent, created_at
+                ) VALUES (
+                    2, 1, 1, 'event reminder', '2026-03-18 00:00:00', 1, '2026-03-18 00:00:00'
+                )
+                """
+            )
+        )
+
     run_safe_schema_migrations(engine)
 
     inspector = inspect(engine)
@@ -80,6 +92,7 @@ def test_run_safe_schema_migrations_upgrades_legacy_notifications_table(tmp_path
     index_names = {index["name"] for index in inspector.get_indexes("notifications")}
 
     assert "message" in columns
+    assert "metadata" in columns
     assert "type" in columns
     assert "is_read" in columns
     assert columns["event_id"]["nullable"] is True
@@ -98,6 +111,17 @@ def test_run_safe_schema_migrations_upgrades_legacy_notifications_table(tmp_path
         assert migrated_row.message == "Legacy notification"
         assert migrated_row.type == "reminder"
         assert migrated_row.is_read == 0
+
+        legacy_reminder_row = connection.execute(
+            text(
+                """
+                SELECT type
+                FROM notifications
+                WHERE id = 2
+                """
+            )
+        ).one()
+        assert legacy_reminder_row.type == "EVENT_REMINDER"
 
         connection.execute(
             text(

@@ -34,7 +34,7 @@ def run_safe_schema_migrations(engine: Engine) -> None:
         index_names = {
             index["name"] for index in inspector.get_indexes("notifications")
         }
-        required_columns = {"message", "type", "is_read"}
+        required_columns = {"message", "type", "is_read", "metadata"}
         missing_columns = required_columns - set(columns)
         event_id_column = columns.get("event_id")
         event_id_nullable = (
@@ -45,6 +45,8 @@ def run_safe_schema_migrations(engine: Engine) -> None:
         duplicate_lookup_index_missing = (
             "ix_notifications_user_event_type" not in index_names
         )
+        if "type" in columns:
+            _normalize_legacy_notification_type_values(connection)
 
         if (
             not missing_columns
@@ -79,6 +81,36 @@ def run_safe_schema_migrations(engine: Engine) -> None:
         logger.info(
             "Notification schema migration completed",
             extra={"migration": "notifications", "dialect": dialect_name},
+        )
+
+
+def _normalize_legacy_notification_type_values(connection) -> None:
+    legacy_count = connection.execute(
+        text(
+            """
+            SELECT COUNT(*)
+            FROM notifications
+            WHERE type = 'event reminder'
+            """
+        )
+    ).scalar_one()
+    if legacy_count:
+        logger.warning(
+            "Legacy notification type detected",
+            extra={
+                "migration": "notifications",
+                "legacy_type": "event reminder",
+                "row_count": legacy_count,
+            },
+        )
+        connection.execute(
+            text(
+                """
+                UPDATE notifications
+                SET type = 'EVENT_REMINDER'
+                WHERE type = 'event reminder'
+                """
+            )
         )
 
 
@@ -132,6 +164,7 @@ def _migrate_notifications_sqlite(connection) -> None:
                     user_id INTEGER NOT NULL,
                     event_id INTEGER NULL,
                     message TEXT NOT NULL DEFAULT 'Legacy notification',
+                    metadata JSON NULL,
                     type VARCHAR(50) NOT NULL DEFAULT 'system',
                     is_read BOOLEAN NOT NULL DEFAULT 0,
                     created_at DATETIME,
@@ -147,14 +180,18 @@ def _migrate_notifications_sqlite(connection) -> None:
             text(
                 """
                 INSERT INTO notifications__migration (
-                    id, user_id, event_id, message, type, is_read, created_at, send_at, sent
+                    id, user_id, event_id, message, metadata, type, is_read, created_at, send_at, sent
                 )
                 SELECT
                     id,
                     user_id,
                     event_id,
                     'Legacy notification',
-                    COALESCE(type, 'system'),
+                    NULL,
+                    CASE COALESCE(type, 'system')
+                        WHEN 'event reminder' THEN 'EVENT_REMINDER'
+                        ELSE COALESCE(type, 'system')
+                    END,
                     0,
                     created_at,
                     send_at,
@@ -194,6 +231,16 @@ def _migrate_notifications_generic(
             )
         )
 
+    if "metadata" in missing_columns:
+        connection.execute(
+            text(
+                """
+                ALTER TABLE notifications
+                ADD COLUMN metadata JSON NULL
+                """
+            )
+        )
+
     if "is_read" in missing_columns:
         connection.execute(
             text(
@@ -210,7 +257,10 @@ def _migrate_notifications_generic(
             UPDATE notifications
             SET
                 message = COALESCE(message, 'Legacy notification'),
-                type = COALESCE(type, 'system'),
+                type = CASE COALESCE(type, 'system')
+                        WHEN 'event reminder' THEN 'EVENT_REMINDER'
+                        ELSE COALESCE(type, 'system')
+                    END,
                 is_read = COALESCE(is_read, FALSE)
             """
         )

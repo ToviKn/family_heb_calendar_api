@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from exceptions import CalendarAPIException, DatabaseError, NotFoundError, ValidationError
 from logging_config import get_request_id
-from models.models import Event, FamilyMembership, Notification, User
+from models.models import Event, Family, FamilyMembership, Notification, User
 from models.notification import NotificationCreate
 from services.date_service import calculate_next_occurrence
 from services.family_service import ensure_user_in_family, get_user_family_ids
@@ -15,10 +15,17 @@ from storage.enums import NotificationType, RepeatType
 
 logger = logging.getLogger(__name__)
 
+LEGACY_EVENT_REMINDER_TYPE = "event reminder"
 EVENT_REMINDER_TYPES = (
-    NotificationType.EVENT_REMINDER,
-    NotificationType.EVENT_REMINDER_LEGACY,
+    NotificationType.EVENT_REMINDER.value,
+    LEGACY_EVENT_REMINDER_TYPE,
 )
+
+
+def _notification_type_value(notification_type: NotificationType | str) -> str:
+    if isinstance(notification_type, NotificationType):
+        return notification_type.value
+    return notification_type
 
 
 def _normalize_notification_type(
@@ -26,10 +33,32 @@ def _normalize_notification_type(
 ) -> NotificationType:
     if isinstance(notification_type, NotificationType):
         return notification_type
+    if notification_type == LEGACY_EVENT_REMINDER_TYPE:
+        logger.warning(
+            "Legacy notification type detected",
+            extra={
+                "operation": "normalize_notification_type",
+                "legacy_type": notification_type,
+            },
+        )
+        return NotificationType.EVENT_REMINDER
     try:
         return NotificationType(notification_type)
     except ValueError as exc:
         raise ValidationError("Invalid notification type", "type") from exc
+
+
+def _normalize_notification_record_type(notification: Notification) -> Notification:
+    if _notification_type_value(notification.type) == LEGACY_EVENT_REMINDER_TYPE:
+        logger.warning(
+            "Legacy notification type detected",
+            extra={
+                "operation": "normalize_notification_record_type",
+                "notification_id": notification.id,
+            },
+        )
+        notification.type = NotificationType.EVENT_REMINDER.value
+    return notification
 
 
 def _get_existing_notification(
@@ -46,10 +75,17 @@ def _get_existing_notification(
     if normalized_type == NotificationType.EVENT_REMINDER:
         query = query.filter(Notification.type.in_(EVENT_REMINDER_TYPES))
     else:
-        query = query.filter(Notification.type == normalized_type)
-    query = query.filter(Notification.event_id.is_(None) if event_id is None else Notification.event_id == event_id)
+        query = query.filter(Notification.type == normalized_type.value)
+    query = query.filter(
+        Notification.event_id.is_(None)
+        if event_id is None
+        else Notification.event_id == event_id
+    )
 
-    if normalized_type == NotificationType.EVENT_REMINDER and message is not None:
+    if (
+        normalized_type in (NotificationType.EVENT_REMINDER, NotificationType.INVITE)
+        and message is not None
+    ):
         query = query.filter(Notification.message == message)
 
     return query.first()
@@ -61,6 +97,7 @@ def _create_notification_record(
     event_id: int | None,
     message: str,
     notification_type: NotificationType | str,
+    metadata_json: dict | None = None,
 ) -> tuple[Notification, bool]:
     normalized_type = _normalize_notification_type(notification_type)
 
@@ -72,12 +109,13 @@ def _create_notification_record(
         message=message,
     )
     if existing_notification:
-        return existing_notification, False
+        return _normalize_notification_record_type(existing_notification), False
 
     notification = Notification(
         user_id=user_id,
         message=message,
-        type=normalized_type,
+        metadata_json=metadata_json,
+        type=normalized_type.value,
         event_id=event_id,
         is_read=False,
         created_at=datetime.utcnow(),
@@ -101,6 +139,12 @@ def create_notification(db: Session, payload: NotificationCreate, current_user_i
             event_id=event.id,
             message=f"Reminder: {event.title} on {event.next_occurrence}",
             notification_type=NotificationType.EVENT_REMINDER,
+            metadata_json={
+                "event_title": event.title,
+                "date": str(event.next_occurrence) if event.next_occurrence is not None else None,
+                "start_time": event.start_time.isoformat() if event.start_time is not None else None,
+                "family_id": event.family_id,
+            },
         )
         db.commit()
         db.refresh(notification)
@@ -125,7 +169,10 @@ def get_user_notifications(db: Session, user_id: int) -> list[Notification]:
             .order_by(Notification.created_at.desc()) \
             .all()
 
-        return cast(list[Notification], notifications)
+        return [
+            _normalize_notification_record_type(notification)
+            for notification in cast(list[Notification], notifications)
+        ]
 
     except Exception as exc:
         logger.error("Failed to get notifications", exc_info=True)
@@ -143,6 +190,7 @@ def mark_notification_as_read(db: Session, notification_id: int, user_id: int) -
         if notification is None:
             raise NotFoundError("Notification", notification_id)
 
+        _normalize_notification_record_type(notification)
         notification.is_read = True
         db.commit()
         db.refresh(notification)
@@ -214,12 +262,24 @@ def notify_family_on_event_updated(db: Session, event: Event, actor_user_id: int
 
 def notify_family_invitation(db: Session, invited_user_id: int, family_id: int, invited_by_user_id: int) -> None:
     try:
+        family = db.query(Family).filter(Family.id == family_id).first()
+        invited_user = db.query(User).filter(User.id == invited_user_id).first()
+        invited_by_user = db.query(User).filter(User.id == invited_by_user_id).first()
+        family_name = family.name if family is not None else "Unknown family"
+        inviter_name = invited_by_user.name if invited_by_user is not None else "Someone"
+        invited_name = invited_user.name if invited_user is not None else "you"
         notification, _ = _create_notification_record(
             db=db,
             user_id=invited_user_id,
             event_id=None,
-            message=f"You were invited to family #{family_id} by user #{invited_by_user_id}",
+            message=f"{inviter_name} invited {invited_name} to family {family_name}",
             notification_type=NotificationType.INVITE,
+            metadata_json={
+                "actor": {"id": invited_by_user_id, "name": inviter_name},
+                "target": {"id": invited_user_id, "name": invited_name},
+                "family_id": family_id,
+                "family_name": family_name,
+            },
         )
         db.commit()
         db.refresh(notification)
@@ -310,6 +370,12 @@ def process_event_reminders(db: Session, _within_hours: int = 24) -> int:
                         event_id=event.id,
                         message=reminder_message,
                         notification_type=NotificationType.EVENT_REMINDER,
+                        metadata_json={
+                            "event_title": event.title,
+                            "date": str(next_occurrence),
+                            "start_time": event.start_time.isoformat() if event.start_time is not None else None,
+                            "family_id": event.family_id,
+                        },
                     )
                     if created:
                         created_count += 1

@@ -1,3 +1,6 @@
+from services.auth_service import verify_password
+
+
 def test_create_user_success(client) -> None:
     payload = {
         "email": "new.user@example.com",
@@ -48,3 +51,56 @@ def test_create_user_fails_for_weak_password(client) -> None:
     assert response.status_code == 422
     body = response.json()
     assert body["message"].startswith("Password must")
+
+
+def test_change_password_success(client, db_session, auth_tokens, sample_users, auth_header) -> None:
+    response = client.post(
+        "/users/change-password",
+        json={"current_password": "owner-password", "new_password": "NewStrongPass1!"},
+        headers=auth_header(auth_tokens["owner"]),
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "success", "message": "Password updated successfully"}
+
+    db_session.refresh(sample_users["owner"])
+    assert verify_password("NewStrongPass1!", sample_users["owner"].password_hash)
+    assert not verify_password("owner-password", sample_users["owner"].password_hash)
+
+
+def test_change_password_fails_with_wrong_current_password(client, db_session, auth_tokens, sample_users, auth_header) -> None:
+    old_hash = sample_users["owner"].password_hash
+    response = client.post(
+        "/users/change-password",
+        json={"current_password": "wrong-password", "new_password": "NewStrongPass1!"},
+        headers=auth_header(auth_tokens["owner"]),
+    )
+
+    assert response.status_code == 400
+    assert response.json()["message"] == "Current password is incorrect"
+
+    db_session.refresh(sample_users["owner"])
+    assert sample_users["owner"].password_hash == old_hash
+
+
+def test_change_password_requires_authentication(client) -> None:
+    response = client.post(
+        "/users/change-password",
+        json={"current_password": "owner-password", "new_password": "NewStrongPass1!"},
+    )
+
+    assert response.status_code == 401
+
+
+def test_change_password_rejects_reuse_of_current_password(client, db_session, auth_tokens, sample_users, auth_header) -> None:
+    old_hash = sample_users["owner"].password_hash
+    response = client.post(
+        "/users/change-password",
+        json={"current_password": "owner-password", "new_password": "owner-password"},
+        headers=auth_header(auth_tokens["owner"]),
+    )
+
+    assert response.status_code == 400
+    assert response.json()["message"] == "New password must be different from current password"
+    db_session.refresh(sample_users["owner"])
+    assert sample_users["owner"].password_hash == old_hash

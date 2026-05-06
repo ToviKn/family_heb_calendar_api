@@ -6,7 +6,7 @@ from sqlalchemy.exc import IntegrityError
 
 from exceptions import CalendarAPIException, ConflictError, DatabaseError, ValidationError
 from models.models import User
-from services.auth_service import hash_password
+from services.auth_service import hash_password, verify_password
 
 logger = logging.getLogger(__name__)
 EMAIL_REGEX = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
@@ -91,3 +91,58 @@ def create_user(db: Session, email: str, name: str, password: str) -> User:
         db.rollback()
         logger.error("User creation failed", exc_info=True, extra={"operation": "create_user"})
         raise DatabaseError(f"Failed to create user: {exc}", "create_user") from exc
+
+
+def change_password(db: Session, user: User, current_password: str, new_password: str) -> None:
+    if user is None or not user.password_hash:
+        logger.error(
+            "Cannot change password: missing user or password hash",
+            extra={"operation": "change_password", "user_id": getattr(user, "id", None)},
+        )
+        raise CalendarAPIException("Unable to change password for this user", 400)
+
+    if not verify_password(current_password, user.password_hash):
+        logger.warning(
+            "Wrong current password attempt",
+            extra={"operation": "change_password", "user_id": user.id},
+        )
+        raise CalendarAPIException("Current password is incorrect", 400, {"field": "current_password"})
+    if verify_password(new_password, user.password_hash):
+        logger.warning(
+            "Password reuse attempt",
+            extra={"operation": "change_password", "user_id": user.id},
+        )
+        raise CalendarAPIException("New password must be different from current password", 400, {"field": "new_password"})
+    try:
+        validate_password(new_password, user.email)
+    except ValidationError:
+        logger.warning(
+            "Weak new password attempt",
+            extra={"operation": "change_password", "user_id": user.id},
+        )
+        raise CalendarAPIException("New password does not meet password policy requirements", 400, {"field": "new_password"})
+    user.password_hash = hash_password(new_password)
+
+    try:
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        logger.info(
+            "Password changed successfully",
+            extra={"operation": "change_password", "user_id": user.id},
+        )
+        logger.warning(
+            "Password changed successfully; existing access tokens remain valid until expiration",
+            extra={"operation": "change_password", "user_id": user.id},
+        )
+    except CalendarAPIException:
+        db.rollback()
+        raise
+    except Exception as exc:
+        db.rollback()
+        logger.error(
+            "Password change failed",
+            exc_info=True,
+            extra={"operation": "change_password", "user_id": user.id},
+        )
+        raise DatabaseError(f"Failed to change password: {exc}", "change_password") from exc

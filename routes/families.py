@@ -4,7 +4,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from models.family import FamilyMembershipResponse, FamilyResponse
+from models.family import FamilyJoinRequestResponse, FamilyMembershipResponse, FamilyResponse
 from models.models import User
 from services import notification_service
 from services.auth_service import get_current_user
@@ -22,9 +22,12 @@ def create_family(name: str, db: DbSession, current_user: CurrentUser) -> Family
     return FamilyResponse.model_validate(create_family_service(db, name, current_user.id))
 
 
-@router.post("/{family_id}/members", response_model=FamilyMembershipResponse)
-def add_member(family_id: int, user_id: int, db: DbSession, current_user: CurrentUser) -> FamilyMembershipResponse:
-    membership = add_member_service(db, family_id, user_id, current_user.id)
+@router.post("/{family_id}/members", response_model=FamilyMembershipResponse | FamilyJoinRequestResponse)
+def add_member(family_id: int, user_id: int, db: DbSession, current_user: CurrentUser) -> FamilyMembershipResponse | FamilyJoinRequestResponse:
+    result = add_member_service(db, family_id, user_id, current_user.id)
+    if isinstance(result, dict):
+        return FamilyJoinRequestResponse.model_validate(result)
+
     notification_service.notify_family_invitation(
         db,
         invited_user_id=user_id,
@@ -32,7 +35,11 @@ def add_member(family_id: int, user_id: int, db: DbSession, current_user: Curren
         invited_by_user_id=current_user.id,
     )
     logger.info(
-        "Membership changed: member added",
-        extra={"operation": "add_member", "family_id": family_id, "user_id": current_user.id, "entity_id": membership.id},
+        "Invite notification sent",
+        extra={"operation": "add_member", "user_id": current_user.id, "family_id": family_id, "added_user_id": user_id},
     )
-    return FamilyMembershipResponse.model_validate(membership)
+    logger.info(
+        "Membership changed: member added",
+        extra={"operation": "add_member", "family_id": family_id, "user_id": current_user.id, "entity_id": result.id},
+    )
+    return FamilyMembershipResponse.model_validate(result)

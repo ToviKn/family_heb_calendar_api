@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import date, datetime, time
 
-from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Index, String, Text, Time, UniqueConstraint
+from sqlalchemy import JSON, Boolean, Date, DateTime, ForeignKey, Index, String, Text, Time, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from storage.database import Base
@@ -52,6 +52,20 @@ class FamilyMembership(Base):
 
     user: Mapped[User] = relationship(back_populates="memberships")
     family: Mapped[Family] = relationship(back_populates="members")
+
+
+class FamilyJoinRequest(Base):
+    __tablename__ = "family_join_requests"
+    __table_args__ = (
+        UniqueConstraint("user_id", "family_id", "status"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    family_id: Mapped[int] = mapped_column(ForeignKey("families.id"), nullable=False)
+    requested_by: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    status: Mapped[str] = mapped_column(String(50), default="pending", nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
 class Event(Base):
@@ -117,6 +131,7 @@ class Notification(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     event_id: Mapped[int | None] = mapped_column(ForeignKey("events.id"), nullable=True)
     message: Mapped[str] = mapped_column(Text, nullable=False)
+    metadata_json: Mapped[dict | None] = mapped_column("metadata", JSON, nullable=True)
     type: Mapped[NotificationType] = mapped_column(
         String(50), default=NotificationType.SYSTEM.value
     )

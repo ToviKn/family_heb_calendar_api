@@ -12,7 +12,7 @@ from exceptions import (
     PermissionDeniedError,
     ValidationError,
 )
-from models.models import Family, FamilyMembership, User
+from models.models import Family, FamilyJoinRequest, FamilyMembership, Notification, User
 
 logger = logging.getLogger(__name__)
 
@@ -93,9 +93,17 @@ def create_family(db: Session, name: str, actor_user_id: int) -> Family:
         raise DatabaseError(f"Failed to create family: {exc}", "create_family") from exc
 
 
-def add_member(db: Session, family_id: int, user_id: int, actor_user_id: int) -> FamilyMembership:
+def add_member(db: Session, family_id: int, user_id: int, actor_user_id: int) -> FamilyMembership | dict[str, str]:
     try:
-        ensure_admin_in_family(db, actor_user_id, family_id)
+        actor_membership = (
+            db.query(FamilyMembership)
+            .filter(
+                FamilyMembership.user_id == actor_user_id,
+                FamilyMembership.family_id == family_id,
+            )
+            .first()
+        )
+        is_admin = actor_membership is not None and actor_membership.role == "admin"
 
         family = db.query(Family).filter(Family.id == family_id).first()
         if family is None:
@@ -104,6 +112,9 @@ def add_member(db: Session, family_id: int, user_id: int, actor_user_id: int) ->
         target_user = db.query(User).filter(User.id == user_id).first()
         if target_user is None:
             raise NotFoundError("User", user_id)
+        actor_user = db.query(User).filter(User.id == actor_user_id).first()
+        if actor_user is None:
+            raise NotFoundError("User", actor_user_id)
 
         existing_membership = (
             db.query(FamilyMembership)
@@ -118,6 +129,62 @@ def add_member(db: Session, family_id: int, user_id: int, actor_user_id: int) ->
                 "User is already a member of this family",
                 {"user_id": user_id, "family_id": family_id},
             )
+
+        if not is_admin:
+            existing_request = (
+                db.query(FamilyJoinRequest)
+                .filter(
+                    FamilyJoinRequest.user_id == user_id,
+                    FamilyJoinRequest.family_id == family_id,
+                    FamilyJoinRequest.status == "pending",
+                )
+                .first()
+            )
+            if existing_request is not None:
+                logger.warning(
+                    "Duplicate pending join request",
+                    extra={"operation": "add_family_member", "user_id": actor_user_id, "family_id": family_id, "added_user_id": user_id},
+                )
+                return {"status": "pending", "message": "Join request already pending"}
+
+            join_request = FamilyJoinRequest(
+                user_id=user_id,
+                family_id=family_id,
+                requested_by=actor_user_id,
+                status="pending",
+            )
+            db.add(join_request)
+
+            admin_memberships = (
+                db.query(FamilyMembership)
+                .filter(FamilyMembership.family_id == family_id, FamilyMembership.role == "admin")
+                .all()
+            )
+            for admin_membership in admin_memberships:
+                notification = Notification(
+                    user_id=admin_membership.user_id,
+                    event_id=None,
+                    message=(
+                        f"{actor_user.name} requested to add {target_user.name} to family {family.name}"
+                    ),
+                    metadata_json={
+                        "actor": {"id": actor_user.id, "name": actor_user.name},
+                        "target": {"id": target_user.id, "name": target_user.name},
+                        "family_id": family_id,
+                        "family_name": family.name,
+                    },
+                    type="join_request",
+                    is_read=False,
+                    created_at=datetime.utcnow(),
+                )
+                db.add(notification)
+
+            db.commit()
+            logger.info(
+                "Join request created",
+                extra={"operation": "add_family_member", "actor_user_id": actor_user_id, "user_id": user_id, "family_id": family_id},
+            )
+            return {"status": "pending", "message": "Join request sent to family admins"}
 
         membership = FamilyMembership(user_id=user_id, family_id=family_id)
         db.add(membership)
