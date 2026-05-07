@@ -53,6 +53,14 @@ def add_member(family_id: int, user_id: int, db: DbSession, current_user: Curren
     return FamilyMembershipResponse.model_validate(result)
 
 
+@router.post("/{family_id}/join-requests", response_model=FamilyJoinRequestResponse)
+def request_to_join_family(family_id: int, db: DbSession, current_user: CurrentUser) -> FamilyJoinRequestResponse:
+    result = add_member_service(db, family_id, current_user.id, current_user.id)
+    if not isinstance(result, dict):
+        return FamilyJoinRequestResponse(status="joined", message="Already joined family")
+    return FamilyJoinRequestResponse.model_validate(result)
+
+
 @router.get("/{family_id}/join-requests", response_model=FamilyJoinRequestListResponse)
 def list_join_requests(family_id: int, db: DbSession, current_user: CurrentUser) -> FamilyJoinRequestListResponse:
     requests = list_pending_join_requests_service(db, family_id, current_user.id)

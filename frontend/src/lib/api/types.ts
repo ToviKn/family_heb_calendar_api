@@ -92,8 +92,10 @@ export interface FamilyMembershipResponse {
   joined_at: string;
 }
 
+export type FamilyJoinRequestStatus = 'pending' | 'rejected' | 'joined';
+
 export interface FamilyJoinRequestResponse {
-  status: 'pending' | 'rejected' | string;
+  status: FamilyJoinRequestStatus;
   message: string;
 }
 
@@ -118,8 +120,6 @@ export interface FamilyJoinRequestListResponse {
   requests: FamilyJoinRequestDetailResponse[];
   total: number;
 }
-
-export type FamilyMemberAddResponse = FamilyMembershipResponse | FamilyJoinRequestResponse;
 
 export interface NotificationCreate {
   event_id: number;

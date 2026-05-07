@@ -1,19 +1,16 @@
 import { EmptyMessage, ErrorMessage, LoadingMessage, SuccessMessage } from '../components/Feedback';
 import { FormEvent, useState } from 'react';
 
-import { useAuth } from '../features/auth/AuthContext';
 import {
-  addFamilyMember,
   approveFamilyJoinRequest,
   createFamily,
   getApiErrorMessage,
   getFamilyEvents,
   listFamilyJoinRequests,
   rejectFamilyJoinRequest,
+  requestFamilyJoin,
   type EventResponse,
   type FamilyJoinRequestDetailResponse,
-  type FamilyMemberAddResponse,
-  type FamilyMembershipResponse,
   type FamilyResponse,
 } from '../lib/api';
 
@@ -35,28 +32,26 @@ interface JoinRequestsForm {
   familyId: string;
 }
 
-function isJoinRequestResponse(
-  result: FamilyMemberAddResponse,
-): result is Extract<FamilyMemberAddResponse, { status: string }> {
-  return 'status' in result && result.status === 'pending';
+function parsePositiveFamilyId(value: string): number | null {
+  const familyId = Number(value);
+  return Number.isInteger(familyId) && familyId > 0 ? familyId : null;
 }
 
 export function FamiliesPage() {
-  const { userId } = useAuth();
-
   const [createForm, setCreateForm] = useState<CreateFamilyForm>({ name: '' });
   const [createdFamily, setCreatedFamily] = useState<FamilyResponse | null>(null);
   const [createError, setCreateError] = useState<string | null>(null);
   const [isCreatingFamily, setIsCreatingFamily] = useState(false);
 
   const [joinForm, setJoinForm] = useState<JoinFamilyForm>({ familyId: '' });
-  const [joinResult, setJoinResult] = useState<FamilyMembershipResponse | null>(null);
-  const [joinPendingMessage, setJoinPendingMessage] = useState<string | null>(null);
+  const [joinResultMessage, setJoinResultMessage] = useState<string | null>(null);
+  const [pendingJoinFamilyId, setPendingJoinFamilyId] = useState<number | null>(null);
   const [joinError, setJoinError] = useState<string | null>(null);
   const [isJoining, setIsJoining] = useState(false);
 
   const [joinRequestsForm, setJoinRequestsForm] = useState<JoinRequestsForm>({ familyId: '' });
   const [joinRequests, setJoinRequests] = useState<FamilyJoinRequestDetailResponse[]>([]);
+  const [hasLoadedJoinRequests, setHasLoadedJoinRequests] = useState(false);
   const [joinRequestsError, setJoinRequestsError] = useState<string | null>(null);
   const [joinRequestsSuccess, setJoinRequestsSuccess] = useState<string | null>(null);
   const [isLoadingJoinRequests, setIsLoadingJoinRequests] = useState(false);
@@ -99,23 +94,24 @@ export function FamiliesPage() {
   async function handleJoinFamily(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setJoinError(null);
-    setJoinResult(null);
-    setJoinPendingMessage(null);
+    setJoinResultMessage(null);
 
-    if (!userId) {
-      setJoinError('Unable to resolve your user ID from token. Please login again.');
+    const familyId = parsePositiveFamilyId(joinForm.familyId);
+    if (familyId === null) {
+      setJoinError('Enter a valid family ID.');
       return;
     }
 
     setIsJoining(true);
 
     try {
-      const result = await addFamilyMember(Number(joinForm.familyId), userId);
-      if (isJoinRequestResponse(result)) {
-        setJoinPendingMessage('Join request sent. Waiting for approval.');
+      const result = await requestFamilyJoin(familyId);
+      if (result.status === 'pending') {
+        setPendingJoinFamilyId(familyId);
         return;
       }
-      setJoinResult(result);
+      setPendingJoinFamilyId(null);
+      setJoinResultMessage(result.message);
     } catch (error) {
       setJoinError(getApiErrorMessage(error, 'Unable to request family access. Verify family ID and try again.'));
     } finally {
@@ -127,13 +123,26 @@ export function FamiliesPage() {
     event?.preventDefault();
     setJoinRequestsError(null);
     setJoinRequestsSuccess(null);
+
+    const familyId = parsePositiveFamilyId(joinRequestsForm.familyId);
+    if (familyId === null) {
+      setJoinRequests([]);
+      setHasLoadedJoinRequests(false);
+      setJoinRequestsError('Enter a valid family ID to load join requests.');
+      return;
+    }
+
+    setJoinRequests([]);
+    setHasLoadedJoinRequests(false);
     setIsLoadingJoinRequests(true);
 
     try {
-      const result = await listFamilyJoinRequests(Number(joinRequestsForm.familyId));
+      const result = await listFamilyJoinRequests(familyId);
       setJoinRequests(result.requests);
+      setHasLoadedJoinRequests(true);
     } catch (error) {
       setJoinRequests([]);
+      setHasLoadedJoinRequests(false);
       setJoinRequestsError(getApiErrorMessage(error, 'Unable to load join requests. Verify family ID and admin permissions.'));
     } finally {
       setIsLoadingJoinRequests(false);
@@ -143,14 +152,21 @@ export function FamiliesPage() {
   async function handleJoinRequestAction(requestId: number, action: 'approve' | 'reject') {
     setJoinRequestsError(null);
     setJoinRequestsSuccess(null);
+
+    const familyId = parsePositiveFamilyId(joinRequestsForm.familyId);
+    if (familyId === null) {
+      setJoinRequestsError('Enter a valid family ID before reviewing requests.');
+      return;
+    }
+
     setActiveRequestId(requestId);
 
     try {
       if (action === 'approve') {
-        const membership = await approveFamilyJoinRequest(Number(joinRequestsForm.familyId), requestId);
+        const membership = await approveFamilyJoinRequest(familyId, requestId);
         setJoinRequestsSuccess(`Approved user ${membership.user_id} for family ${membership.family_id}.`);
       } else {
-        await rejectFamilyJoinRequest(Number(joinRequestsForm.familyId), requestId);
+        await rejectFamilyJoinRequest(familyId, requestId);
         setJoinRequestsSuccess('Join request rejected.');
       }
       setJoinRequests((prev) => prev.filter((request) => request.id !== requestId));
@@ -183,7 +199,8 @@ export function FamiliesPage() {
     }
   }
 
-  const isJoinRequestPending = Boolean(joinPendingMessage);
+  const currentJoinFamilyId = parsePositiveFamilyId(joinForm.familyId);
+  const isJoinRequestPending = currentJoinFamilyId !== null && pendingJoinFamilyId === currentJoinFamilyId;
 
   return (
     <section className="space-y-6">
@@ -236,7 +253,7 @@ export function FamiliesPage() {
 
         <article className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-lg font-semibold text-slate-900">Join family</h2>
-          <p className="mt-2 text-sm text-slate-600">Current user ID: {userId ?? 'unknown'}</p>
+          <p className="mt-2 text-sm text-slate-600">Enter a family ID to request access from a family admin.</p>
 
           <form className="mt-4 space-y-3" onSubmit={handleJoinFamily}>
             <input
@@ -247,8 +264,7 @@ export function FamiliesPage() {
               value={joinForm.familyId}
               onChange={(event) => {
                 setJoinForm((prev) => ({ ...prev, familyId: event.target.value }));
-                setJoinPendingMessage(null);
-                setJoinResult(null);
+                setJoinResultMessage(null);
                 setJoinError(null);
               }}
               required
@@ -259,13 +275,13 @@ export function FamiliesPage() {
               type="submit"
               disabled={isJoining || isJoinRequestPending}
             >
-              {isJoining ? 'Sending...' : 'Request to Join'}
+              {isJoining ? 'Sending...' : isJoinRequestPending ? 'Request pending' : 'Request to Join'}
             </button>
           </form>
 
           {joinError ? <ErrorMessage message={joinError} /> : null}
-          {joinPendingMessage ? <SuccessMessage message={joinPendingMessage} /> : null}
-          {joinResult ? <SuccessMessage message={`Added user ${joinResult.user_id} to family ${joinResult.family_id}.`} /> : null}
+          {isJoinRequestPending ? <SuccessMessage message="Join request sent. Waiting for approval." /> : null}
+          {joinResultMessage ? <SuccessMessage message={joinResultMessage} /> : null}
         </article>
 
         <article className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm lg:col-span-2">
@@ -283,6 +299,8 @@ export function FamiliesPage() {
                 setJoinRequestsForm({ familyId: event.target.value });
                 setJoinRequestsError(null);
                 setJoinRequestsSuccess(null);
+                setHasLoadedJoinRequests(false);
+                setJoinRequests([]);
               }}
               required
             />
@@ -299,8 +317,11 @@ export function FamiliesPage() {
           {joinRequestsError ? <ErrorMessage message={joinRequestsError} /> : null}
           {joinRequestsSuccess ? <SuccessMessage message={joinRequestsSuccess} /> : null}
           {isLoadingJoinRequests ? <LoadingMessage message="Loading join requests..." /> : null}
-          {!joinRequestsError && !isLoadingJoinRequests && joinRequests.length === 0 ? (
-            <EmptyMessage message="No pending join requests loaded." />
+          {!joinRequestsError && !isLoadingJoinRequests && !hasLoadedJoinRequests ? (
+            <EmptyMessage message="Load a family to review pending join requests." />
+          ) : null}
+          {!joinRequestsError && !isLoadingJoinRequests && hasLoadedJoinRequests && joinRequests.length === 0 ? (
+            <EmptyMessage message="No pending join requests for this family." />
           ) : null}
 
           {!joinRequestsError && joinRequests.length > 0 ? (

@@ -2,7 +2,6 @@ import { apiClient } from './axios';
 import type {
   FamilyJoinRequestListResponse,
   FamilyJoinRequestResponse,
-  FamilyMemberAddResponse,
   FamilyMembershipResponse,
   FamilyResponse,
 } from './types';
@@ -14,10 +13,15 @@ export async function createFamily(name: string): Promise<FamilyResponse> {
   return data;
 }
 
-export async function addFamilyMember(familyId: number, userId: number): Promise<FamilyMemberAddResponse> {
-  const { data } = await apiClient.post<FamilyMemberAddResponse>(`/families/${familyId}/members`, null, {
+export async function addFamilyMember(familyId: number, userId: number): Promise<FamilyMembershipResponse> {
+  const { data } = await apiClient.post<FamilyMembershipResponse>(`/families/${familyId}/members`, null, {
     params: { user_id: userId },
   });
+  return data;
+}
+
+export async function requestFamilyJoin(familyId: number): Promise<FamilyJoinRequestResponse> {
+  const { data } = await apiClient.post<FamilyJoinRequestResponse>(`/families/${familyId}/join-requests`);
   return data;
 }
 

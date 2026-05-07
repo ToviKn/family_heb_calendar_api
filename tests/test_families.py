@@ -170,6 +170,49 @@ def test_add_family_member_returns_not_found_for_missing_user(client, auth_token
     assert response.json()["message"] == "User with identifier '9999' not found"
 
 
+def test_request_to_join_family_creates_self_join_request(
+    client, auth_tokens, sample_family, sample_users, auth_header, db_session
+) -> None:
+    response = client.post(
+        f"/families/{sample_family.id}/join-requests",
+        headers=auth_header(auth_tokens["outsider"]),
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "pending"
+    assert response.json()["message"] == "Join request sent to family admins"
+
+    join_request = (
+        db_session.query(FamilyJoinRequest)
+        .filter(
+            FamilyJoinRequest.user_id == sample_users["outsider"].id,
+            FamilyJoinRequest.family_id == sample_family.id,
+            FamilyJoinRequest.requested_by == sample_users["outsider"].id,
+            FamilyJoinRequest.status == "pending",
+        )
+        .first()
+    )
+    assert join_request is not None
+
+
+def test_request_to_join_family_prevents_duplicate_pending_request(
+    client, auth_tokens, sample_family, auth_header
+) -> None:
+    first_response = client.post(
+        f"/families/{sample_family.id}/join-requests",
+        headers=auth_header(auth_tokens["outsider"]),
+    )
+    second_response = client.post(
+        f"/families/{sample_family.id}/join-requests",
+        headers=auth_header(auth_tokens["outsider"]),
+    )
+
+    assert first_response.status_code == 200
+    assert second_response.status_code == 200
+    assert second_response.json()["status"] == "pending"
+    assert second_response.json()["message"] == "Join request already pending"
+
+
 def test_admin_can_list_pending_join_requests(
     client, auth_tokens, sample_family, sample_users, auth_header
 ) -> None:
