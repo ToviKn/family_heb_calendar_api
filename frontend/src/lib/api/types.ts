@@ -92,7 +92,7 @@ export interface FamilyMembershipResponse {
   joined_at: string;
 }
 
-export type FamilyJoinRequestStatus = 'pending' | 'rejected' | 'joined';
+export type FamilyJoinRequestStatus = 'pending' | 'rejected';
 
 export interface FamilyJoinRequestResponse {
   status: FamilyJoinRequestStatus;
