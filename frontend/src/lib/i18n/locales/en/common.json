@@ -34,5 +34,80 @@
       "login_failed": "Login failed. Please check your credentials.",
       "register_failed": "Registration failed. Please verify your details and try again."
     }
+  },
+
+  "events": {
+    "title": "Events",
+    "description": "Create, edit, and delete family events.",
+    "list_title": "Events list",
+    "loading": "Loading events...",
+    "family": "Family",
+    "no_description": "No description",
+
+    "form": {
+      "title": "Title",
+      "description": "Description",
+      "family_id": "Family ID",
+      "day": "Day",
+      "month": "Month",
+      "year": "Year",
+      "start_time": "Start time",
+      "end_time": "End time",
+      "calendar_type": "Calendar type",
+      "repeat_type": "Repeat type"
+    },
+
+    "actions": {
+      "create": "Create event",
+      "update": "Update event",
+      "edit": "Edit event",
+      "saving": "Saving..."
+    },
+
+    "view": {
+      "by_date": "By date",
+      "today": "Today",
+      "upcoming": "Upcoming"
+    },
+
+    "calendar": {
+      "gregorian": "Gregorian",
+      "hebrew": "Hebrew"
+    },
+
+    "repeat": {
+      "none": "none",
+      "daily": "daily",
+      "weekly": "weekly",
+      "monthly": "monthly",
+      "yearly": "yearly"
+    },
+
+    "messages": {
+      "today": "Showing events for today.",
+      "upcoming": "Showing upcoming events (default API window).",
+      "date_mode": "Date picker is active only in 'By date' mode."
+    },
+
+    "empty": {
+      "today": "No events found for today.",
+      "upcoming": "No upcoming events found.",
+      "date": "No events found for this date."
+    },
+
+    "errors": {
+      "load_today": "Unable to load today's events",
+      "load_upcoming": "Unable to load upcoming events",
+      "load_date": "Unable to load events for the selected date",
+      "delete": "Unable to delete event.",
+      "save": "Unable to save event. Please verify all required fields.",
+      "invalid_time": "End time must be after start time."
+    }
+  },
+
+  "common": {
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "delete": "Delete"
   }
 }
