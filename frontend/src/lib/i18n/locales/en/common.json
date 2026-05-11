@@ -7,5 +7,21 @@
     "convert": "Conversion",
     "settings": "Settings",
     "logout": "Logout"
+  },
+
+  "auth": {
+    "login": "Login",
+    "login_description": "Use your account to access your family calendar.",
+    "username": "Username",
+    "username_placeholder": "Enter username",
+    "password": "Password",
+    "password_placeholder": "Enter password",
+    "sign_in": "Sign in",
+    "signing_in": "Signing in...",
+    "no_account": "Don't have an account?",
+    "create_account": "Create one",
+    "errors": {
+      "login_failed": "Login failed. Please check your credentials."
+    }
   }
 }

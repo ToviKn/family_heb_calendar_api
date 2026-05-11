@@ -7,5 +7,21 @@
     "convert": "המרת תאריכים",
     "settings": "הגדרות",
     "logout": "התנתקות"
+  },
+
+    "auth": {
+    "login": "התחברות",
+    "login_description": "השתמש בחשבון שלך כדי לגשת ללוח השנה המשפחתי.",
+    "username": "שם משתמש",
+    "username_placeholder": "הכנס שם משתמש",
+    "password": "סיסמה",
+    "password_placeholder": "הכנס סיסמה",
+    "sign_in": "התחבר",
+    "signing_in": "מתחבר...",
+    "no_account": "אין לך חשבון?",
+    "create_account": "צור חשבון",
+    "errors": {
+      "login_failed": "ההתחברות נכשלה. בדוק את פרטי ההתחברות."
+    }
   }
 }
