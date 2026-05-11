@@ -1,0 +1,11 @@
+{
+  "nav": {
+    "home": "בית",
+    "events": "אירועים",
+    "families": "משפחות",
+    "notifications": "התראות",
+    "convert": "המרת תאריכים",
+    "settings": "הגדרות",
+    "logout": "התנתקות"
+  }
+}

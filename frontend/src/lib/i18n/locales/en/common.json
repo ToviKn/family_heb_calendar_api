@@ -1,0 +1,11 @@
+{
+  "nav": {
+    "home": "Home",
+    "events": "Events",
+    "families": "Families",
+    "notifications": "Notifications",
+    "convert": "Conversion",
+    "settings": "Settings",
+    "logout": "Logout"
+  }
+}
