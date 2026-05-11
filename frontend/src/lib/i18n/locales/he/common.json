@@ -20,8 +20,19 @@
     "signing_in": "מתחבר...",
     "no_account": "אין לך חשבון?",
     "create_account": "צור חשבון",
+
+    "register": "הרשמה",
+    "register_description": "צור חשבון חדש כדי להתחיל להשתמש ביומן המשפחתי.",
+    "name": "שם",
+    "name_placeholder": "הכנס שם מלא",
+    "email": "אימייל",
+    "email_placeholder": "הכנס אימייל",
+    "creating_account": "יוצר חשבון...",
+    "already_have_account": "כבר יש לך חשבון?",
+
     "errors": {
-      "login_failed": "ההתחברות נכשלה. בדוק את פרטי ההתחברות."
+      "login_failed": "ההתחברות נכשלה. בדוק את פרטי ההתחברות.",
+      "register_failed": "ההרשמה נכשלה. בדוק את הפרטים ונסה שוב."
     }
   }
 }
