@@ -1,5 +1,3 @@
-import { useTranslation } from 'react-i18next';
-
 import { NavLink, Outlet } from 'react-router-dom';
 
 import { useAuth } from '../features/auth/AuthContext';
@@ -21,17 +19,7 @@ function navLinkClassName(isActive: boolean): string {
 }
 
 export function AppLayout() {
-  const { t } = useTranslation();
   const { isAuthenticated } = useAuth();
-
-  const navItems = [
-    { to: '/', label: t('nav.home'), end: true },
-    { to: '/events', label: t('nav.events') },
-    { to: '/families', label: t('nav.families') },
-    { to: '/notifications', label: t('nav.notifications') },
-    { to: '/convert', label: t('nav.convert') },
-    { to: '/settings', label: t('nav.settings') },
-  ] as const;
 
   return (
     <main className="min-h-screen bg-slate-50">
