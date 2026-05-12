@@ -109,5 +109,28 @@
     "cancel": "Cancel",
     "edit": "Edit",
     "delete": "Delete"
+  },
+
+  "event_details": {
+    "title": "Event details",
+    "back": "Back to events",
+    "loading": "Loading event details...",
+    "event_id": "Event ID",
+
+    "no_description": "No description",
+    "no_time": "No time specified",
+
+    "fields": {
+      "description": "Description",
+      "date": "Date",
+      "time": "Time",
+      "repeat_type": "Repeat type"
+    },
+
+    "errors": {
+      "load": "Unable to load event details.",
+      "missing_id": "Event ID is missing.",
+      "invalid_id": "Invalid event ID."
+    }
   }
 }
