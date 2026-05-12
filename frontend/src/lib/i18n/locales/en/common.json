@@ -19,20 +19,9 @@
     "sign_in": "Sign in",
     "signing_in": "Signing in...",
     "no_account": "Don't have an account?",
-    "create_account": "Create account",
-
-    "register": "Register",
-    "register_description": "Create your account to start using the calendar.",
-    "name": "Name",
-    "name_placeholder": "Enter full name",
-    "email": "Email",
-    "email_placeholder": "Enter email",
-    "creating_account": "Creating account...",
-    "already_have_account": "Already have an account?",
-
+    "create_account": "Create one",
     "errors": {
-      "login_failed": "Login failed. Please check your credentials.",
-      "register_failed": "Registration failed. Please verify your details and try again."
+      "login_failed": "Login failed. Please check your credentials."
     }
   }
 }
