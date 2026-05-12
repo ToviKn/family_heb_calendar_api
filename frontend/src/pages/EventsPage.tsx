@@ -1,6 +1,5 @@
 import { EmptyMessage, ErrorMessage, LoadingMessage } from '../components/Feedback';
 import { FormEvent, useEffect, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 
 import {
@@ -75,6 +74,18 @@ function getDefaultFormState(date: string): EventFormState {
   };
 }
 
+function getEmptyMessage(mode: EventsViewMode): string {
+  if (mode === 'today') {
+    return 'No events found for today.';
+  }
+
+  if (mode === 'upcoming') {
+    return 'No upcoming events found.';
+  }
+
+  return 'No events found for this date.';
+}
+
 function hasInvalidTimeRange(startTime: string, endTime: string): boolean {
   if (!startTime || !endTime) {
     return false;
@@ -84,8 +95,6 @@ function hasInvalidTimeRange(startTime: string, endTime: string): boolean {
 }
 
 export function EventsPage() {
-  const { t } = useTranslation();
-
   const [selectedDate, setSelectedDate] = useState<string>(() => toDateInputValue(new Date()));
   const [events, setEvents] = useState<EventResponse[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -96,18 +105,6 @@ export function EventsPage() {
 
   const [form, setForm] = useState<EventFormState>(() => getDefaultFormState(toDateInputValue(new Date())));
   const monthMax = form.calendarType === 'hebrew' ? 13 : 12;
-
-  function getEmptyMessage(mode: EventsViewMode): string {
-  if (mode === 'today') {
-    return t('events.empty.today');
-  }
-
-  if (mode === 'upcoming') {
-    return t('events.empty.upcoming');
-  }
-
-  return t('events.empty.date');
-  }
 
   async function loadEvents(mode: EventsViewMode, dateValue: string) {
     if (mode === 'date' && !dateValue) {
@@ -136,11 +133,11 @@ export function EventsPage() {
       setEvents(result.events);
     } catch {
       if (mode === 'today') {
-        setError(t('events.errors.load_today'));
+        setError('Unable to load today\'s events.');
       } else if (mode === 'upcoming') {
-        setError(t('events.errors.load_upcoming'));
+        setError('Unable to load upcoming events.');
       } else {
-        setError(t('events.errors.load_date'));
+        setError('Unable to load events for the selected date.');
       }
     } finally {
       setIsLoading(false);
@@ -160,7 +157,7 @@ export function EventsPage() {
     event.preventDefault();
 
     if (hasInvalidTimeRange(form.startTime, form.endTime)) {
-      setError(t('events.errors.invalid_time'));
+      setError('End time must be after start time.');
       return;
     }
 
@@ -186,7 +183,7 @@ export function EventsPage() {
       await loadEvents(viewMode, selectedDate);
       resetForm();
     } catch {
-      setError(t('events.errors.save'));
+      setError('Unable to save event. Please verify all required fields.');
     } finally {
       setIsSubmitting(false);
     }
@@ -218,25 +215,25 @@ export function EventsPage() {
         resetForm();
       }
     } catch {
-      setError(t('events.errors.delete'));
+      setError('Unable to delete event.');
     }
   }
 
   return (
     <section className="space-y-6">
       <header className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-        <h1 className="text-2xl font-semibold text-slate-900">{t('events.title')}</h1>
-        <p className="mt-2 text-slate-600">{t('events.description')}</p>
+        <h1 className="text-2xl font-semibold text-slate-900">Events</h1>
+        <p className="mt-2 text-slate-600">Create, edit, and delete family events.</p>
       </header>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <article className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-900">{editingEventId ? t('events.actions.edit') : t('events.actions.create')}</h2>
+          <h2 className="text-lg font-semibold text-slate-900">{editingEventId ? 'Edit event' : 'Create event'}</h2>
 
           <form className="mt-4 space-y-3" onSubmit={handleCreateOrUpdate}>
             <input
               className="w-full rounded-md border border-slate-300 px-3 py-2"
-              placeholder={t('events.form.title')}
+              placeholder="Title"
               value={form.title}
               onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
               required
@@ -244,7 +241,7 @@ export function EventsPage() {
 
             <textarea
               className="w-full rounded-md border border-slate-300 px-3 py-2"
-              placeholder={t('events.form.description')}
+              placeholder="Description"
               value={form.description}
               onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
               rows={3}
@@ -252,7 +249,7 @@ export function EventsPage() {
 
             <input
               className="w-full rounded-md border border-slate-300 px-3 py-2"
-              placeholder={t('events.form.family_id')}
+              placeholder="Family ID"
               type="number"
               min={1}
               value={form.familyId}
@@ -267,7 +264,7 @@ export function EventsPage() {
                 type="number"
                 min={1}
                 max={31}
-                placeholder={t('events.form.day')}
+                placeholder="Day"
                 value={form.day}
                 onChange={(e) => setForm((prev) => ({ ...prev, day: e.target.value }))}
                 required
@@ -277,7 +274,7 @@ export function EventsPage() {
                 type="number"
                 min={1}
                 max={monthMax}
-                placeholder={t('events.form.month', { max: monthMax })}
+                placeholder={`Month (1-${monthMax})`}
                 value={form.month}
                 onChange={(e) => setForm((prev) => ({ ...prev, month: e.target.value }))}
                 required
@@ -287,7 +284,7 @@ export function EventsPage() {
                 type="number"
                 min={1}
                 max={9999}
-                placeholder={t('events.form.year')}
+                placeholder="Year"
                 value={form.year}
                 onChange={(e) => setForm((prev) => ({ ...prev, year: e.target.value }))}
                 required={form.repeatType === 'none'}
@@ -298,14 +295,14 @@ export function EventsPage() {
               <input
                 className="rounded-md border border-slate-300 px-3 py-2"
                 type="time"
-                placeholder={t('events.form.start_time')}
+                placeholder="Start time"
                 value={form.startTime}
                 onChange={(e) => setForm((prev) => ({ ...prev, startTime: e.target.value }))}
               />
               <input
                 className="rounded-md border border-slate-300 px-3 py-2"
                 type="time"
-                placeholder={t('events.form.end_time')}
+                placeholder="End time"
                 value={form.endTime}
                 onChange={(e) => setForm((prev) => ({ ...prev, endTime: e.target.value }))}
               />
@@ -313,7 +310,7 @@ export function EventsPage() {
 
             <div className="grid grid-cols-2 gap-3">
               <label className="text-sm text-slate-700">
-                {t('events.form.calendar_type')}
+                Calendar type
                 <select
                   className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
                   value={form.calendarType}
@@ -321,24 +318,24 @@ export function EventsPage() {
                   disabled={editingEventId !== null}
                   required
                 >
-                  <option value="gregorian">{t('events.calendar.gregorian')}</option>
-                  <option value="hebrew">{t('events.calendar.hebrew')}</option>
+                  <option value="gregorian">Gregorian</option>
+                  <option value="hebrew">Hebrew</option>
                 </select>
               </label>
 
               <label className="text-sm text-slate-700">
-                {t('events.form.repeat_type')}
+                Repeat type
                 <select
                   className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
                   value={form.repeatType}
                   onChange={(e) => setForm((prev) => ({ ...prev, repeatType: e.target.value as RepeatType }))}
                   required
                 >
-                  <option value="none">{t('events.repeat.none')}</option>
-                  <option value="daily">{t('events.repeat.daily')}</option>
-                  <option value="weekly">{t('events.repeat.weekly')}</option>
-                  <option value="monthly">{t('events.repeat.monthly')}</option>
-                  <option value="yearly">{t('events.repeat.yearly')}</option>
+                  <option value="none">none</option>
+                  <option value="daily">daily</option>
+                  <option value="weekly">weekly</option>
+                  <option value="monthly">monthly</option>
+                  <option value="yearly">yearly</option>
                 </select>
               </label>
             </div>
@@ -349,11 +346,11 @@ export function EventsPage() {
                 type="submit"
                 disabled={isSubmitting}
               >
-                {isSubmitting ? t('events.actions.saving') : editingEventId ? t('events.actions.update') : t('events.actions.create')}
+                {isSubmitting ? 'Saving...' : editingEventId ? 'Update event' : 'Create event'}
               </button>
               {editingEventId ? (
                 <button className="rounded-md border border-slate-300 px-4 py-2" type="button" onClick={resetForm}>
-                  {t('common.cancel')}
+                  Cancel
                 </button>
               ) : null}
             </div>
@@ -362,7 +359,7 @@ export function EventsPage() {
 
         <article className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <h2 className="text-lg font-semibold text-slate-900">{t('events.list_title')}</h2>
+            <h2 className="text-lg font-semibold text-slate-900">Events list</h2>
             <input
               className="rounded-md border border-slate-300 px-3 py-2"
               type="date"
@@ -387,7 +384,7 @@ export function EventsPage() {
               }}
               disabled={isLoading}
             >
-              {t('events.view.by_date')}
+              By date
             </button>
             <button
               className={`rounded-md px-3 py-2 text-sm ${viewMode === 'today' ? 'bg-blue-600 text-white' : 'border border-slate-300 text-slate-700 hover:bg-slate-50'}`}
@@ -397,7 +394,7 @@ export function EventsPage() {
               }}
               disabled={isLoading}
             >
-              {t('events.view.today')}
+              Today
             </button>
             <button
               className={`rounded-md px-3 py-2 text-sm ${viewMode === 'upcoming' ? 'bg-blue-600 text-white' : 'border border-slate-300 text-slate-700 hover:bg-slate-50'}`}
@@ -407,17 +404,17 @@ export function EventsPage() {
               }}
               disabled={isLoading}
             >
-              {t('events.view.upcoming')}
+              Upcoming
             </button>
           </div>
 
-          {viewMode === 'today' ? <p className="mt-3 text-xs text-slate-500">{t('events.messages.today')}</p> : null}
-          {viewMode === 'upcoming' ? <p className="mt-3 text-xs text-slate-500">{t('events.messages.upcoming')}</p> : null}
-          {viewMode !== 'date' ? <p className="mt-1 text-xs text-slate-500">{t('events.messages.date_mode')}</p> : null}
+          {viewMode === 'today' ? <p className="mt-3 text-xs text-slate-500">Showing events for today.</p> : null}
+          {viewMode === 'upcoming' ? <p className="mt-3 text-xs text-slate-500">Showing upcoming events (default API window).</p> : null}
+          {viewMode !== 'date' ? <p className="mt-1 text-xs text-slate-500">Date picker is active only in "By date" mode.</p> : null}
 
           {error ? <ErrorMessage message={error} /> : null}
 
-          {isLoading ? <LoadingMessage message={t('events.loading')} /> : null}
+          {isLoading ? <LoadingMessage message="Loading events..." /> : null}
 
           {!isLoading && events.length === 0 ? <EmptyMessage message={getEmptyMessage(viewMode)} /> : null}
 
@@ -432,9 +429,9 @@ export function EventsPage() {
                           {eventItem.title}
                         </Link>
                       </h3>
-                      <p className="text-sm text-slate-600">{eventItem.description || t('events.no_description')}</p>
+                      <p className="text-sm text-slate-600">{eventItem.description || 'No description'}</p>
                       <p className="mt-1 text-xs text-slate-500">
-                        {t('events.family')} {eventItem.family_id} • {eventItem.month}/{eventItem.day}
+                        Family {eventItem.family_id} • {eventItem.month}/{eventItem.day}
                         {eventItem.year ? `/${eventItem.year}` : ''}
                       </p>
                     </div>
@@ -444,14 +441,14 @@ export function EventsPage() {
                         type="button"
                         onClick={() => startEdit(eventItem)}
                       >
-                        {t('common.edit')}
+                        Edit
                       </button>
                       <button
                         className="rounded border border-red-300 px-3 py-1 text-sm text-red-700"
                         type="button"
                         onClick={() => void handleDelete(eventItem.id)}
                       >
-                        {t('common.delete')}
+                        Delete
                       </button>
                     </div>
                   </div>
