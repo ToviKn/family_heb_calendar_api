@@ -1,6 +1,7 @@
 import { ErrorMessage } from '../components/Feedback';
 import { useState } from 'react';
 import type { FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import {
   convertGregorianToHebrew,
@@ -50,6 +51,8 @@ function validateHebrewInput(form: HebrewFormState): { year: number; month: numb
 }
 
 export function ConvertPage() {
+  const { t } = useTranslation();
+
   const [gregorianDate, setGregorianDate] = useState('');
   const [hebrewForm, setHebrewForm] = useState<HebrewFormState>({ year: '', month: '', day: '' });
 
@@ -59,13 +62,16 @@ export function ConvertPage() {
 
   const isLoading = activeAction !== null;
 
+  function getConvertError(err: unknown): string {
+      return getApiErrorMessage(err, t('convert.errors.convert_failed'));
+    }
   async function handleGregorianToHebrew(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const parsedDate = parseGregorianDate(gregorianDate);
     if (!parsedDate) {
       setResult(null);
-      setError('Please select a valid Gregorian date in YYYY-MM-DD format.');
+      setError(t('convert.errors.invalid_gregorian'));
       return;
     }
 
@@ -77,7 +83,7 @@ export function ConvertPage() {
       setResult(data);
     } catch (err) {
       setResult(null);
-      setError(getApiErrorMessage(err, 'Unable to convert date. Please verify your input and try again.'));
+      setError(getConvertError(err));
     } finally {
       setActiveAction(null);
     }
@@ -89,7 +95,7 @@ export function ConvertPage() {
     const parsed = validateHebrewInput(hebrewForm);
     if (!parsed) {
       setResult(null);
-      setError('Please enter a valid Hebrew date. Day must be between 1 and 30.');
+      setError(t('convert.errors.invalid_hebrew'));
       return;
     }
 
@@ -101,7 +107,7 @@ export function ConvertPage() {
       setResult(data);
     } catch (err) {
       setResult(null);
-      setError(getApiErrorMessage(err, 'Unable to convert date. Please verify your input and try again.'));
+      setError(getConvertError(err));
     } finally {
       setActiveAction(null);
     }
@@ -116,7 +122,7 @@ export function ConvertPage() {
       setResult(data);
     } catch (err) {
       setResult(null);
-      setError(getApiErrorMessage(err, 'Unable to convert date. Please verify your input and try again.'));
+      setError(getConvertError(err));
     } finally {
       setActiveAction(null);
     }
@@ -125,17 +131,17 @@ export function ConvertPage() {
   return (
     <section className="space-y-6">
       <header className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-        <h1 className="text-2xl font-semibold text-slate-900">Date Conversion</h1>
-        <p className="mt-2 text-slate-600">Convert between Gregorian and Hebrew dates using the API.</p>
+        <h1 className="text-2xl font-semibold text-slate-900">{t('convert.title')}</h1>
+        <p className="mt-2 text-slate-600">{t('convert.description')}</p>
       </header>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <article className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-900">Gregorian → Hebrew</h2>
+          <h2 className="text-lg font-semibold text-slate-900">{t('convert.gregorian_to_hebrew.title')}</h2>
 
           <form className="mt-4 space-y-3" onSubmit={handleGregorianToHebrew}>
             <label className="block text-sm font-medium text-slate-700" htmlFor="gregorian-date">
-              Gregorian date
+              {t('convert.gregorian_to_hebrew.label')}
             </label>
             <input
               id="gregorian-date"
@@ -151,13 +157,13 @@ export function ConvertPage() {
               type="submit"
               disabled={isLoading}
             >
-              {activeAction === 'gregorian_to_hebrew' ? 'Converting...' : 'Convert Gregorian → Hebrew'}
+              {activeAction === 'gregorian_to_hebrew' ? t('convert.actions.converting') : t('convert.actions.convert_gregorian')}
             </button>
           </form>
         </article>
 
         <article className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-900">Hebrew → Gregorian</h2>
+          <h2 className="text-lg font-semibold text-slate-900">{t('convert.hebrew_to_gregorian.title')}</h2>
 
           <form className="mt-4 space-y-3" onSubmit={handleHebrewToGregorian}>
             <div className="grid grid-cols-3 gap-3">
@@ -165,7 +171,7 @@ export function ConvertPage() {
                 className="rounded-md border border-slate-300 px-3 py-2"
                 type="number"
                 min={1}
-                placeholder="Year"
+                placeholder={t('convert.form.year')}
                 value={hebrewForm.year}
                 onChange={(event) => setHebrewForm((prev) => ({ ...prev, year: event.target.value }))}
                 required
@@ -175,7 +181,7 @@ export function ConvertPage() {
                 type="number"
                 min={1}
                 max={13}
-                placeholder="Month"
+                placeholder={t('convert.form.month')}
                 value={hebrewForm.month}
                 onChange={(event) => setHebrewForm((prev) => ({ ...prev, month: event.target.value }))}
                 required
@@ -185,20 +191,20 @@ export function ConvertPage() {
                 type="number"
                 min={1}
                 max={30}
-                placeholder="Day"
+                placeholder={t('convert.form.day')}
                 value={hebrewForm.day}
                 onChange={(event) => setHebrewForm((prev) => ({ ...prev, day: event.target.value }))}
                 required
               />
             </div>
-            <p className="text-xs text-slate-500">Day range: 1-30 for Hebrew conversion input.</p>
+            <p className="text-xs text-slate-500">{t('convert.hebrew_to_gregorian.day_range')}</p>
 
             <button
               className="rounded-md bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700 disabled:bg-indigo-300"
               type="submit"
               disabled={isLoading}
             >
-              {activeAction === 'hebrew_to_gregorian' ? 'Converting...' : 'Convert Hebrew → Gregorian'}
+              {activeAction === 'hebrew_to_gregorian' ? t('convert.actions.converting') : t('convert.actions.convert_hebrew')}
             </button>
           </form>
         </article>
@@ -206,29 +212,35 @@ export function ConvertPage() {
 
       <article className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold text-slate-900">Today&apos;s date</h2>
+          <h2 className="text-lg font-semibold text-slate-900">{t('convert.today.title')}</h2>
           <button
             className="rounded-md bg-slate-800 px-4 py-2 text-white hover:bg-slate-900 disabled:bg-slate-400"
             type="button"
             onClick={() => void handleGetToday()}
             disabled={isLoading}
           >
-            {activeAction === 'today' ? 'Loading...' : "Get today's date (both formats)"}
+            {activeAction === 'today' ? t('convert.actions.loading') : t('convert.actions.get_today')"}
           </button>
         </div>
 
         {error ? <ErrorMessage message={error} /> : null}
 
+        {!result && !error && !isLoading ? (
+            <p className="mt-4 text-sm text-slate-500">
+            {t('convert.messages.no_result')}
+            </p>
+        ) : null}
+
         {result ? (
           <div className="mt-4 rounded-md border border-emerald-200 bg-emerald-50 p-4">
-            <h3 className="font-semibold text-emerald-900">Converted result</h3>
+            <h3 className="font-semibold text-emerald-900">{t('convert.result.title')}</h3>
             <div className="mt-2 grid gap-2 text-sm text-emerald-900 md:grid-cols-2">
               <p>
-                <span className="font-medium">Gregorian:</span> {result.gregorian_date.year}-{String(result.gregorian_date.month).padStart(2, '0')}-
+                <span className="font-medium">{t('convert.result.gregorian')}:</span> {result.gregorian_date.year}-{String(result.gregorian_date.month).padStart(2, '0')}-
                 {String(result.gregorian_date.day).padStart(2, '0')}
               </p>
               <p>
-                <span className="font-medium">Hebrew:</span> {result.hebrew_date.year}-{String(result.hebrew_date.month).padStart(2, '0')}-
+                <span className="font-medium">{t('convert.result.hebrew')}:</span> {result.hebrew_date.year}-{String(result.hebrew_date.month).padStart(2, '0')}-
                 {String(result.hebrew_date.day).padStart(2, '0')}
               </p>
             </div>

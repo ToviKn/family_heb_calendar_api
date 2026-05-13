@@ -132,5 +132,54 @@
       "missing_id": "מזהה אירוע חסר.",
       "invalid_id": "מזהה אירוע לא תקין."
     }
+  },
+
+  "convert": {
+    "title": "המרת תאריכים",
+    "description": "המרה בין תאריכים לועזיים ועבריים באמצעות ה־API.",
+
+    "gregorian_to_hebrew": {
+      "title": "לועזי ← עברי",
+      "label": "תאריך לועזי"
+    },
+
+    "hebrew_to_gregorian": {
+      "title": "עברי ← לועזי",
+      "day_range": "טווח ימים חוקי: 1-30 עבור תאריך עברי."
+    },
+
+    "today": {
+      "title": "התאריך של היום"
+    },
+
+    "form": {
+      "year": "שנה",
+      "month": "חודש",
+      "day": "יום"
+    },
+
+    "actions": {
+      "converting": "ממיר...",
+      "loading": "טוען...",
+      "convert_gregorian": "המר לועזי ← עברי",
+      "convert_hebrew": "המר עברי ← לועזי",
+      "get_today": "קבל את התאריך של היום (בשני הסוגים)"
+    },
+
+    "result": {
+      "title": "תוצאת ההמרה",
+      "gregorian": "לועזי",
+      "hebrew": "עברי"
+    },
+
+    "messages": {
+      "no_result": "בחר תאריך כדי לבצע המרה."
+    },
+
+    "errors": {
+      "invalid_gregorian": "יש לבחור תאריך לועזי תקין בתבנית YYYY-MM-DD.",
+      "invalid_hebrew": "יש להזין תאריך עברי תקין. היום חייב להיות בין 1 ל־30.",
+      "convert_failed": "לא ניתן להמיר את התאריך. יש לבדוק את הנתונים ולנסות שוב."
+    }
   }
 }

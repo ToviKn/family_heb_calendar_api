@@ -132,5 +132,54 @@
       "missing_id": "Event ID is missing.",
       "invalid_id": "Invalid event ID."
     }
+  },
+
+  "convert": {
+    "title": "Date Conversion",
+    "description": "Convert between Gregorian and Hebrew dates using the API.",
+
+    "gregorian_to_hebrew": {
+      "title": "Gregorian → Hebrew",
+      "label": "Gregorian date"
+    },
+
+    "hebrew_to_gregorian": {
+      "title": "Hebrew → Gregorian",
+      "day_range": "Day range: 1-30 for Hebrew conversion input."
+    },
+
+    "today": {
+      "title": "Today's date"
+    },
+
+    "form": {
+      "year": "Year",
+      "month": "Month",
+      "day": "Day"
+    },
+
+    "actions": {
+      "converting": "Converting...",
+      "loading": "Loading...",
+      "convert_gregorian": "Convert Gregorian → Hebrew",
+      "convert_hebrew": "Convert Hebrew → Gregorian",
+      "get_today": "Get today's date (both formats)"
+    },
+
+    "result": {
+      "title": "Converted result",
+      "gregorian": "Gregorian",
+      "hebrew": "Hebrew"
+    },
+
+    "messages": {
+      "no_result": "Select a date to start conversion."
+    },
+
+    "errors": {
+      "invalid_gregorian": "Please select a valid Gregorian date in YYYY-MM-DD format.",
+      "invalid_hebrew": "Please enter a valid Hebrew date. Day must be between 1 and 30.",
+      "convert_failed": "Unable to convert date. Please verify your input and try again."
+    }
   }
 }
