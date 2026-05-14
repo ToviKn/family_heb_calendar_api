@@ -208,7 +208,7 @@ export function FamiliesPage() {
   return (
     <section className="space-y-6">
       <header className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-        <h1 className="text-2xl font-semibold text-slate-900">Families</h1>
+        <h1 className="text-2xl font-semibold text-slate-900">{t('families.title')}</h1>
         <p className="mt-2 text-slate-600">{t('families.description')}</p>
       </header>
 
@@ -313,7 +313,7 @@ export function FamiliesPage() {
               type="submit"
               disabled={isLoadingJoinRequests}
             >
-              {isLoadingJoinRequests ? 'Loading...' : 'Load join requests'}
+              {isLoadingJoinRequests ? t('families.requests.actions.loading') : t('families.requests.actions.load')}
             </button>
           </form>
 
