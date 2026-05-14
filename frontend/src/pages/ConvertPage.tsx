@@ -219,7 +219,7 @@ export function ConvertPage() {
             onClick={() => void handleGetToday()}
             disabled={isLoading}
           >
-            {activeAction === 'today' ? t('convert.actions.loading') : t('convert.actions.get_today')"}
+            {activeAction === 'today' ? t('convert.actions.loading') : t('convert.actions.get_today')}
           </button>
         </div>
 
