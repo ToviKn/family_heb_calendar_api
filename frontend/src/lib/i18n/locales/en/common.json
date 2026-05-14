@@ -290,5 +290,16 @@
         "load_failed": "Unable to load family events. Verify family ID and permissions."
       }
     }
+  },
+
+  "home": {
+    "title": "Family Hebrew Calendar",
+    "description": "You are logged in. Manage events, families, and notifications from the dashboard.",
+    "actions": {
+      "events": "Open events",
+      "families": "Open families",
+      "notifications": "Open notifications",
+      "logout": "Logout"
+    }
   }
 }
