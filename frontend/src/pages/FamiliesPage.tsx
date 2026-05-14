@@ -1,5 +1,6 @@
 import { EmptyMessage, ErrorMessage, LoadingMessage, SuccessMessage } from '../components/Feedback';
 import { FormEvent, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import {
   approveFamilyJoinRequest,
@@ -38,6 +39,8 @@ function parsePositiveFamilyId(value: string): number | null {
 }
 
 export function FamiliesPage() {
+  const { t } = useTranslation();
+
   const [createForm, setCreateForm] = useState<CreateFamilyForm>({ name: '' });
   const [createdFamily, setCreatedFamily] = useState<FamilyResponse | null>(null);
   const [createError, setCreateError] = useState<string | null>(null);
@@ -68,7 +71,7 @@ export function FamiliesPage() {
 
     const trimmedName = createForm.name.trim();
     if (!trimmedName) {
-      setCreateError('Family name is required.');
+      setCreateError(t('families.create.errors.name_required'));
       setCreatedFamily(null);
       return;
     }
@@ -85,7 +88,7 @@ export function FamiliesPage() {
       setJoinRequestsForm((prev) => ({ ...prev, familyId: String(family.id) }));
       setEventsForm((prev) => ({ ...prev, familyId: String(family.id) }));
     } catch (error) {
-      setCreateError(getApiErrorMessage(error, 'Unable to create family. Please try a different name.'));
+      setCreateError(getApiErrorMessage(error, t('families.create.errors.failed')));
     } finally {
       setIsCreatingFamily(false);
     }
@@ -98,7 +101,7 @@ export function FamiliesPage() {
 
     const familyId = parsePositiveFamilyId(joinForm.familyId);
     if (familyId === null) {
-      setJoinError('Enter a valid family ID.');
+      setJoinError(t('families.join.errors.invalid_family_id'));
       return;
     }
 
@@ -113,7 +116,7 @@ export function FamiliesPage() {
       setPendingJoinFamilyId(null);
       setJoinResultMessage(result.message);
     } catch (error) {
-      setJoinError(getApiErrorMessage(error, 'Unable to request family access. Verify family ID and try again.'));
+      setJoinError(getApiErrorMessage(error, t('families.join.errors.failed')));
     } finally {
       setIsJoining(false);
     }
@@ -128,7 +131,7 @@ export function FamiliesPage() {
     if (familyId === null) {
       setJoinRequests([]);
       setHasLoadedJoinRequests(false);
-      setJoinRequestsError('Enter a valid family ID to load join requests.');
+      setJoinRequestsError(t('families.requests.errors.invalid_family_id'));
       return;
     }
 
@@ -143,7 +146,7 @@ export function FamiliesPage() {
     } catch (error) {
       setJoinRequests([]);
       setHasLoadedJoinRequests(false);
-      setJoinRequestsError(getApiErrorMessage(error, 'Unable to load join requests. Verify family ID and admin permissions.'));
+      setJoinRequestsError(getApiErrorMessage(error, t('families.requests.errors.load_failed')));
     } finally {
       setIsLoadingJoinRequests(false);
     }
@@ -164,14 +167,14 @@ export function FamiliesPage() {
     try {
       if (action === 'approve') {
         const membership = await approveFamilyJoinRequest(familyId, requestId);
-        setJoinRequestsSuccess(`Approved user ${membership.user_id} for family ${membership.family_id}.`);
+        setJoinRequestsSuccess(t('families.requests.success.approved', {userId: membership.user_id, familyId: membership.family_id,}));
       } else {
         await rejectFamilyJoinRequest(familyId, requestId);
-        setJoinRequestsSuccess('Join request rejected.');
+        setJoinRequestsSuccess(t('families.requests.success.rejected'));
       }
       setJoinRequests((prev) => prev.filter((request) => request.id !== requestId));
     } catch (error) {
-      setJoinRequestsError(getApiErrorMessage(error, `Unable to ${action} join request. Please try again.`));
+      setJoinRequestsError(getApiErrorMessage(error, t('families.requests.errors.action_failed', {action,})));
     } finally {
       setActiveRequestId(null);
     }
@@ -193,7 +196,7 @@ export function FamiliesPage() {
     } catch (error) {
       setFamilyEvents([]);
       setEventsTotal(0);
-      setEventsError(getApiErrorMessage(error, 'Unable to load family events. Verify family ID and permissions.'));
+      setEventsError(getApiErrorMessage(error, t('families.events.errors.load_failed')));
     } finally {
       setIsLoadingEvents(false);
     }
@@ -206,12 +209,12 @@ export function FamiliesPage() {
     <section className="space-y-6">
       <header className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
         <h1 className="text-2xl font-semibold text-slate-900">Families</h1>
-        <p className="mt-2 text-slate-600">Create or join a family, then view family events.</p>
+        <p className="mt-2 text-slate-600">{t('families.description')}</p>
       </header>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <article className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-900">Create family</h2>
+          <h2 className="text-lg font-semibold text-slate-900">{t('families.create.title')}</h2>
 
           <form className="mt-4 space-y-3" onSubmit={handleCreateFamily}>
             <input
@@ -219,7 +222,7 @@ export function FamiliesPage() {
               type="text"
               minLength={1}
               maxLength={120}
-              placeholder="Family name"
+              placeholder={t('families.create.form.name')}
               value={createForm.name}
               onChange={(event) => {
                 setCreateForm({ name: event.target.value });
@@ -238,7 +241,7 @@ export function FamiliesPage() {
               type="submit"
               disabled={isCreatingFamily}
             >
-              {isCreatingFamily ? 'Creating...' : 'Create family'}
+              {isCreatingFamily ? t('families.create.actions.creating') : t('families.create.actions.create')}
             </button>
           </form>
 
@@ -246,21 +249,21 @@ export function FamiliesPage() {
 
           {createdFamily ? (
             <div className="mt-3 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
-              Family &quot;{createdFamily.name}&quot; created (ID: {createdFamily.id}).
+              {t('families.create.success', {name: createdFamily.name, id: createdFamily.id,})}
             </div>
           ) : null}
         </article>
 
         <article className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-900">Join family</h2>
-          <p className="mt-2 text-sm text-slate-600">Enter a family ID to request access from a family admin.</p>
+          <h2 className="text-lg font-semibold text-slate-900">{t('families.join.title')}</h2>
+          <p className="mt-2 text-sm text-slate-600">{t('families.join.description')}</p>
 
           <form className="mt-4 space-y-3" onSubmit={handleJoinFamily}>
             <input
               className="w-full rounded-md border border-slate-300 px-3 py-2"
               type="number"
               min={1}
-              placeholder="Family ID"
+              placeholder={t('families.join.form.family_id')}
               value={joinForm.familyId}
               onChange={(event) => {
                 setJoinForm((prev) => ({ ...prev, familyId: event.target.value }));
@@ -275,25 +278,25 @@ export function FamiliesPage() {
               type="submit"
               disabled={isJoining || isJoinRequestPending}
             >
-              {isJoining ? 'Sending...' : isJoinRequestPending ? 'Request pending' : 'Request to Join'}
+              {isJoining ? t('families.join.actions.sending') : isJoinRequestPending ? t('families.join.actions.pending') : t('families.join.actions.request')}
             </button>
           </form>
 
           {joinError ? <ErrorMessage message={joinError} /> : null}
-          {isJoinRequestPending ? <SuccessMessage message="Join request sent. Waiting for approval." /> : null}
+          {isJoinRequestPending ? <SuccessMessage message={t('families.join.messages.pending')} /> : null}
           {joinResultMessage ? <SuccessMessage message={joinResultMessage} /> : null}
         </article>
 
         <article className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm lg:col-span-2">
-          <h2 className="text-lg font-semibold text-slate-900">Join Requests</h2>
-          <p className="mt-2 text-sm text-slate-600">Family admins can review pending requests for a family.</p>
+          <h2 className="text-lg font-semibold text-slate-900">{t('families.requests.title')}</h2>
+          <p className="mt-2 text-sm text-slate-600">{t('families.requests.description')}</p>
 
           <form className="mt-4 flex flex-col gap-3 md:flex-row" onSubmit={handleLoadJoinRequests}>
             <input
               className="rounded-md border border-slate-300 px-3 py-2 md:w-64"
               type="number"
               min={1}
-              placeholder="Family ID"
+              placeholder={t('families.join.form.family_id')}
               value={joinRequestsForm.familyId}
               onChange={(event) => {
                 setJoinRequestsForm({ familyId: event.target.value });
@@ -316,12 +319,12 @@ export function FamiliesPage() {
 
           {joinRequestsError ? <ErrorMessage message={joinRequestsError} /> : null}
           {joinRequestsSuccess ? <SuccessMessage message={joinRequestsSuccess} /> : null}
-          {isLoadingJoinRequests ? <LoadingMessage message="Loading join requests..." /> : null}
+          {isLoadingJoinRequests ? <LoadingMessage message={t('families.requests.loading')} /> : null}
           {!joinRequestsError && !isLoadingJoinRequests && !hasLoadedJoinRequests ? (
-            <EmptyMessage message="Load a family to review pending join requests." />
+            <EmptyMessage message={t('families.requests.empty.initial')} />
           ) : null}
           {!joinRequestsError && !isLoadingJoinRequests && hasLoadedJoinRequests && joinRequests.length === 0 ? (
-            <EmptyMessage message="No pending join requests for this family." />
+            <EmptyMessage message={t('families.requests.empty.no_requests')} />
           ) : null}
 
           {!joinRequestsError && joinRequests.length > 0 ? (
@@ -333,7 +336,7 @@ export function FamiliesPage() {
                       <p className="font-medium text-slate-900">{request.user.name}</p>
                       <p className="text-sm text-slate-600">{request.user.email}</p>
                       <p className="text-xs text-slate-500">
-                        Requested by {request.requested_by_user.name} on {new Date(request.created_at).toLocaleString()}
+                        {t('families.requests.requested_by', {name: request.requested_by_user.name, date: new Date(request.created_at).toLocaleString(),})}
                       </p>
                     </div>
 
@@ -344,7 +347,7 @@ export function FamiliesPage() {
                         disabled={activeRequestId === request.id}
                         onClick={() => void handleJoinRequestAction(request.id, 'approve')}
                       >
-                        {activeRequestId === request.id ? 'Working...' : 'Approve'}
+                        {activeRequestId === request.id ? t('families.requests.actions.working') : t('families.requests.actions.approve')}
                       </button>
                       <button
                         className="rounded-md bg-red-600 px-3 py-2 text-sm text-white hover:bg-red-700 disabled:bg-red-300"
@@ -352,7 +355,7 @@ export function FamiliesPage() {
                         disabled={activeRequestId === request.id}
                         onClick={() => void handleJoinRequestAction(request.id, 'reject')}
                       >
-                        {activeRequestId === request.id ? 'Working...' : 'Reject'}
+                        {activeRequestId === request.id ? t('families.requests.actions.working') : t('families.requests.actions.reject')}
                       </button>
                     </div>
                   </div>
@@ -363,14 +366,14 @@ export function FamiliesPage() {
         </article>
 
         <article className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm lg:col-span-2">
-          <h2 className="text-lg font-semibold text-slate-900">View family events</h2>
+          <h2 className="text-lg font-semibold text-slate-900">{t('families.events.title')}</h2>
 
           <form className="mt-4 grid gap-3 md:grid-cols-3" onSubmit={handleLoadFamilyEvents}>
             <input
               className="rounded-md border border-slate-300 px-3 py-2"
               type="number"
               min={1}
-              placeholder="Family ID"
+              placeholder={t('families.events.form.family_id')}
               value={eventsForm.familyId}
               onChange={(event) => setEventsForm((prev) => ({ ...prev, familyId: event.target.value }))}
               required
@@ -379,7 +382,8 @@ export function FamiliesPage() {
               className="rounded-md border border-slate-300 px-3 py-2"
               type="number"
               min={1}
-              placeholder="Page"
+              placeholder={t('families.events.form.page')}
+
               value={eventsForm.page}
               onChange={(event) => setEventsForm((prev) => ({ ...prev, page: event.target.value }))}
             />
@@ -388,7 +392,7 @@ export function FamiliesPage() {
               type="number"
               min={1}
               max={100}
-              placeholder="Per page"
+              placeholder={t('families.events.form.per_page')}
               value={eventsForm.perPage}
               onChange={(event) => setEventsForm((prev) => ({ ...prev, perPage: event.target.value }))}
             />
@@ -399,24 +403,24 @@ export function FamiliesPage() {
                 type="submit"
                 disabled={isLoadingEvents}
               >
-                {isLoadingEvents ? 'Loading...' : 'Load events'}
+                {isLoadingEvents ? t('families.events.actions.loading') : t('families.events.actions.load')}
               </button>
             </div>
           </form>
 
           {eventsError ? <ErrorMessage message={eventsError} /> : null}
-          {isLoadingEvents ? <LoadingMessage message="Loading family events..." /> : null}
+          {isLoadingEvents ? <LoadingMessage message={t('families.events.loading')} /> : null}
 
-          {!eventsError && !isLoadingEvents && familyEvents.length === 0 ? <EmptyMessage message="No family events loaded yet." /> : null}
+          {!eventsError && !isLoadingEvents && familyEvents.length === 0 ? <EmptyMessage message={t('families.events.empty')} /> : null}
 
           {!eventsError && familyEvents.length > 0 ? (
             <>
-              <p className="mt-4 text-sm text-slate-600">Total events: {eventsTotal}</p>
+              <p className="mt-4 text-sm text-slate-600">{t('families.events.total', {total: eventsTotal,})}</p>
               <ul className="mt-3 space-y-2">
                 {familyEvents.map((eventItem) => (
                   <li key={eventItem.id} className="rounded-md border border-slate-200 p-3">
                     <p className="font-medium text-slate-900">{eventItem.title}</p>
-                    <p className="text-sm text-slate-600">{eventItem.description || 'No description'}</p>
+                    <p className="text-sm text-slate-600">{eventItem.description || t('families.events.no_description')}</p>
                     <p className="text-xs text-slate-500">
                       {eventItem.month}/{eventItem.day}
                       {eventItem.year ? `/${eventItem.year}` : ''}

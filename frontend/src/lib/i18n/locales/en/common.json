@@ -181,5 +181,114 @@
       "invalid_hebrew": "Please enter a valid Hebrew date. Day must be between 1 and 30.",
       "convert_failed": "Unable to convert date. Please verify your input and try again."
     }
+  },
+
+  "families": {
+    "title": "Families",
+    "description": "Create or join a family, then view family events.",
+
+    "create": {
+      "title": "Create family",
+
+      "form": {
+        "name": "Family name"
+      },
+
+      "actions": {
+        "create": "Create family",
+        "creating": "Creating..."
+      },
+
+      "success": "Family \"{{name}}\" created (ID: {{id}}).",
+
+      "errors": {
+        "name_required": "Family name is required.",
+        "failed": "Unable to create family. Please try a different name."
+      }
+    },
+
+    "join": {
+      "title": "Join family",
+      "description": "Enter a family ID to request access from a family admin.",
+
+      "form": {
+        "family_id": "Family ID"
+      },
+
+      "actions": {
+        "request": "Request to Join",
+        "sending": "Sending...",
+        "pending": "Request pending"
+      },
+
+      "messages": {
+        "pending": "Join request sent. Waiting for approval."
+      },
+
+      "errors": {
+        "invalid_family_id": "Enter a valid family ID.",
+        "failed": "Unable to request family access. Verify family ID and try again."
+      }
+    },
+
+    "requests": {
+      "title": "Join Requests",
+      "description": "Family admins can review pending requests for a family.",
+
+      "loading": "Loading join requests...",
+
+      "requested_by": "Requested by {{name}} on {{date}}",
+
+      "actions": {
+        "approve": "Approve",
+        "reject": "Reject",
+        "working": "Working...",
+        "load": "Load join requests",
+        "loading": "Loading..."
+      },
+
+      "success": {
+        "approved": "Approved user {{userId}} for family {{familyId}}.",
+        "rejected": "Join request rejected."
+      },
+
+      "empty": {
+        "initial": "Load a family to review pending join requests.",
+        "no_requests": "No pending join requests for this family."
+      },
+
+      "errors": {
+        "invalid_family_id": "Enter a valid family ID to load join requests.",
+        "load_failed": "Unable to load join requests. Verify family ID and admin permissions.",
+        "action_failed": "Unable to {{action}} join request. Please try again."
+      }
+    },
+
+    "events": {
+      "title": "View family events",
+
+      "form": {
+        "family_id": "Family ID",
+        "page": "Page",
+        "per_page": "Per page"
+      },
+
+      "actions": {
+        "load": "Load events",
+        "loading": "Loading..."
+      },
+
+      "loading": "Loading family events...",
+
+      "empty": "No family events loaded yet.",
+
+      "total": "Total events: {{total}}",
+
+      "no_description": "No description",
+
+      "errors": {
+        "load_failed": "Unable to load family events. Verify family ID and permissions."
+      }
+    }
   }
 }
