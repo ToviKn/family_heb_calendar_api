@@ -366,5 +366,35 @@
       "create": "Unable to create notification. Verify event ID.",
       "process": "Unable to process reminders."
     }
+  },
+
+  "settings": {
+    "title": "Settings",
+    "description": "Manage your account security settings.",
+
+    "change_password": {
+      "title": "Change password",
+      "description": "Enter your current password and choose a new password for your account."
+    },
+
+    "fields": {
+      "current_password": "Current password",
+      "new_password": "New password",
+      "confirm_password": "Confirm new password"
+    },
+
+    "password_policy": "New password must be at least 10 characters and include uppercase, lowercase, number, and special characters.",
+
+    "actions": {
+      "update": "Update password",
+      "updating": "Updating password..."
+    },
+
+    "messages": {
+      "password_mismatch": "New password and confirmation do not match.",
+      "password_updated": "Password updated successfully.",
+      "change_password_failed": "Unable to change password. Please verify your current password and try again.",
+      "updating_password": "Updating your password..."
+    }
   }
 }

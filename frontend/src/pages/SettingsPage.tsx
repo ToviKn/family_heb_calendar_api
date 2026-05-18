@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { ErrorMessage, LoadingMessage, SuccessMessage } from '../components/Feedback';
 import { changePassword, getApiErrorMessage } from '../lib/api';
@@ -17,6 +18,8 @@ const initialFormState: ChangePasswordFormState = {
 };
 
 export function SettingsPage() {
+  const { t } = useTranslation();
+
   const [form, setForm] = useState<ChangePasswordFormState>(initialFormState);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -40,7 +43,7 @@ export function SettingsPage() {
     event.preventDefault();
 
     if (!passwordsMatch) {
-      setError('New password and confirmation do not match.');
+      setError(t('settings.messages.password_mismatch'));
       setSuccess(null);
       return;
     }
@@ -55,10 +58,10 @@ export function SettingsPage() {
         new_password: form.newPassword,
       });
       setForm(initialFormState);
-      setSuccess(response.message || 'Password updated successfully.');
+      setSuccess(response.message || t('settings.messages.password_updated'));
     } catch (caughtError) {
       setError(
-        getApiErrorMessage(caughtError, 'Unable to change password. Please verify your current password and try again.')
+        getApiErrorMessage(caughtError, t('settings.messages.change_password_failed'))
       );
     } finally {
       setIsSubmitting(false);
@@ -68,19 +71,19 @@ export function SettingsPage() {
   return (
     <section className="space-y-6">
       <header className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-        <h1 className="text-2xl font-semibold text-slate-900">Settings</h1>
-        <p className="mt-2 text-slate-600">Manage your account security settings.</p>
+        <h1 className="text-2xl font-semibold text-slate-900">{t('settings.title')}</h1>
+        <p className="mt-2 text-slate-600">{t('settings.description')}</p>
       </header>
 
       <article className="max-w-xl rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-slate-900">Change password</h2>
+        <h2 className="text-lg font-semibold text-slate-900">{t('settings.change_password.title')}</h2>
         <p className="mt-2 text-sm text-slate-600">
-          Enter your current password and choose a new password for your account.
+          {t('settings.change_password.description')}
         </p>
 
         <form aria-busy={isSubmitting} className="mt-6 space-y-4" onSubmit={handleSubmit}>
           <label className="block text-sm font-medium text-slate-700" htmlFor="current-password">
-            Current password
+            {t('settings.fields.current_password')}
             <input
               id="current-password"
               autoComplete="current-password"
@@ -94,7 +97,7 @@ export function SettingsPage() {
           </label>
 
           <label className="block text-sm font-medium text-slate-700" htmlFor="new-password">
-            New password
+            {t('settings.fields.new_password')}
             <input
               id="new-password"
               autoComplete="new-password"
@@ -109,7 +112,7 @@ export function SettingsPage() {
           </label>
 
           <label className="block text-sm font-medium text-slate-700" htmlFor="confirm-new-password">
-            Confirm new password
+            {t('settings.fields.confirm_password')}
             <input
               id="confirm-new-password"
               autoComplete="new-password"
@@ -124,15 +127,14 @@ export function SettingsPage() {
           </label>
 
           <p id="password-policy" className="text-sm text-slate-600">
-            New password must be at least 10 characters and include uppercase, lowercase, number, and special
-            characters.
+            {t('settings.password_policy')}
           </p>
 
           {showPasswordMismatch ? (
-            <p className="text-sm text-red-600">New password and confirmation must match.</p>
+            <p className="text-sm text-red-600">{t('settings.messages.password_mismatch')}</p>
           ) : null}
 
-          {isSubmitting ? <LoadingMessage message="Updating your password..." /> : null}
+          {isSubmitting ? <LoadingMessage message={t('settings.messages.updating_password')} /> : null}
           {error ? <ErrorMessage message={error} /> : null}
           {success ? <SuccessMessage message={success} /> : null}
 
@@ -141,7 +143,7 @@ export function SettingsPage() {
             type="submit"
             disabled={isSubmitDisabled}
           >
-            {isSubmitting ? 'Updating password...' : 'Update password'}
+            {isSubmitting ? t('settings.messages.updating_password') : t('settings.actions.update')}
           </button>
         </form>
       </article>
