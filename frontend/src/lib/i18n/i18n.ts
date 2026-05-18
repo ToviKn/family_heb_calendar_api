@@ -13,7 +13,7 @@ i18n.use(initReactI18next).init({
       translation: heCommon,
     },
   },
-  lng: 'he',
+  lng: localStorage.getItem('language') || 'he',
   fallbackLng: 'en',
   interpolation: {
     escapeValue: false,
@@ -21,3 +21,13 @@ i18n.use(initReactI18next).init({
 });
 
 export default i18n;
+
+i18n.on('languageChanged', (lng) => {
+  document.documentElement.lang = lng;
+  document.documentElement.dir = lng === 'he' ? 'rtl' : 'ltr';
+
+  localStorage.setItem('language', lng);
+});
+
+document.documentElement.lang = i18n.language;
+document.documentElement.dir = i18n.language === 'he' ? 'rtl' : 'ltr';

@@ -1,17 +1,8 @@
 import { useTranslation } from 'react-i18next';
-
 import { NavLink, Outlet } from 'react-router-dom';
 
 import { useAuth } from '../features/auth/AuthContext';
-
-const navItems = [
-  { to: '/', label: 'Home', end: true },
-  { to: '/events', label: 'Events' },
-  { to: '/families', label: 'Families' },
-  { to: '/notifications', label: 'Notifications' },
-  { to: '/convert', label: 'Conversion' },
-  { to: '/settings', label: 'Settings' },
-] as const;
+import { LanguageSwitcher } from '../components/LanguageSwitcher';
 
 function navLinkClassName(isActive: boolean): string {
   return [
@@ -37,18 +28,22 @@ export function AppLayout() {
     <main className="min-h-screen bg-slate-50">
       {isAuthenticated ? (
         <header className="border-b border-slate-200 bg-white">
-          <nav className="mx-auto flex max-w-6xl flex-wrap items-center gap-2 px-4 py-3 sm:px-6" aria-label="Primary">
-            {navItems.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.to === '/'}
-                className={({ isActive }) => navLinkClassName(isActive)}
-              >
-                {item.label}
-              </NavLink>
-            ))}
-          </nav>
+          <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
+            <nav className="flex flex-wrap items-center gap-2" aria-label="Primary">
+              {navItems.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end={item.to === '/'}
+                  className={({ isActive }) => navLinkClassName(isActive)}
+                >
+                  {item.label}
+                </NavLink>
+              ))}
+            </nav>
+
+            <LanguageSwitcher />
+          </div>
         </header>
       ) : null}
 
