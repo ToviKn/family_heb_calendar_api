@@ -38,7 +38,7 @@
 
   "events": {
     "title": "Events",
-    "description": "Create, edit, and delete family events.",
+    "description": "Create, view, edit, and delete family events.",
     "list_title": "Events list",
     "loading": "Loading events...",
     "family": "Family",
