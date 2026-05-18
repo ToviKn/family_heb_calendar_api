@@ -1,5 +1,6 @@
 import { EmptyMessage, ErrorMessage, LoadingMessage, SuccessMessage } from '../components/Feedback';
 import { FormEvent, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { formatNotificationCreatedAt, getNotificationSummary } from '../lib/notifications/formatters';
 import {
@@ -17,6 +18,8 @@ interface CreateNotificationForm {
 
 
 export function NotificationsPage() {
+  const { t } = useTranslation();
+
   const [notifications, setNotifications] = useState<NotificationResponse[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +43,7 @@ export function NotificationsPage() {
       const response = await getNotifications();
       setNotifications(response.notifications ?? response.events);
     } catch {
-      setError('Unable to load notifications.');
+      setError(t('notifications.errors.load'));
     } finally {
       setIsLoading(false);
     }
@@ -67,7 +70,7 @@ export function NotificationsPage() {
         })
       );
     } catch {
-      setError('Unable to mark notification as read.');
+      setError(t('notifications.errors.mark_read'));
     } finally {
       setUpdatingId(null);
     }
@@ -82,7 +85,7 @@ export function NotificationsPage() {
       await deleteNotification(notificationId);
       setNotifications((previous) => previous.filter((item) => item.id !== notificationId));
     } catch {
-      setError('Unable to delete notification.');
+      setError(t('notifications.errors.delete'));
     } finally {
       setDeletingId(null);
     }
@@ -93,7 +96,7 @@ export function NotificationsPage() {
 
     const parsedEventId = Number(createForm.eventId);
     if (!Number.isInteger(parsedEventId) || parsedEventId <= 0) {
-      setCreateError('Please enter a valid Event ID greater than 0.');
+      setCreateError(t('notifications.errors.invalid_event_id'));
       setCreateSuccess(null);
       return;
     }
@@ -107,9 +110,9 @@ export function NotificationsPage() {
       const created = await createNotification({ event_id: parsedEventId });
       setNotifications((previous) => [created, ...previous]);
       setCreateForm({ eventId: '' });
-      setCreateSuccess('Notification created successfully.');
+      setCreateSuccess(t('notifications.success.created'));
     } catch {
-      setCreateError('Unable to create notification. Verify event ID.');
+      setCreateError(t('notifications.errors.create'));
     } finally {
       setIsCreating(false);
     }
@@ -124,10 +127,10 @@ export function NotificationsPage() {
 
     try {
       const result = await processNotificationReminders();
-      setProcessSuccess(`Processed reminders. Created ${result.created} notifications.`);
+      setProcessSuccess(t('notifications.success.processed', {count: result.created,}));
       await loadNotifications();
     } catch {
-      setError('Unable to process reminders.');
+      setError(t('notifications.errors.process'));
     } finally {
       setIsProcessingReminders(false);
     }
@@ -136,20 +139,20 @@ export function NotificationsPage() {
   return (
     <section className="space-y-6">
       <header className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-        <h1 className="text-2xl font-semibold text-slate-900">Notifications</h1>
-        <p className="mt-2 text-slate-600">Review notifications, create new notifications, and process reminders.</p>
+        <h1 className="text-2xl font-semibold text-slate-900">{t('notifications.title')}</h1>
+        <p className="mt-2 text-slate-600">{t('notifications.description')}</p>
       </header>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <article className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-900">Create notification</h2>
+          <h2 className="text-lg font-semibold text-slate-900">{t('notifications.create.title')}</h2>
 
           <form className="mt-4 space-y-3" onSubmit={handleCreateNotification}>
             <input
               className="w-full rounded-md border border-slate-300 px-3 py-2"
               type="number"
               min={1}
-              placeholder="Event ID"
+              placeholder={t('notifications.create.event_id_placeholder')}
               value={createForm.eventId}
               onChange={(event) => {
                 setCreateForm({ eventId: event.target.value });
@@ -168,7 +171,7 @@ export function NotificationsPage() {
               type="submit"
               disabled={isCreating}
             >
-              {isCreating ? 'Creating...' : 'Create notification'}
+              {isCreating ? t('notifications.actions.creating') : t('notifications.actions.create')}
             </button>
           </form>
 
@@ -177,8 +180,8 @@ export function NotificationsPage() {
         </article>
 
         <article className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-900">Process reminders</h2>
-          <p className="mt-2 text-sm text-slate-600">Generate notifications for due event reminders.</p>
+          <h2 className="text-lg font-semibold text-slate-900">{t('notifications.process.title')}</h2>
+          <p className="mt-2 text-sm text-slate-600">{t('notifications.process.description')}</p>
 
           <button
             className="mt-4 rounded-md bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700 disabled:bg-indigo-300"
@@ -186,7 +189,7 @@ export function NotificationsPage() {
             onClick={() => void handleProcessReminders()}
             disabled={isProcessingReminders}
           >
-            {isProcessingReminders ? 'Processing...' : 'Process reminders'}
+            {isProcessingReminders ? t('notifications.actions.processing') : t('notifications.actions.process')}
           </button>
 
           {processSuccess ? <SuccessMessage message={processSuccess} /> : null}
@@ -195,21 +198,21 @@ export function NotificationsPage() {
 
       <article className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-slate-900">Your notifications</h2>
+          <h2 className="text-lg font-semibold text-slate-900">{t('notifications.list.title')}</h2>
           <button
             className="rounded-md border border-slate-300 px-3 py-1 text-sm text-slate-700 hover:bg-slate-50"
             type="button"
             onClick={() => void loadNotifications()}
             disabled={isLoading}
           >
-            Refresh
+            {t('notifications.actions.refresh')}
           </button>
         </div>
 
         {error ? <ErrorMessage message={error} /> : null}
-        {isLoading ? <LoadingMessage message="Loading..." /> : null}
+        {isLoading ? <LoadingMessage message={t('notifications.loading')} /> : null}
 
-        {!isLoading && notifications.length === 0 ? <EmptyMessage message="No notifications available." /> : null}
+        {!isLoading && notifications.length === 0 ? <EmptyMessage message={t('notifications.empty')} /> : null}
 
         {!isLoading && notifications.length > 0 ? (
           <ul className="mt-4 space-y-3">
@@ -223,11 +226,11 @@ export function NotificationsPage() {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="font-medium text-slate-900">{summary.title || 'Notification'}</p>
-                    <p className="mt-1 text-sm text-slate-600">{summary.subtitle || 'No details available.'}</p>
+                    <p className="font-medium text-slate-900">{summary.title || t('notifications.default_title')}</p>
+                    <p className="mt-1 text-sm text-slate-600">{summary.subtitle || t('notifications.default_subtitle')}</p>
                     <p className="mt-1 text-xs text-slate-500">
-                      Created: {formatNotificationCreatedAt(notification.created_at)}
-                      {notification.event_id ? ` • Event ID: ${notification.event_id}` : ''}
+                      {t('notifications.created_label')}:{' '} {formatNotificationCreatedAt(notification.created_at)}
+                      {notification.event_id ? ` • $ {t('notifications.event_id_label')}: ${notification.event_id}` : ''}
                     </p>
                   </div>
 
@@ -239,10 +242,10 @@ export function NotificationsPage() {
                         onClick={() => void handleMarkAsRead(notification.id)}
                         disabled={updatingId === notification.id || deletingId === notification.id}
                       >
-                        {updatingId === notification.id ? 'Marking...' : 'Mark as read'}
+                        {updatingId === notification.id ? t('notifications.actions.marking') : t('notifications.actions.mark_read')}
                       </button>
                     ) : (
-                      <span className="self-center text-xs text-slate-500">Read</span>
+                      <span className="self-center text-xs text-slate-500">{t('notifications.read')}</span>
                     )}
 
                     <button
@@ -251,7 +254,7 @@ export function NotificationsPage() {
                       onClick={() => void handleDeleteNotification(notification.id)}
                       disabled={deletingId === notification.id || updatingId === notification.id}
                     >
-                      {deletingId === notification.id ? 'Deleting...' : 'Delete'}
+                      {deletingId === notification.id ? t('notifications.actions.deleting') : t('notifications.actions.delete')}
                     </button>
                   </div>
                 </div>

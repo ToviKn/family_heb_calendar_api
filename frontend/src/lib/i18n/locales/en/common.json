@@ -309,5 +309,62 @@
     "title": "Page not found",
     "description": "The page you are looking for does not exist or may have been moved.",
     "backHome": "Back to home"
+  },
+
+  "notifications": {
+    "title": "Notifications",
+    "description": "Review notifications, create new notifications, and process reminders.",
+
+    "loading": "Loading...",
+
+    "empty": "No notifications available.",
+
+    "default_title": "Notification",
+    "default_subtitle": "No details available.",
+
+    "created_label": "Created",
+    "event_id_label": "Event ID",
+
+    "read": "Read",
+
+    "create": {
+      "title": "Create notification",
+      "event_id_placeholder": "Event ID"
+    },
+
+    "process": {
+      "title": "Process reminders",
+      "description": "Generate notifications for due event reminders."
+    },
+
+    "list": {
+      "title": "Your notifications"
+    },
+
+    "actions": {
+      "create": "Create notification",
+      "creating": "Creating...",
+      "process": "Process reminders",
+      "processing": "Processing...",
+      "refresh": "Refresh",
+      "mark_read": "Mark as read",
+      "marking": "Marking...",
+      "delete": "Delete",
+      "deleting": "Deleting..."
+    },
+
+    "success": {
+      "created": "Notification created successfully.",
+      "processed": "Processed reminders. Created {{count}} notifications."
+    },
+
+    "errors": {
+      "load": "Unable to load notifications.",
+      "mark_read": "Unable to mark notification as read.",
+      "delete": "Unable to delete notification.",
+      "invalid_event_id": "Please enter a valid Event ID greater than 0.",
+      "create": "Unable to create notification. Verify event ID.",
+      "process": "Unable to process reminders."
+    }
   }
 }
