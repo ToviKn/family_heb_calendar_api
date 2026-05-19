@@ -24,9 +24,10 @@ export interface AuthLoginRequest {
   password: string;
 }
 
-export interface AuthLoginResponse extends Record<string, string> {
+export interface AuthLoginResponse {
   access_token: string;
   token_type: string;
+  user: UserResponse;
 }
 
 export interface EventCreate {

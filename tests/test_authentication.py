@@ -13,6 +13,10 @@ def test_login_success_returns_bearer_token(client, sample_users) -> None:
     payload = response.json()
     assert payload["token_type"] == "bearer"
     assert payload["access_token"]
+    assert payload["user"]["id"] == sample_users["owner"].id
+    assert payload["user"]["email"] == sample_users["owner"].email
+    assert payload["user"]["name"] == sample_users["owner"].name
+    assert "password_hash" not in payload["user"]
 
 
 def test_login_fails_with_wrong_password(client, sample_users) -> None:

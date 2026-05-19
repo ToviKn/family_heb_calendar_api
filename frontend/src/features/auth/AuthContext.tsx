@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 import { login as loginRequest } from '../../lib/api/auth';
 import { setApiAuthToken } from '../../lib/api/axios';
 import { createUser } from '../../lib/api/users';
-import { clearStoredToken, getStoredToken, storeToken } from '../../lib/auth/tokenStorage';
+import { clearStoredToken, getStoredToken, getStoredUser, storeToken, storeUser } from '../../lib/auth/tokenStorage';
 
 interface RegisterPayload {
   email: string;
@@ -20,6 +20,7 @@ interface LoginPayload {
 interface AuthContextValue {
   token: string | null;
   userId: number | null;
+  user: { id: number; email: string; name: string } | null;
   isAuthenticated: boolean;
   login: (payload: LoginPayload) => Promise<void>;
   register: (payload: RegisterPayload) => Promise<void>;
@@ -29,6 +30,7 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 const initialStoredToken = getStoredToken();
+const initialStoredUser = getStoredUser();
 setApiAuthToken(initialStoredToken ?? undefined);
 
 function decodeBase64Url(value: string): string {
@@ -62,6 +64,7 @@ function decodeUserIdFromToken(token: string | null): number | null {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(initialStoredToken);
+  const [user, setUser] = useState<{ id: number; email: string; name: string } | null>(initialStoredUser);
 
   useEffect(() => {
     if (token) {
@@ -74,9 +77,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (payload: LoginPayload): Promise<void> => {
     const response = await loginRequest({ username: payload.username, password: payload.password });
+    console.log('Login response user.name:', response.user.name);
     storeToken(response.access_token);
+    storeUser(response.user);
     setApiAuthToken(response.access_token);
     setToken(response.access_token);
+    setUser(response.user);
   }, []);
 
   const register = useCallback(async (payload: RegisterPayload): Promise<void> => {
@@ -87,6 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearStoredToken();
     setApiAuthToken(undefined);
     setToken(null);
+    setUser(null);
   }, []);
 
   const userId = useMemo(() => decodeUserIdFromToken(token), [token]);
@@ -96,11 +103,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       token,
       userId,
       isAuthenticated: Boolean(token),
+      user,
       login,
       register,
       logout,
     }),
-    [token, userId, login, register, logout]
+    [token, userId, user, login, register, logout]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
