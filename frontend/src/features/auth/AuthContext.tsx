@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 import { login as loginRequest } from '../../lib/api/auth';
 import { setApiAuthToken } from '../../lib/api/axios';
 import { createUser } from '../../lib/api/users';
-import { clearStoredToken, getStoredToken, storeToken } from '../../lib/auth/tokenStorage';
+import { clearStoredAuth, getStoredToken, getStoredUser, storeToken, storeUser } from '../../lib/auth/tokenStorage';
 
 interface RegisterPayload {
   email: string;
@@ -17,9 +17,12 @@ interface LoginPayload {
   password: string;
 }
 
+type AuthUser = { id: number; email: string; name: string };
+
 interface AuthContextValue {
   token: string | null;
   userId: number | null;
+  user: AuthUser | null;
   isAuthenticated: boolean;
   login: (payload: LoginPayload) => Promise<void>;
   register: (payload: RegisterPayload) => Promise<void>;
@@ -29,6 +32,7 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 const initialStoredToken = getStoredToken();
+const initialStoredUser = getStoredUser();
 setApiAuthToken(initialStoredToken ?? undefined);
 
 function decodeBase64Url(value: string): string {
@@ -62,6 +66,7 @@ function decodeUserIdFromToken(token: string | null): number | null {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(initialStoredToken);
+  const [user, setUser] = useState<AuthUser | null>(initialStoredUser);
 
   useEffect(() => {
     if (token) {
@@ -72,11 +77,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setApiAuthToken(undefined);
   }, [token]);
 
+
+  useEffect(() => {
+    if (token && user) {
+      storeToken(token);
+      storeUser(user);
+      return;
+    }
+
+    if (!token) {
+      clearStoredAuth();
+      return;
+    }
+
+    // Token exists but user is missing/corrupted in storage, clear inconsistent auth state.
+    clearStoredAuth();
+    setToken(null);
+    setUser(null);
+  }, [token, user]);
+
+  useEffect(() => {
+    console.log(user);
+    console.log(user?.name);
+  }, [user]);
+
   const login = useCallback(async (payload: LoginPayload): Promise<void> => {
     const response = await loginRequest({ username: payload.username, password: payload.password });
+    console.log('Login response user.name:', response.user.name);
     storeToken(response.access_token);
+    storeUser(response.user);
     setApiAuthToken(response.access_token);
     setToken(response.access_token);
+    setUser(response.user);
   }, []);
 
   const register = useCallback(async (payload: RegisterPayload): Promise<void> => {
@@ -84,9 +116,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback((): void => {
-    clearStoredToken();
+    clearStoredAuth();
     setApiAuthToken(undefined);
     setToken(null);
+    setUser(null);
   }, []);
 
   const userId = useMemo(() => decodeUserIdFromToken(token), [token]);
@@ -96,11 +129,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       token,
       userId,
       isAuthenticated: Boolean(token),
+      user,
       login,
       register,
       logout,
     }),
-    [token, userId, login, register, logout]
+    [token, userId, user, login, register, logout]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
