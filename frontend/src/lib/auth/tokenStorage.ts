@@ -21,7 +21,7 @@ export function storeToken(token: string): void {
   window.localStorage.setItem(AUTH_TOKEN_KEY, token);
 }
 
-export function clearStoredToken(): void {
+export function clearStoredAuth(): void {
   if (!canUseStorage()) {
     return;
   }
