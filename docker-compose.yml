@@ -17,9 +17,10 @@ services:
       timeout: 5s
       retries: 5
 
-
   api:
-    build: .
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     container_name: family-api
     restart: always
     depends_on:
@@ -31,19 +32,19 @@ services:
       JWT_SECRET_KEY: test_secret
       DATABASE_URL: postgresql+psycopg://family_user:family_pass@db:5432/family_calendar
     volumes:
-      - .:/app
-    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-
+      - ./backend:/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
   tests:
     build:
-      context: .
+      context: ./backend
       dockerfile: Dockerfile.test
     container_name: family-api-tests
     environment:
       DATABASE_URL: sqlite:///./calendar_test_bootstrap.db
+      JWT_SECRET_KEY: test_secret
     volumes:
-      - .:/app
+      - ./backend:/app
     command: pytest -v
     profiles:
       - test
