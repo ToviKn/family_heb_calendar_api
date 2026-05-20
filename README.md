@@ -78,3 +78,13 @@ docker compose up --build
 ## License
 
 This project is licensed under the MIT License. See the [LICENSE](./LICENSE) file for details.
+
+
+## CI
+
+A minimal GitHub Actions pipeline runs on every `push` and `pull_request`:
+
+- **Backend job**: installs Python dependencies and runs `pytest` in `backend/`.
+- **Frontend job**: installs Node dependencies and verifies production build in `frontend/`.
+
+The workflow fails automatically on test or build errors.
