@@ -24,17 +24,34 @@ logger = logging.getLogger(__name__)
 
 IS_PRODUCTION = os.getenv("ENV", "development").lower() == "production"
 ENABLE_API_DOCS = os.getenv("ENABLE_API_DOCS", "false").lower() == "true"
+RUN_LEGACY_STARTUP_MIGRATIONS = os.getenv("RUN_LEGACY_STARTUP_MIGRATIONS", "false").lower() == "true"
+RUN_CREATE_ALL_IN_DEV = os.getenv("RUN_CREATE_ALL_IN_DEV", "false").lower() == "true"
 
 
 @asynccontextmanager
 async def lifespan(_application: FastAPI) -> AsyncIterator[None]:
     try:
-        Base.metadata.create_all(bind=engine)
-        run_safe_schema_migrations(engine)
-        logger.info("Database tables created successfully")
+        with engine.connect() as connection:
+            connection.execute(text("SELECT 1"))
+
+        if not IS_PRODUCTION and RUN_CREATE_ALL_IN_DEV:
+            Base.metadata.create_all(bind=engine)
+            logger.warning(
+                "Applied Base.metadata.create_all for non-production bootstrap",
+                extra={"environment": os.getenv("ENV", "development")},
+            )
+
+        if RUN_LEGACY_STARTUP_MIGRATIONS:
+            run_safe_schema_migrations(engine)
+            logger.warning(
+                "Applied legacy in-app schema migrations; prefer Alembic for production",
+                extra={"environment": os.getenv("ENV", "development")},
+            )
+
+        logger.info("Startup database checks completed")
     except Exception as exc:
         logger.error(
-            "Failed to create database tables",
+            "Application startup failed during database initialization",
             exc_info=True,
             extra={"error": str(exc)},
         )
@@ -100,17 +117,16 @@ async def request_logging_middleware(
 
 
 # noinspection PyTypeChecker
-allowed_origins = [
-    origin.strip()
-    for origin in os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
-    if origin.strip()
-]
+allowed_origins = [origin.strip() for origin in os.getenv("ALLOWED_ORIGINS", "").split(",") if origin.strip()]
+
+if IS_PRODUCTION and not allowed_origins:
+    raise ValueError("ALLOWED_ORIGINS must be set in production")
+
+if not IS_PRODUCTION and not allowed_origins:
+    allowed_origins = ["http://localhost:3000"]
 
 if "*" in allowed_origins:
-    logger.warning(
-        "Wildcard CORS origin is not allowed when credentials are enabled; falling back to localhost only"
-    )
-    allowed_origins = ["http://localhost:3000"]
+    raise ValueError("Wildcard ALLOWED_ORIGINS is forbidden when credentials are enabled")
 
 # noinspection PyTypeChecker
 app.add_middleware(
