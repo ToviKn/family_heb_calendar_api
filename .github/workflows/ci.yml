@@ -2,7 +2,6 @@ name: CI
 
 on:
   push:
-    branches: ["**"]
   pull_request:
 
 jobs:
@@ -32,6 +31,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Verify backend startup import path
+        run: python -c "import app.main"
+
       - name: Run pytest
         run: pytest -q
 
@@ -49,7 +51,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
 
       - name: Install frontend dependencies
         run: npm install
