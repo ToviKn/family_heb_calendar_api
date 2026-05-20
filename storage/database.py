@@ -18,10 +18,11 @@ engine = create_engine(
     DATABASE_URL,
     echo=os.getenv("DEBUG", "false").lower() == "true",
     poolclass=QueuePool,
-    pool_size=10,
-    max_overflow=20,
+    pool_size=int(os.getenv("DB_POOL_SIZE", "5")),
+    max_overflow=int(os.getenv("DB_MAX_OVERFLOW", "5")),
     pool_pre_ping=True,
-    pool_recycle=3600,
+    pool_recycle=int(os.getenv("DB_POOL_RECYCLE_SECONDS", "1800")),
+    pool_timeout=int(os.getenv("DB_POOL_TIMEOUT_SECONDS", "30")),
 )
 
 SessionLocal = sessionmaker[Session](autocommit=False, autoflush=False, bind=engine)

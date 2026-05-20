@@ -13,7 +13,13 @@ services:
         sync: false
       - key: ALLOWED_ORIGINS
         sync: false
-      - key: ENABLE_DEBUG_ROUTES
+      - key: ENV
+        value: "production"
+      - key: ENABLE_API_DOCS
+        value: "false"
+      - key: RUN_LEGACY_STARTUP_MIGRATIONS
+        value: "false"
+      - key: RUN_CREATE_ALL_IN_DEV
         value: "false"
       - key: ACCESS_TOKEN_EXPIRE_MINUTES
         value: "60"
