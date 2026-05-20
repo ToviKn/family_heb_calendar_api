@@ -73,3 +73,8 @@ npm run dev
 ```bash
 docker compose up --build
 ```
+
+
+## License
+
+This project is licensed under the MIT License. See the [LICENSE](./LICENSE) file for details.
