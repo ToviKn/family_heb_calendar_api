@@ -2,6 +2,38 @@
 
 React + Vite frontend for Family Calendar.
 
+## Project Structure
+
+```text
+frontend/
+├── src/
+│   ├── app/                # App shell composition (root App component)
+│   ├── features/           # Feature-scoped modules (e.g., auth context/state)
+│   ├── components/         # Shared UI components used across pages
+│   ├── pages/              # Route-level screens
+│   ├── router/             # App routing and protected-route logic
+│   ├── layouts/            # Reusable page/layout wrappers
+│   ├── lib/
+│   │   ├── api/            # Typed API client layer (axios instance + endpoint modules)
+│   │   ├── auth/           # Client auth helpers (token storage)
+│   │   ├── i18n/           # Internationalization setup and locale dictionaries
+│   │   └── notifications/  # Notification formatting/helpers
+│   ├── styles/             # Global styles and Tailwind/CSS entrypoints
+│   └── main.tsx            # SPA bootstrap
+├── package.json            # Frontend scripts and dependencies
+├── vite.config.ts          # Vite bundler/runtime config
+├── tailwind.config.ts      # Tailwind config
+└── .env.example            # Frontend env template
+```
+
+### Frontend architecture areas
+
+- **Feature layer (`src/features`)**: Encapsulates stateful business concerns (currently auth flow/context).
+- **Shared UI (`src/components`, `src/layouts`)**: Reusable presentation and composition primitives.
+- **API layer (`src/lib/api`)**: Centralized HTTP client, typed request/response contracts, and endpoint modules.
+- **Auth flow (`src/features/auth`, `src/lib/auth`, `src/router/ProtectedRoute.tsx`)**: Token persistence, auth context, and route protection.
+- **Routing/pages (`src/router`, `src/pages`)**: URL mapping and top-level page experiences.
+
 ## Development
 ```bash
 npm install
