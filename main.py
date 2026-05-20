@@ -12,12 +12,18 @@ from fastapi.responses import JSONResponse, Response
 from exceptions import CalendarAPIException
 from logging_config import configure_logging, reset_request_id, set_request_id
 from routes import auth, convert, events, families, notifications, users
+from sqlalchemy import text
+
 from storage.database import Base, engine
 from storage.schema_migrations import run_safe_schema_migrations
 
 configure_logging()
 
+
 logger = logging.getLogger(__name__)
+
+IS_PRODUCTION = os.getenv("ENV", "development").lower() == "production"
+ENABLE_API_DOCS = os.getenv("ENABLE_API_DOCS", "false").lower() == "true"
 
 
 @asynccontextmanager
@@ -40,8 +46,8 @@ app = FastAPI(
     title="Family Calendar API",
     description="A calendar API supporting both Hebrew and Gregorian dates",
     version="1.0.0",
-    docs_url="/docs",
-    redoc_url="/redoc",
+    docs_url="/docs" if (not IS_PRODUCTION or ENABLE_API_DOCS) else None,
+    redoc_url="/redoc" if (not IS_PRODUCTION or ENABLE_API_DOCS) else None,
     lifespan=lifespan,
 )
 
@@ -202,4 +208,6 @@ def root() -> dict[str, str]:
 
 @app.get("/health")
 def health_check() -> dict[str, str]:
+    with engine.connect() as connection:
+        connection.execute(text("SELECT 1"))
     return {"status": "healthy", "service": "family-calendar-api"}

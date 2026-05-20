@@ -41,6 +41,28 @@ function decodeBase64Url(value: string): string {
   return atob(padded);
 }
 
+function isTokenExpired(token: string | null): boolean {
+  if (!token) {
+    return true;
+  }
+
+  try {
+    const [, payloadBase64] = token.split('.');
+    if (!payloadBase64) {
+      return true;
+    }
+
+    const payload = JSON.parse(decodeBase64Url(payloadBase64)) as { exp?: number };
+    if (!payload.exp) {
+      return true;
+    }
+
+    return Date.now() >= payload.exp * 1000;
+  } catch {
+    return true;
+  }
+}
+
 function decodeUserIdFromToken(token: string | null): number | null {
   if (!token) {
     return null;
@@ -65,8 +87,9 @@ function decodeUserIdFromToken(token: string | null): number | null {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [token, setToken] = useState<string | null>(initialStoredToken);
-  const [user, setUser] = useState<AuthUser | null>(initialStoredUser);
+  const hasValidStoredToken = initialStoredToken && !isTokenExpired(initialStoredToken);
+  const [token, setToken] = useState<string | null>(hasValidStoredToken ? initialStoredToken : null);
+  const [user, setUser] = useState<AuthUser | null>(hasValidStoredToken ? initialStoredUser : null);
 
   useEffect(() => {
     if (token) {
@@ -95,15 +118,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(null);
     setUser(null);
   }, [token, user]);
-
-  useEffect(() => {
-    console.log(user);
-    console.log(user?.name);
-  }, [user]);
-
   const login = useCallback(async (payload: LoginPayload): Promise<void> => {
     const response = await loginRequest({ username: payload.username, password: payload.password });
-    console.log('Login response user.name:', response.user.name);
     storeToken(response.access_token);
     storeUser(response.user);
     setApiAuthToken(response.access_token);
