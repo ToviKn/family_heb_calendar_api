@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: family-calendar-api
+    env: python
+    plan: starter
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+    startCommand: gunicorn -k uvicorn.workers.UvicornWorker -w 2 -b 0.0.0.0:$PORT app.main:app
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET_KEY
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: ENV
+        value: "production"
+      - key: ENABLE_API_DOCS
+        value: "false"
+      - key: RUN_LEGACY_STARTUP_MIGRATIONS
+        value: "false"
+      - key: RUN_CREATE_ALL_IN_DEV
+        value: "false"
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "60"

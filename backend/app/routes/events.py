@@ -1,0 +1,89 @@
+import logging
+from datetime import date
+from typing import Annotated, cast
+
+from fastapi import APIRouter, Depends, Query, Request
+from sqlalchemy.orm import Session
+
+from app.models.event import EventCreate, EventListResponse, EventResponse, EventUpdate
+from app.models.models import User
+from app.services import event_service
+from app.services.auth_service import get_current_user
+from app.services.family_service import get_user_family_ids
+from app.storage.database import get_db
+
+router = APIRouter(prefix="/events", tags=["events"])
+logger = logging.getLogger(__name__)
+DbSession = Annotated[Session, Depends(get_db)]
+CurrentUser = Annotated[User, Depends(get_current_user)]
+
+@router.post("/", response_model=EventResponse, status_code=201)
+async def create_event(request: Request, event: EventCreate, db: DbSession, current_user: CurrentUser) -> EventResponse:
+    payload = await request.json()
+    if isinstance(payload, dict) and "created_by" in payload:
+        logger.warning("Create event request attempted to set created_by", extra={"operation": "create_event", "user_id": current_user.id})
+    return cast(EventResponse, event_service.create_event(db, event, current_user.id))
+
+
+@router.get("/", response_model=EventListResponse)
+def search_by_date(
+    db: DbSession,
+    current_user: CurrentUser,
+    year: int = Query(..., description="Year"),
+    month: int = Query(..., description="Month", ge=1, le=12),
+    day: int = Query(..., description="Day", ge=1, le=31),
+) -> EventListResponse:
+    family_ids = get_user_family_ids(db, current_user.id)
+    events = event_service.get_events_for_date(db, year, month, day, family_ids=family_ids)
+    return EventListResponse(events=events, total=len(events))
+
+
+@router.get("/today", response_model=EventListResponse)
+def events_today(db: DbSession, current_user: CurrentUser) -> EventListResponse:
+    today = date.today()
+    family_ids = get_user_family_ids(db, current_user.id)
+    events = event_service.get_events_for_date(db, today.year, today.month, today.day, family_ids=family_ids)
+    return EventListResponse(events=events, total=len(events))
+
+
+@router.get("/upcoming", response_model=EventListResponse)
+def upcoming_events(
+    db: DbSession,
+    current_user: CurrentUser,
+    days: int = Query(30, description="Number of days ahead", ge=1, le=365),
+    family_id: int | None = Query(None, description="Filter by family ID"),
+) -> EventListResponse:
+    family_ids = get_user_family_ids(db, current_user.id)
+    events = event_service.get_upcoming_events(db, days, family_id, allowed_family_ids=family_ids)
+    return EventListResponse(events=events, total=len(events))
+
+
+@router.get("/family/{family_id}", response_model=EventListResponse)
+def family_events(
+    family_id: int,
+    db: DbSession,
+    current_user: CurrentUser,
+    page: int = Query(1, description="Page number", ge=1),
+    per_page: int = Query(20, description="Items per page", ge=1, le=100),
+) -> EventListResponse:
+    family_ids = get_user_family_ids(db, current_user.id)
+    result = event_service.get_events_by_family(db, family_id, page, per_page, allowed_family_ids=family_ids)
+    return EventListResponse(**result)
+
+
+@router.get("/{event_id}", response_model=EventResponse)
+def get_event(event_id: int, db: DbSession, current_user: CurrentUser) -> EventResponse:
+    return cast(EventResponse, event_service.get_event_by_id(db, event_id, user_id=current_user.id))
+
+
+@router.put("/{event_id}", response_model=EventResponse)
+async def update_event(event_id: int, request: Request, event: EventUpdate, db: DbSession, current_user: CurrentUser) -> EventResponse:
+    payload = await request.json()
+    if isinstance(payload, dict) and "created_by" in payload:
+        logger.warning("Update event request attempted to set created_by", extra={"operation": "update_event", "event_id": event_id, "user_id": current_user.id})
+    return cast(EventResponse, event_service.update_event(db, event_id, event, current_user.id))
+
+
+@router.delete("/{event_id}")
+def delete_event(event_id: int, db: DbSession, current_user: CurrentUser) -> dict[str, str]:
+    return event_service.delete_event(db, event_id, current_user.id)
