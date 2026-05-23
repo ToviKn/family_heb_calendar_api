@@ -52,6 +52,44 @@ The platform is split into two deployable applications and one managed database:
 
 ## Quick start
 ### Backend
+#### Linux/macOS
+
+The platform is split into two deployable applications and one managed database:
+
+- **Frontend (Vercel)**: Serves the React SPA, handles client-side routing, and calls backend APIs over HTTPS.
+- **Backend (Render)**: Runs FastAPI (`app.main:app`) for authentication, family/event business logic, and data access.
+- **Neon PostgreSQL**: Managed Postgres instance used by the backend via `DATABASE_URL`.
+
+### Runtime interaction model
+
+1. Browser loads frontend from Vercel.
+2. Frontend sends authenticated API requests (JWT Bearer token) to backend on Render.
+3. Backend validates auth/permissions, executes service logic, and reads/writes Neon PostgreSQL.
+4. Backend returns JSON responses to frontend.
+
+### Request Flow Diagram
+
+```text
+[User Browser]
+      |
+      v
+[Vercel Frontend (React/Vite)]
+      | HTTPS JSON API (Bearer JWT)
+      v
+[Render Backend (FastAPI)]
+      | SQLAlchemy / psycopg
+      v
+[Neon PostgreSQL]
+```
+
+### Deployment flow
+
+- **Backend deploy**: Render builds from `backend/`, installs `backend/requirements.txt`, starts `app.main:app` via Gunicorn/Uvicorn worker.
+- **Frontend deploy**: Vercel builds from `frontend/`, injects API base URL env vars, and serves static assets at edge.
+- **Cross-service config**: Backend `ALLOWED_ORIGINS` must include Vercel domain(s); frontend must point to Render API base URL.
+
+## Quick start
+### Backend
 ```bash
 cd backend
 python -m venv .venv
@@ -66,6 +104,43 @@ uvicorn app.main:app --reload
 cd frontend
 npm install
 cp .env.example .env
+npm run dev
+```
+
+### Full stack with Docker
+```bash
+cd backend
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+uvicorn app.main:app --reload
+```
+
+#### Windows PowerShell
+```powershell
+cd backend
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+Copy-Item .env.example .env
+uvicorn app.main:app --reload
+```
+
+### Frontend
+#### Linux/macOS
+```bash
+cd frontend
+npm install
+cp .env.example .env
+npm run dev
+```
+
+#### Windows PowerShell
+```powershell
+cd frontend
+npm install
+Copy-Item .env.example .env
 npm run dev
 ```
 

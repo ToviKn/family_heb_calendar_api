@@ -35,9 +35,17 @@ frontend/
 - **Routing/pages (`src/router`, `src/pages`)**: URL mapping and top-level page experiences.
 
 ## Development
+#### Linux/macOS
 ```bash
 npm install
 cp .env.example .env
+npm run dev
+```
+
+#### Windows PowerShell
+```powershell
+npm install
+Copy-Item .env.example .env
 npm run dev
 ```
 

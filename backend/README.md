@@ -43,13 +43,44 @@ Copy `.env.example` and configure:
 - `ALLOWED_ORIGINS` (required in production)
 - optional: `ENV`, `ENABLE_API_DOCS`, `ACCESS_TOKEN_EXPIRE_MINUTES`, `DEBUG`, pool/log settings
 
+## Local setup
+#### Linux/macOS
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+```
+
+#### Windows PowerShell
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+Copy-Item .env.example .env
+```
+
+## Run
+#### Linux/macOS
 ## Run
 ```bash
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
+#### Windows PowerShell
+```powershell
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+## Test
+#### Linux/macOS
 ## Test
 ```bash
+pytest -v
+```
+
+#### Windows PowerShell
+```powershell
 pytest -v
 ```
 
