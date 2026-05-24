@@ -39,6 +39,8 @@ backend/
 ## Environment variables
 Copy `.env.example` and configure:
 - `DATABASE_URL` (required)
+  - **Local Docker Compose**: use `@db:5432` (service name `db` from `docker-compose.yml`) so the backend container reaches Postgres over the Docker network.
+  - **Production (optional)**: swap to a hosted URL (for example Neon) and keep SSL options such as `sslmode=require`.
 - `JWT_SECRET_KEY` (required)
 - `ALLOWED_ORIGINS` (required in production)
 - optional: `ENV`, `ENABLE_API_DOCS`, `ACCESS_TOKEN_EXPIRE_MINUTES`, `DEBUG`, pool/log settings
