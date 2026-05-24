@@ -1,11 +1,24 @@
 import os
 from dataclasses import dataclass
+from pathlib import Path
+
+from dotenv import load_dotenv
 
 
-def _as_bool(value: str, default: bool = False) -> bool:
+def _load_backend_env_file() -> None:
+    """Load backend/.env regardless of current working directory."""
+    backend_root = Path(__file__).resolve().parents[1]
+    env_path = backend_root / ".env"
+    load_dotenv(env_path, override=False)
+
+
+def _as_bool(value: str | None, default: bool = False) -> bool:
     if value is None:
         return default
     return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+_load_backend_env_file()
 
 
 @dataclass(frozen=True)
