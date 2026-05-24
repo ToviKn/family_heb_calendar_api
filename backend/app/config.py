@@ -13,9 +13,6 @@ def _load_backend_env_file() -> None:
 
 
 def _as_bool(value: str | None, default: bool = False) -> bool:
-
-
-def _as_bool(value: str, default: bool = False) -> bool:
     if value is None:
         return default
     return value.strip().lower() in {"1", "true", "yes", "on"}
