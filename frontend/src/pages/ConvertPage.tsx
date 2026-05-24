@@ -3,6 +3,8 @@ import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { formatHebrewDate, formatHebrewDateNumeric } from '../lib/dates/hebrewDateFormatter';
+
 import {
   convertGregorianToHebrew,
   convertHebrewToGregorian,
@@ -239,9 +241,9 @@ export function ConvertPage() {
                 <span className="font-medium">{t('convert.result.gregorian')}:</span> {result.gregorian_date.year}-{String(result.gregorian_date.month).padStart(2, '0')}-
                 {String(result.gregorian_date.day).padStart(2, '0')}
               </p>
-              <p>
-                <span className="font-medium">{t('convert.result.hebrew')}:</span> {result.hebrew_date.year}-{String(result.hebrew_date.month).padStart(2, '0')}-
-                {String(result.hebrew_date.day).padStart(2, '0')}
+              <p dir="rtl">
+                <span className="font-medium">{t('convert.result.hebrew')}:</span> {formatHebrewDate(result.hebrew_date)}
+                <span className="sr-only"> ({formatHebrewDateNumeric(result.hebrew_date)})</span>
               </p>
             </div>
           </div>

@@ -2,6 +2,8 @@ import { EmptyMessage, ErrorMessage, LoadingMessage, SuccessMessage } from '../c
 import { FormEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { formatHebrewDate } from '../lib/dates/hebrewDateFormatter';
+
 import {
   approveFamilyJoinRequest,
   createFamily,
@@ -421,9 +423,14 @@ export function FamiliesPage() {
                   <li key={eventItem.id} className="rounded-md border border-slate-200 p-3">
                     <p className="font-medium text-slate-900">{eventItem.title}</p>
                     <p className="text-sm text-slate-600">{eventItem.description || t('families.events.no_description')}</p>
-                    <p className="text-xs text-slate-500">
-                      {eventItem.month}/{eventItem.day}
-                      {eventItem.year ? `/${eventItem.year}` : ''}
+                    <p className="text-xs text-slate-500" dir={eventItem.calendar_type === 'hebrew' ? 'rtl' : 'ltr'}>
+                      {eventItem.calendar_type === 'hebrew'
+                        ? formatHebrewDate({
+                            year: eventItem.year ?? new Date().getFullYear(),
+                            month: eventItem.month,
+                            day: eventItem.day,
+                          })
+                        : `${eventItem.month}/${eventItem.day}${eventItem.year ? `/${eventItem.year}` : ''}`}
                     </p>
                   </li>
                 ))}
