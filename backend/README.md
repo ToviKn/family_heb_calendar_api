@@ -115,7 +115,15 @@ Local `.env` sets `ENABLE_API_DOCS=true`, so these endpoints are available:
 - `/openapi.json`
 
 ### Migrations in local dev
-This project runs legacy startup migrations when `RUN_LEGACY_STARTUP_MIGRATIONS=true` (set in local `.env.example`).
+This project currently does **not** use Alembic migrations in local Docker startup.
+On API startup (development only), it will:
+1. Log `Running database migrations...`
+2. Run `Base.metadata.create_all(...)` if required core tables are missing
+3. Run legacy safe schema migrations when `RUN_LEGACY_STARTUP_MIGRATIONS=true`
+4. Validate required tables exist, then log `Database schema ready.`
+
+This behavior is disabled for production (`ENV=production`), so schema bootstrap is never auto-run there.
+
 If you need to re-run from a clean local database:
 
 ```bash

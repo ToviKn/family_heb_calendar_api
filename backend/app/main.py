@@ -11,9 +11,10 @@ from fastapi.responses import JSONResponse, Response
 from app.exceptions import CalendarAPIException
 from app.logging_config import configure_logging, reset_request_id, set_request_id
 from app.routes import auth, convert, events, families, notifications, users
-from sqlalchemy import text
+from sqlalchemy import inspect, text
 
 from app.storage.database import Base, engine
+from app.models import models  # noqa: F401  # ensure metadata is loaded for create_all
 from app.config import settings
 from app.storage.schema_migrations import run_safe_schema_migrations
 
@@ -29,16 +30,26 @@ RUN_CREATE_ALL_IN_DEV = settings.run_create_all_in_dev
 
 @asynccontextmanager
 async def lifespan(_application: FastAPI) -> AsyncIterator[None]:
+    required_tables = {"users", "families", "family_memberships", "events", "notifications"}
+
     try:
         with engine.connect() as connection:
             connection.execute(text("SELECT 1"))
 
-        if not IS_PRODUCTION and RUN_CREATE_ALL_IN_DEV:
-            Base.metadata.create_all(bind=engine)
-            logger.warning(
-                "Applied Base.metadata.create_all for non-production bootstrap",
-                extra={"environment": settings.env},
-            )
+        logger.info("Running database migrations...")
+
+        # Local development bootstrap only: create missing schema objects when no
+        # formal migration framework (e.g., Alembic) is configured for this project.
+        if not IS_PRODUCTION:
+            inspector = inspect(engine)
+            existing_tables = set(inspector.get_table_names())
+
+            if RUN_CREATE_ALL_IN_DEV or not required_tables.issubset(existing_tables):
+                Base.metadata.create_all(bind=engine)
+                logger.info(
+                    "Applied Base.metadata.create_all for local development",
+                    extra={"environment": settings.env},
+                )
 
         if RUN_LEGACY_STARTUP_MIGRATIONS:
             run_safe_schema_migrations(engine)
@@ -47,7 +58,15 @@ async def lifespan(_application: FastAPI) -> AsyncIterator[None]:
                 extra={"environment": settings.env},
             )
 
-        logger.info("Startup database checks completed")
+        inspector = inspect(engine)
+        existing_tables = set(inspector.get_table_names())
+        missing_required_tables = sorted(required_tables - existing_tables)
+        if missing_required_tables:
+            raise RuntimeError(
+                f"Database schema missing required tables: {', '.join(missing_required_tables)}"
+            )
+
+        logger.info("Database schema ready.")
     except Exception as exc:
         logger.error(
             "Application startup failed during database initialization",
