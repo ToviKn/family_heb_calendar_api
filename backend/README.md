@@ -95,3 +95,32 @@ docker run --env-file .env -p 8000:8000 family-calendar-api
 ## Deploy
 - Render start command: `gunicorn -k uvicorn.workers.UvicornWorker -w 2 -b 0.0.0.0:$PORT app.main:app`.
 - Vercel-compatible frontend should call this backend URL through env config.
+
+
+## Local Docker Compose workflow
+Use the monorepo root `docker-compose.yml` for local full-stack development:
+
+```bash
+docker compose up --build
+```
+
+### Why `db` is used in `DATABASE_URL`
+Inside Docker Compose, services communicate over an internal network by **service name**.  
+That is why the backend uses `postgresql+psycopg://...@db:5432/...` instead of `localhost`.
+
+### Swagger/OpenAPI in local dev
+Local `.env` sets `ENABLE_API_DOCS=true`, so these endpoints are available:
+- `/docs`
+- `/redoc`
+- `/openapi.json`
+
+### Migrations in local dev
+This project runs legacy startup migrations when `RUN_LEGACY_STARTUP_MIGRATIONS=true` (set in local `.env.example`).
+If you need to re-run from a clean local database:
+
+```bash
+docker compose down -v
+docker compose up --build
+```
+
+`docker compose down -v` removes the Postgres volume and resets local DB data.

@@ -23,7 +23,6 @@ configure_logging()
 logger = logging.getLogger(__name__)
 
 IS_PRODUCTION = settings.is_production
-ENABLE_API_DOCS = settings.enable_api_docs
 RUN_LEGACY_STARTUP_MIGRATIONS = settings.run_legacy_startup_migrations
 RUN_CREATE_ALL_IN_DEV = settings.run_create_all_in_dev
 
@@ -59,12 +58,15 @@ async def lifespan(_application: FastAPI) -> AsyncIterator[None]:
 
     yield  # application runs here
 
+enable_docs = settings.enable_api_docs
+
 app = FastAPI(
     title="Family Calendar API",
     description="A calendar API supporting both Hebrew and Gregorian dates",
     version="1.0.0",
-    docs_url="/docs" if (not IS_PRODUCTION or ENABLE_API_DOCS) else None,
-    redoc_url="/redoc" if (not IS_PRODUCTION or ENABLE_API_DOCS) else None,
+    docs_url="/docs" if enable_docs else None,
+    redoc_url="/redoc" if enable_docs else None,
+    openapi_url="/openapi.json" if enable_docs else None,
     lifespan=lifespan,
 )
 
@@ -218,12 +220,10 @@ def root() -> dict[str, str]:
         "message": "Family Calendar API",
         "version": "1.0.0",
         "docs": "/docs",
-        "health": "healthy",
+        "health": "/health",
     }
 
 
 @app.get("/health")
-def health_check() -> dict[str, str]:
-    with engine.connect() as connection:
-        connection.execute(text("SELECT 1"))
-    return {"status": "healthy", "service": "family-calendar-api"}
+def health() -> dict[str, str]:
+    return {"status": "ok"}
