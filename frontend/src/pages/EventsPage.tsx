@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 
 import { formatEventDisplayDate, isHebrewCalendarType } from '../lib/dates/eventDateFormatter';
+import { formatHebrewDate } from '../lib/dates/hebrewDateFormatter';
 
 import {
   createEvent,
@@ -81,6 +82,23 @@ function formatEventListDate(eventItem: EventResponse): string {
   return formatEventDisplayDate(eventItem);
 }
 
+
+function formatHebrewInputPreview(input: { day: string; month: string; year: string }): string {
+  const day = Number(input.day);
+  const month = Number(input.month);
+  const year = Number(input.year);
+
+  if ([day, month, year].some((part) => Number.isNaN(part))) {
+    return '';
+  }
+
+  if (day < 1 || day > 30 || month < 1 || month > 13 || year < 1) {
+    return '';
+  }
+
+  return formatHebrewDate({ day, month, year });
+}
+
 function hasInvalidTimeRange(startTime: string, endTime: string): boolean {
   if (!startTime || !endTime) {
     return false;
@@ -102,6 +120,7 @@ export function EventsPage() {
 
   const [form, setForm] = useState<EventFormState>(() => getDefaultFormState(toDateInputValue(new Date())));
   const monthMax = form.calendarType === 'hebrew' ? 13 : 12;
+  const hebrewPreview = form.calendarType === 'hebrew' ? formatHebrewInputPreview(form) : '';
 
   function getEmptyMessage(mode: EventsViewMode): string {
   if (mode === 'today') {
@@ -278,16 +297,40 @@ export function EventsPage() {
                 onChange={(e) => setForm((prev) => ({ ...prev, day: e.target.value }))}
                 required
               />
-              <input
-                className="rounded-md border border-slate-300 px-3 py-2"
-                type="number"
-                min={1}
-                max={monthMax}
-                placeholder={t('events.form.month', { max: monthMax })}
-                value={form.month}
-                onChange={(e) => setForm((prev) => ({ ...prev, month: e.target.value }))}
-                required
-              />
+              {form.calendarType === 'hebrew' ? (
+                <select
+                  className="rounded-md border border-slate-300 px-3 py-2"
+                  value={form.month}
+                  onChange={(e) => setForm((prev) => ({ ...prev, month: e.target.value }))}
+                  required
+                >
+                  <option value="">{t('events.form.hebrew_month')}</option>
+                  <option value="1">{t('events.hebrew_months.1')}</option>
+                  <option value="2">{t('events.hebrew_months.2')}</option>
+                  <option value="3">{t('events.hebrew_months.3')}</option>
+                  <option value="4">{t('events.hebrew_months.4')}</option>
+                  <option value="5">{t('events.hebrew_months.5')}</option>
+                  <option value="6">{t('events.hebrew_months.6')}</option>
+                  <option value="7">{t('events.hebrew_months.7')}</option>
+                  <option value="8">{t('events.hebrew_months.8')}</option>
+                  <option value="9">{t('events.hebrew_months.9')}</option>
+                  <option value="10">{t('events.hebrew_months.10')}</option>
+                  <option value="11">{t('events.hebrew_months.11')}</option>
+                  <option value="12">{t('events.hebrew_months.12')}</option>
+                  <option value="13">{t('events.hebrew_months.13')}</option>
+                </select>
+              ) : (
+                <input
+                  className="rounded-md border border-slate-300 px-3 py-2"
+                  type="number"
+                  min={1}
+                  max={monthMax}
+                  placeholder={t('events.form.month', { max: monthMax })}
+                  value={form.month}
+                  onChange={(e) => setForm((prev) => ({ ...prev, month: e.target.value }))}
+                  required
+                />
+              )}
               <input
                 className="rounded-md border border-slate-300 px-3 py-2"
                 type="number"
@@ -299,6 +342,15 @@ export function EventsPage() {
                 required={form.repeatType === 'none'}
               />
             </div>
+
+            {form.calendarType === 'hebrew' ? (
+              <div className="rounded-md border border-blue-100 bg-blue-50 p-3">
+                <p className="text-xs text-slate-600">{t('events.form.hebrew_preview_label')}</p>
+                <div dir="rtl" className="text-lg font-medium text-slate-900">
+                  {hebrewPreview || t('events.form.hebrew_preview_empty')}
+                </div>
+              </div>
+            ) : null}
 
             <div className="grid grid-cols-2 gap-3">
               <input
@@ -316,6 +368,15 @@ export function EventsPage() {
                 onChange={(e) => setForm((prev) => ({ ...prev, endTime: e.target.value }))}
               />
             </div>
+
+            {form.calendarType === 'hebrew' ? (
+              <div className="rounded-md border border-blue-100 bg-blue-50 p-3">
+                <p className="text-xs text-slate-600">{t('events.form.hebrew_preview_label')}</p>
+                <div dir="rtl" className="text-lg font-medium text-slate-900">
+                  {hebrewPreview || t('events.form.hebrew_preview_empty')}
+                </div>
+              </div>
+            ) : null}
 
             <div className="grid grid-cols-2 gap-3">
               <label className="text-sm text-slate-700">

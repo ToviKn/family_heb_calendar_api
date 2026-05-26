@@ -49,7 +49,10 @@
       "start_time": "Start time",
       "end_time": "End time",
       "calendar_type": "Calendar type",
-      "repeat_type": "Repeat type"
+      "repeat_type": "Repeat type",
+      "hebrew_preview_label": "Preview",
+      "hebrew_preview_empty": "Enter day, month, and year",
+      "hebrew_month": "Hebrew month"
     },
     "actions": {
       "create": "Create event",
@@ -90,6 +93,21 @@
       "delete": "Unable to delete event.",
       "save": "Unable to save event. Please verify all required fields.",
       "invalid_time": "End time must be after start time."
+    },
+    "hebrew_months": {
+      "1": "Nisan",
+      "2": "Iyar",
+      "3": "Sivan",
+      "4": "Tammuz",
+      "5": "Av",
+      "6": "Elul",
+      "7": "Tishrei",
+      "8": "Cheshvan",
+      "9": "Kislev",
+      "10": "Tevet",
+      "11": "Shevat",
+      "12": "Adar",
+      "13": "Adar II"
     }
   },
   "common": {
