@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from 'react';
+import { HDate } from '@hebcal/core';
 import { useTranslation } from 'react-i18next';
 
 import { formatHebrewDate } from '../lib/dates/hebrewDateFormatter';
@@ -30,31 +31,51 @@ const HEBREW_MONTHS = [
   { value: 13, key: 'events.hebrew_months.13' },
 ];
 
+function getCurrentHebrewDate(): HebrewDateValue {
+  const today = new HDate(new Date());
+  return {
+    day: today.getDate(),
+    month: today.getMonth(),
+    year: today.getFullYear(),
+  };
+}
+
 function getDayLabel(day: number): string {
-  const rendered = formatHebrewDate({ day, month: 1, year: 5786 });
-  return rendered.split(' ')[0] ?? String(day);
+  try {
+    return new HDate(day, 1, 5786).renderGematriya().split(' ')[0] ?? String(day);
+  } catch {
+    return String(day);
+  }
 }
 
 function getYearLabel(year: number): string {
-  const rendered = formatHebrewDate({ day: 1, month: 1, year });
-  const parts = rendered.split(' ');
-  return parts[parts.length - 1] ?? String(year);
+  try {
+    const parts = new HDate(1, 1, year).renderGematriya().split(' ');
+    return parts[parts.length - 1] ?? String(year);
+  } catch {
+    return String(year);
+  }
 }
 
 export function HebrewDatePicker({ value, onChange }: HebrewDatePickerProps) {
   const { t } = useTranslation();
-  const day = value?.day ?? null;
-  const month = value?.month ?? null;
-  const year = value?.year ?? null;
+  const todayHebrew = useMemo(() => getCurrentHebrewDate(), []);
+  const day = value?.day ?? todayHebrew.day;
+  const month = value?.month ?? todayHebrew.month;
+  const year = value?.year ?? todayHebrew.year;
 
   useEffect(() => {
     console.log('HebrewDatePicker mounted/updated', { day, month, year });
   }, [day, month, year]);
 
-  const preview = useMemo(() => {
-    if (!day || !month || !year) return '';
-    return formatHebrewDate({ day, month, year });
-  }, [day, month, year]);
+  useEffect(() => {
+    if (!value) {
+      console.log('HebrewDatePicker initializing current Hebrew date', todayHebrew);
+      onChange(todayHebrew);
+    }
+  }, [onChange, todayHebrew, value]);
+
+  const preview = useMemo(() => formatHebrewDate({ day, month, year }), [day, month, year]);
 
   function updatePartial(next: Partial<HebrewDateValue>) {
     const merged = {
@@ -92,11 +113,11 @@ export function HebrewDatePicker({ value, onChange }: HebrewDatePickerProps) {
         <label className="text-sm text-slate-700">
           {t('events.form.year')}
           <div className="mt-1 flex items-center gap-2">
-            <button className="rounded-md border border-slate-300 px-3 py-2" type="button" onClick={() => updatePartial({ year: Math.max(1, (year ?? 5786) - 1) })}>-</button>
-            <div className="min-w-[110px] rounded-md border border-slate-300 px-3 py-2 text-center" dir="rtl">
-              {year ? getYearLabel(year) : t('events.form.year')}
+            <button className="h-10 w-10 shrink-0 rounded-md border border-slate-300 text-center leading-none" type="button" onClick={() => updatePartial({ year: Math.max(1, year - 1) })}>-</button>
+            <div className="min-w-0 flex-1 overflow-hidden rounded-md border border-slate-300 px-3 py-2 text-center" dir="rtl">
+              {getYearLabel(year)}
             </div>
-            <button className="rounded-md border border-slate-300 px-3 py-2" type="button" onClick={() => updatePartial({ year: (year ?? 5786) + 1 })}>+</button>
+            <button className="h-10 w-10 shrink-0 rounded-md border border-slate-300 text-center leading-none" type="button" onClick={() => updatePartial({ year: year + 1 })}>+</button>
           </div>
         </label>
       </div>
