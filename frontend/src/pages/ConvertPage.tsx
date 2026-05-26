@@ -1,4 +1,5 @@
 import { ErrorMessage } from '../components/Feedback';
+import { HebrewDatePicker } from '../components/HebrewDatePicker';
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -169,37 +170,16 @@ export function ConvertPage() {
           <h2 className="text-lg font-semibold text-slate-900">{t('convert.hebrew_to_gregorian.title')}</h2>
 
           <form className="mt-4 space-y-3" onSubmit={handleHebrewToGregorian}>
-            <div className="grid grid-cols-3 gap-3">
-              <input
-                className="rounded-md border border-slate-300 px-3 py-2"
-                type="number"
-                min={1}
-                placeholder={t('convert.form.year')}
-                value={hebrewForm.year}
-                onChange={(event) => setHebrewForm((prev) => ({ ...prev, year: event.target.value }))}
-                required
-              />
-              <input
-                className="rounded-md border border-slate-300 px-3 py-2"
-                type="number"
-                min={1}
-                max={13}
-                placeholder={t('convert.form.month')}
-                value={hebrewForm.month}
-                onChange={(event) => setHebrewForm((prev) => ({ ...prev, month: event.target.value }))}
-                required
-              />
-              <input
-                className="rounded-md border border-slate-300 px-3 py-2"
-                type="number"
-                min={1}
-                max={30}
-                placeholder={t('convert.form.day')}
-                value={hebrewForm.day}
-                onChange={(event) => setHebrewForm((prev) => ({ ...prev, day: event.target.value }))}
-                required
-              />
-            </div>
+            <HebrewDatePicker
+              day={hebrewForm.day ? Number(hebrewForm.day) : null}
+              month={hebrewForm.month ? Number(hebrewForm.month) : null}
+              year={hebrewForm.year ? Number(hebrewForm.year) : null}
+              onChange={(value) => setHebrewForm({
+                year: String(value.year),
+                month: String(value.month),
+                day: String(value.day),
+              })}
+            />
             <p className="text-xs text-slate-500">{t('convert.hebrew_to_gregorian.day_range')}</p>
 
             <button
