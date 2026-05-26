@@ -3,7 +3,7 @@ import { FormEvent, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 
-import { formatHebrewDate } from '../lib/dates/hebrewDateFormatter';
+import { formatEventDisplayDate, isHebrewCalendarType } from '../lib/dates/eventDateFormatter';
 
 import {
   createEvent,
@@ -78,16 +78,7 @@ function getDefaultFormState(date: string): EventFormState {
 }
 
 function formatEventListDate(eventItem: EventResponse): string {
-  if (eventItem.calendar_type === 'hebrew') {
-    return formatHebrewDate({
-      year: eventItem.year ?? new Date().getFullYear(),
-      month: eventItem.month,
-      day: eventItem.day,
-    });
-  }
-
-  const numericDate = `${eventItem.month}/${eventItem.day}`;
-  return eventItem.year ? `${numericDate}/${eventItem.year}` : numericDate;
+  return formatEventDisplayDate(eventItem);
 }
 
 function hasInvalidTimeRange(startTime: string, endTime: string): boolean {
@@ -448,7 +439,7 @@ export function EventsPage() {
                         </Link>
                       </h3>
                       <p className="text-sm text-slate-600">{eventItem.description || t('events.no_description')}</p>
-                      <p className="mt-1 text-xs text-slate-500" dir={eventItem.calendar_type === 'hebrew' ? 'rtl' : 'ltr'}>
+                      <p className="mt-1 text-xs text-slate-500" dir={isHebrewCalendarType(eventItem.calendar_type) ? 'rtl' : 'ltr'}>
                         {t('events.family')} {eventItem.family_id} •{' '}
                         {formatEventListDate(eventItem)}
                       </p>

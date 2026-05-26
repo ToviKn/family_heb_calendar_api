@@ -10,6 +10,7 @@ from app.logging_config import get_request_id
 from app.models.models import Event, Family, FamilyMembership, Notification, User
 from app.models.notification import NotificationCreate
 from app.services.date_service import calculate_next_occurrence
+from convertdate import hebrew
 from app.services.family_service import ensure_user_in_family, get_user_family_ids
 from app.storage.enums import NotificationType, RepeatType
 
@@ -20,6 +21,24 @@ EVENT_REMINDER_TYPES = (
     NotificationType.EVENT_REMINDER.value,
     LEGACY_EVENT_REMINDER_TYPE,
 )
+
+
+def _build_reminder_metadata(event: Event, occurrence: date) -> dict:
+    metadata = {
+        "event_title": event.title,
+        "date": str(occurrence),
+        "start_time": event.start_time.isoformat() if event.start_time is not None else None,
+        "family_id": event.family_id,
+    }
+
+    if str(event.calendar_type).lower() == "hebrew" and event.year is not None:
+        metadata["calendar_type"] = "HEBREW"
+        try:
+            metadata["formatted_hebrew_date"] = hebrew.format(event.year, event.month, event.day, hebrew=True)
+        except Exception:
+            metadata["formatted_hebrew_date"] = f"{event.day}/{event.month}/{event.year}"
+
+    return metadata
 
 
 def _notification_type_value(notification_type: NotificationType | str) -> str:
@@ -139,12 +158,10 @@ def create_notification(db: Session, payload: NotificationCreate, current_user_i
             event_id=event.id,
             message=f"Reminder: {event.title} on {event.next_occurrence}",
             notification_type=NotificationType.EVENT_REMINDER,
-            metadata_json={
-                "event_title": event.title,
-                "date": str(event.next_occurrence) if event.next_occurrence is not None else None,
-                "start_time": event.start_time.isoformat() if event.start_time is not None else None,
-                "family_id": event.family_id,
-            },
+            metadata_json=_build_reminder_metadata(
+                event,
+                event.next_occurrence if event.next_occurrence is not None else datetime.now(timezone.utc).date(),
+            ),
         )
         db.commit()
         db.refresh(notification)
@@ -370,12 +387,7 @@ def process_event_reminders(db: Session, _within_hours: int = 24) -> int:
                         event_id=event.id,
                         message=reminder_message,
                         notification_type=NotificationType.EVENT_REMINDER,
-                        metadata_json={
-                            "event_title": event.title,
-                            "date": str(next_occurrence),
-                            "start_time": event.start_time.isoformat() if event.start_time is not None else None,
-                            "family_id": event.family_id,
-                        },
+                        metadata_json=_build_reminder_metadata(event, next_occurrence),
                     )
                     if created:
                         created_count += 1

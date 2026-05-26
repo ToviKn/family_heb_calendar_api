@@ -3,25 +3,10 @@ import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router-dom';
 
 import { getEventById, type EventResponse } from '../lib/api';
-import { formatHebrewDate } from '../lib/dates/hebrewDateFormatter';
+import { formatEventDisplayDate, isHebrewCalendarType } from '../lib/dates/eventDateFormatter';
 
 function formatDate(event: EventResponse): string {
-  if (event.calendar_type === 'hebrew') {
-    return formatHebrewDate({
-      year: event.year ?? new Date().getFullYear(),
-      month: event.month,
-      day: event.day,
-    });
-  }
-
-  const month = String(event.month).padStart(2, '0');
-  const day = String(event.day).padStart(2, '0');
-
-  if (!event.year) {
-    return `${month}/${day}`;
-  }
-
-  return `${event.year}-${month}-${day}`;
+  return formatEventDisplayDate(event);
 }
 
 function formatTimeRange(event: EventResponse, t: (key: string) => string): string {
@@ -106,7 +91,7 @@ export function EventDetailsPage() {
 
               <div className="rounded-md border border-slate-200 p-3">
                 <dt className="font-medium text-slate-700">{t('event_details.fields.date')}</dt>
-                <dd className="mt-1 text-slate-900" dir={event.calendar_type === 'hebrew' ? 'rtl' : 'ltr'}>{formatDate(event)}</dd>
+                <dd className="mt-1 text-slate-900" dir={isHebrewCalendarType(event.calendar_type) ? 'rtl' : 'ltr'}>{formatDate(event)}</dd>
               </div>
 
               <div className="rounded-md border border-slate-200 p-3">
@@ -116,7 +101,7 @@ export function EventDetailsPage() {
 
               <div className="rounded-md border border-slate-200 p-3">
                 <dt className="font-medium text-slate-700">{t('event_details.fields.repeat_type')}</dt>
-                <dd className="mt-1 text-slate-900">event.repeat_type? t(`events.repeat.${event.repeat_type}`): t('events.repeat.none')</dd>
+                <dd className="mt-1 text-slate-900">{event.repeat_type ? t(`events.repeat.${event.repeat_type}`) : t('events.repeat.none')}</dd>
               </div>
             </dl>
           </div>

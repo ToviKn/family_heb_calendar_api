@@ -77,7 +77,7 @@ async def lifespan(_application: FastAPI) -> AsyncIterator[None]:
 
     yield  # application runs here
 
-enable_docs = settings.enable_api_docs
+enable_docs = settings.enable_api_docs or not IS_PRODUCTION
 
 app = FastAPI(
     title="Family Calendar API",

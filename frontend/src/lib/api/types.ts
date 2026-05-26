@@ -131,6 +131,8 @@ export interface NotificationResponse {
   user_id: number;
   message: string;
   type: NotificationType;
+  metadata?: Record<string, unknown> | null;
+  metadata_json?: Record<string, unknown> | null;
   event_id?: number | null;
   created_at: string;
   is_read: boolean;

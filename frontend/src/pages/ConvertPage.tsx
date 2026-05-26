@@ -4,6 +4,7 @@ import type { FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { formatHebrewDate, formatHebrewDateNumeric } from '../lib/dates/hebrewDateFormatter';
+import { formatGregorianDateNumeric } from '../lib/dates/eventDateFormatter';
 
 import {
   convertGregorianToHebrew,
@@ -238,8 +239,7 @@ export function ConvertPage() {
             <h3 className="font-semibold text-emerald-900">{t('convert.result.title')}</h3>
             <div className="mt-2 grid gap-2 text-sm text-emerald-900 md:grid-cols-2">
               <p>
-                <span className="font-medium">{t('convert.result.gregorian')}:</span> {result.gregorian_date.year}-{String(result.gregorian_date.month).padStart(2, '0')}-
-                {String(result.gregorian_date.day).padStart(2, '0')}
+                <span className="font-medium">{t('convert.result.gregorian')}:</span> {formatGregorianDateNumeric(result.gregorian_date)}
               </p>
               <p dir="rtl">
                 <span className="font-medium">{t('convert.result.hebrew')}:</span> {formatHebrewDate(result.hebrew_date)}
