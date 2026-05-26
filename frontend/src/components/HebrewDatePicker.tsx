@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { formatHebrewDate } from '../lib/dates/hebrewDateFormatter';
@@ -10,9 +10,7 @@ type HebrewDateValue = {
 };
 
 type HebrewDatePickerProps = {
-  day: number | null;
-  month: number | null;
-  year: number | null;
+  value: HebrewDateValue | null;
   onChange: (value: HebrewDateValue) => void;
 };
 
@@ -43,8 +41,15 @@ function getYearLabel(year: number): string {
   return parts[parts.length - 1] ?? String(year);
 }
 
-export function HebrewDatePicker({ day, month, year, onChange }: HebrewDatePickerProps) {
+export function HebrewDatePicker({ value, onChange }: HebrewDatePickerProps) {
   const { t } = useTranslation();
+  const day = value?.day ?? null;
+  const month = value?.month ?? null;
+  const year = value?.year ?? null;
+
+  useEffect(() => {
+    console.log('HebrewDatePicker mounted/updated', { day, month, year });
+  }, [day, month, year]);
 
   const preview = useMemo(() => {
     if (!day || !month || !year) return '';
@@ -57,6 +62,7 @@ export function HebrewDatePicker({ day, month, year, onChange }: HebrewDatePicke
       month: next.month ?? month ?? 1,
       year: next.year ?? year ?? 5786,
     };
+    console.log('HebrewDatePicker onChange', merged);
     onChange(merged);
   }
 

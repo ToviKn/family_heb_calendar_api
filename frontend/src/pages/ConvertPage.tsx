@@ -171,16 +171,17 @@ export function ConvertPage() {
 
           <form className="mt-4 space-y-3" onSubmit={handleHebrewToGregorian}>
             <HebrewDatePicker
-              day={hebrewForm.day ? Number(hebrewForm.day) : null}
-              month={hebrewForm.month ? Number(hebrewForm.month) : null}
-              year={hebrewForm.year ? Number(hebrewForm.year) : null}
+              value={hebrewForm.day && hebrewForm.month && hebrewForm.year ? {
+                day: Number(hebrewForm.day),
+                month: Number(hebrewForm.month),
+                year: Number(hebrewForm.year),
+              } : null}
               onChange={(value) => setHebrewForm({
                 year: String(value.year),
                 month: String(value.month),
                 day: String(value.day),
               })}
             />
-            <p className="text-xs text-slate-500">{t('convert.hebrew_to_gregorian.day_range')}</p>
 
             <button
               className="rounded-md bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700 disabled:bg-indigo-300"

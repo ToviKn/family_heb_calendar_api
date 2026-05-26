@@ -271,9 +271,11 @@ export function EventsPage() {
 
             {form.calendarType === 'hebrew' ? (
               <HebrewDatePicker
-                day={form.day ? Number(form.day) : null}
-                month={form.month ? Number(form.month) : null}
-                year={form.year ? Number(form.year) : null}
+                value={form.day && form.month && form.year ? {
+                  day: Number(form.day),
+                  month: Number(form.month),
+                  year: Number(form.year),
+                } : null}
                 onChange={(value) => setForm((prev) => ({
                   ...prev,
                   day: String(value.day),
