@@ -1,8 +1,7 @@
 import { useEffect, useMemo } from 'react';
-import { HDate } from '@hebcal/core';
 import { useTranslation } from 'react-i18next';
 
-import { formatHebrewDate } from '../lib/dates/hebrewDateFormatter';
+import { formatHebrewDate, getCurrentHebrewDate, normalizeHebrewYear } from '../lib/dates/hebrewDateFormatter';
 
 type HebrewDateValue = {
   day: number;
@@ -15,13 +14,6 @@ type HebrewDatePickerProps = {
   onChange: (value: HebrewDateValue) => void;
 };
 
-
-function normalizeHebrewYear(year: number): number {
-  if (year < 1000) {
-    return 5700 + year;
-  }
-  return year;
-}
 
 const HEBREW_MONTHS = [
   { value: 1, key: 'events.hebrew_months.1' },
@@ -39,18 +31,9 @@ const HEBREW_MONTHS = [
   { value: 13, key: 'events.hebrew_months.13' },
 ];
 
-function getCurrentHebrewDate(): HebrewDateValue {
-  const today = new HDate(new Date());
-  return {
-    day: today.getDate(),
-    month: today.getMonth(),
-    year: normalizeHebrewYear(today.getFullYear()),
-  };
-}
-
 function getDayLabel(day: number): string {
   try {
-    return new HDate(day, 1, 5786).renderGematriya().split(' ')[0] ?? String(day);
+    return formatHebrewDate({ day, month: 1, year: 5786 }).split(' ')[0] ?? String(day);
   } catch {
     return String(day);
   }
@@ -58,7 +41,7 @@ function getDayLabel(day: number): string {
 
 function getYearLabel(year: number): string {
   try {
-    const parts = new HDate(1, 1, normalizeHebrewYear(year)).renderGematriya().split(' ');
+    const parts = formatHebrewDate({ day: 1, month: 1, year: normalizeHebrewYear(year) }).split(' ');
     return parts[parts.length - 1] ?? String(year);
   } catch {
     return String(year);
@@ -78,7 +61,6 @@ export function HebrewDatePicker({ value, onChange }: HebrewDatePickerProps) {
 
   useEffect(() => {
     if (!value) {
-      console.log('HebrewDatePicker initializing current Hebrew date', todayHebrew);
       onChange(todayHebrew);
     }
   }, [onChange, todayHebrew, value]);

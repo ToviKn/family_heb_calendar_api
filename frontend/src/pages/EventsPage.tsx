@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 
 import { formatEventDisplayDate, isHebrewCalendarType } from '../lib/dates/eventDateFormatter';
 import { HebrewDatePicker } from '../components/HebrewDatePicker';
+import { getCurrentHebrewDate, normalizeHebrewYear } from '../lib/dates/hebrewDateFormatter';
 
 import {
   createEvent,
@@ -46,10 +47,6 @@ function parseDateInput(value: string): { year: number; month: number; day: numb
   return { year, month, day };
 }
 
-function normalizeHebrewYear(year: number): number {
-  return year < 1000 ? 5700 + year : year;
-}
-
 function buildCreatePayload(form: EventFormState): EventCreate {
   return {
     title: form.title,
@@ -65,19 +62,20 @@ function buildCreatePayload(form: EventFormState): EventCreate {
   };
 }
 
-function getDefaultFormState(date: string): EventFormState {
+function getDefaultFormState(date: string, calendarType: CalendarType = 'gregorian'): EventFormState {
   const { year, month, day } = parseDateInput(date);
+  const currentHebrew = getCurrentHebrewDate();
 
   return {
     title: '',
     description: '',
     familyId: '',
-    month: String(month),
-    day: String(day),
-    year: String(year),
+    month: calendarType === 'hebrew' ? String(currentHebrew.month) : String(month),
+    day: calendarType === 'hebrew' ? String(currentHebrew.day) : String(day),
+    year: calendarType === 'hebrew' ? String(currentHebrew.year) : String(year),
     startTime: '',
     endTime: '',
-    calendarType: 'gregorian',
+    calendarType,
     repeatType: 'none',
   };
 }
@@ -346,7 +344,18 @@ export function EventsPage() {
                 <select
                   className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
                   value={form.calendarType}
-                  onChange={(e) => setForm((prev) => ({ ...prev, calendarType: e.target.value as CalendarType }))}
+                  onChange={(e) => {
+                    const nextType = e.target.value as CalendarType;
+                    setForm((prev) => {
+                      if (nextType === prev.calendarType) return prev;
+                      if (nextType === 'hebrew') {
+                        const currentHebrew = getCurrentHebrewDate();
+                        return { ...prev, calendarType: nextType, day: String(currentHebrew.day), month: String(currentHebrew.month), year: String(currentHebrew.year) };
+                      }
+                      const greg = parseDateInput(selectedDate);
+                      return { ...prev, calendarType: nextType, day: String(greg.day), month: String(greg.month), year: String(greg.year) };
+                    });
+                  }}
                   disabled={editingEventId !== null}
                   required
                 >

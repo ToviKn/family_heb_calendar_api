@@ -4,7 +4,7 @@ import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { formatHebrewDate, formatHebrewDateNumeric } from '../lib/dates/hebrewDateFormatter';
+import { formatHebrewDate, formatHebrewDateNumeric, getCurrentHebrewDate, normalizeHebrewYear } from '../lib/dates/hebrewDateFormatter';
 import { formatGregorianDateNumeric } from '../lib/dates/eventDateFormatter';
 
 import {
@@ -19,10 +19,6 @@ interface HebrewFormState {
   year: string;
   month: string;
   day: string;
-}
-
-function normalizeHebrewYear(year: number): number {
-  return year < 1000 ? 5700 + year : year;
 }
 
 type ActiveAction = 'gregorian_to_hebrew' | 'hebrew_to_gregorian' | 'today' | null;
@@ -62,7 +58,10 @@ export function ConvertPage() {
   const { t } = useTranslation();
 
   const [gregorianDate, setGregorianDate] = useState('');
-  const [hebrewForm, setHebrewForm] = useState<HebrewFormState>({ year: '', month: '', day: '' });
+  const [hebrewForm, setHebrewForm] = useState<HebrewFormState>(() => {
+    const current = getCurrentHebrewDate();
+    return { year: String(current.year), month: String(current.month), day: String(current.day) };
+  });
 
   const [result, setResult] = useState<DateConversionResponse | null>(null);
   const [activeAction, setActiveAction] = useState<ActiveAction>(null);
