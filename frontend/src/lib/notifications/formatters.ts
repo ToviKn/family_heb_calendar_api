@@ -1,6 +1,8 @@
 import type { TFunction } from 'i18next';
 
 import type { NotificationResponse } from '../api';
+import { isHebrewCalendarType } from '../dates/eventDateFormatter';
+import { formatHebrewDate, formatHebrewDateNumeric } from '../dates/hebrewDateFormatter';
 export interface NotificationSummary {
   title: string;
   subtitle: string;
@@ -24,6 +26,24 @@ function getNotificationMetadata(notification: NotificationResponse): Notificati
   return {};
 }
 
+
+function parseNumericHebrewDate(value: string): { day: number; month: number; year: number } | null {
+  const match = value.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+  if (!match) {
+    return null;
+  }
+
+  const day = Number(match[1]);
+  const month = Number(match[2]);
+  const year = Number(match[3]);
+
+  if ([day, month, year].some((part) => Number.isNaN(part))) {
+    return null;
+  }
+
+  return { day, month, year };
+}
+
 export function formatNotificationCreatedAt(value: string, locale?: string): string {
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) {
@@ -33,10 +53,22 @@ export function formatNotificationCreatedAt(value: string, locale?: string): str
 }
 
 function formatReminderDate(metadata: NotificationMetadata, locale: string): { value: string; direction: 'rtl' | 'ltr' } {
-  const isHebrew = (metadata.calendar_type ?? '').toLowerCase() === 'hebrew';
+  const isHebrew = isHebrewCalendarType((metadata.calendar_type ?? '').toLowerCase());
   if (isHebrew) {
     if (metadata.formatted_hebrew_date) {
+      const parsedHebrew = parseNumericHebrewDate(metadata.formatted_hebrew_date);
+      if (parsedHebrew) {
+        return { value: formatHebrewDate(parsedHebrew), direction: 'rtl' };
+      }
+
       return { value: metadata.formatted_hebrew_date, direction: 'rtl' };
+    }
+
+    if (metadata.date) {
+      const parsedHebrew = parseNumericHebrewDate(metadata.date);
+      if (parsedHebrew) {
+        return { value: formatHebrewDate(parsedHebrew), direction: 'rtl' };
+      }
     }
   }
 
@@ -47,6 +79,13 @@ function formatReminderDate(metadata: NotificationMetadata, locale: string): { v
         value: parsed.toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' }),
         direction: 'ltr',
       };
+    }
+  }
+
+  if (isHebrew && metadata.date) {
+    const parsedHebrew = parseNumericHebrewDate(metadata.date);
+    if (parsedHebrew) {
+      return { value: formatHebrewDateNumeric(parsedHebrew), direction: 'rtl' };
     }
   }
 
