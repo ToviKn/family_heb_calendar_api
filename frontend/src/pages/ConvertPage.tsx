@@ -21,6 +21,10 @@ interface HebrewFormState {
   day: string;
 }
 
+function normalizeHebrewYear(year: number): number {
+  return year < 1000 ? 5700 + year : year;
+}
+
 type ActiveAction = 'gregorian_to_hebrew' | 'hebrew_to_gregorian' | 'today' | null;
 
 function parseGregorianDate(value: string): { year: number; month: number; day: number } | null {
@@ -35,7 +39,7 @@ function parseGregorianDate(value: string): { year: number; month: number; day: 
 
 
 function validateHebrewInput(form: HebrewFormState): { year: number; month: number; day: number } | null {
-  const year = Number(form.year);
+  const year = normalizeHebrewYear(Number(form.year));
   const month = Number(form.month);
   const day = Number(form.day);
 
@@ -174,7 +178,7 @@ export function ConvertPage() {
               value={hebrewForm.day && hebrewForm.month && hebrewForm.year ? {
                 day: Number(hebrewForm.day),
                 month: Number(hebrewForm.month),
-                year: Number(hebrewForm.year),
+                year: normalizeHebrewYear(Number(hebrewForm.year)),
               } : null}
               onChange={(value) => setHebrewForm({
                 year: String(value.year),

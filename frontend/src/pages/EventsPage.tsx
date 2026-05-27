@@ -46,6 +46,10 @@ function parseDateInput(value: string): { year: number; month: number; day: numb
   return { year, month, day };
 }
 
+function normalizeHebrewYear(year: number): number {
+  return year < 1000 ? 5700 + year : year;
+}
+
 function buildCreatePayload(form: EventFormState): EventCreate {
   return {
     title: form.title,
@@ -53,7 +57,7 @@ function buildCreatePayload(form: EventFormState): EventCreate {
     family_id: Number(form.familyId),
     month: Number(form.month),
     day: Number(form.day),
-    year: form.year ? Number(form.year) : null,
+    year: form.year ? normalizeHebrewYear(Number(form.year)) : null,
     calendar_type: form.calendarType,
     repeat_type: form.repeatType,
     start_time: form.startTime || null,
@@ -182,7 +186,7 @@ export function EventsPage() {
           description: form.description || null,
           month: Number(form.month),
           day: Number(form.day),
-          year: form.year ? Number(form.year) : null,
+          year: form.year ? normalizeHebrewYear(Number(form.year)) : null,
           repeat_type: form.repeatType,
           start_time: form.startTime || null,
           end_time: form.endTime || null,
@@ -274,7 +278,7 @@ export function EventsPage() {
                 value={form.day && form.month && form.year ? {
                   day: Number(form.day),
                   month: Number(form.month),
-                  year: Number(form.year),
+                  year: normalizeHebrewYear(Number(form.year)),
                 } : null}
                 onChange={(value) => setForm((prev) => ({
                   ...prev,

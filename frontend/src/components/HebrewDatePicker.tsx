@@ -15,6 +15,14 @@ type HebrewDatePickerProps = {
   onChange: (value: HebrewDateValue) => void;
 };
 
+
+function normalizeHebrewYear(year: number): number {
+  if (year < 1000) {
+    return 5700 + year;
+  }
+  return year;
+}
+
 const HEBREW_MONTHS = [
   { value: 1, key: 'events.hebrew_months.1' },
   { value: 2, key: 'events.hebrew_months.2' },
@@ -36,7 +44,7 @@ function getCurrentHebrewDate(): HebrewDateValue {
   return {
     day: today.getDate(),
     month: today.getMonth(),
-    year: today.getFullYear(),
+    year: normalizeHebrewYear(today.getFullYear()),
   };
 }
 
@@ -50,7 +58,7 @@ function getDayLabel(day: number): string {
 
 function getYearLabel(year: number): string {
   try {
-    const parts = new HDate(1, 1, year).renderGematriya().split(' ');
+    const parts = new HDate(1, 1, normalizeHebrewYear(year)).renderGematriya().split(' ');
     return parts[parts.length - 1] ?? String(year);
   } catch {
     return String(year);
@@ -62,7 +70,7 @@ export function HebrewDatePicker({ value, onChange }: HebrewDatePickerProps) {
   const todayHebrew = useMemo(() => getCurrentHebrewDate(), []);
   const day = value?.day ?? todayHebrew.day;
   const month = value?.month ?? todayHebrew.month;
-  const year = value?.year ?? todayHebrew.year;
+  const year = normalizeHebrewYear(value?.year ?? todayHebrew.year);
 
   useEffect(() => {
     console.log('HebrewDatePicker mounted/updated', { day, month, year });
@@ -81,9 +89,10 @@ export function HebrewDatePicker({ value, onChange }: HebrewDatePickerProps) {
     const merged = {
       day: next.day ?? day ?? 1,
       month: next.month ?? month ?? 1,
-      year: next.year ?? year ?? 5786,
+      year: normalizeHebrewYear(next.year ?? year ?? 5786),
     };
     console.log('HebrewDatePicker onChange', merged);
+    console.log('Hebrew year:', merged.year);
     onChange(merged);
   }
 
