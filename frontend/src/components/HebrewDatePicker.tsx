@@ -105,7 +105,7 @@ export function HebrewDatePicker({ value, onChange }: HebrewDatePickerProps) {
           {t('events.form.year')}
           <div className="mt-1 flex items-center gap-2">
             <button className="h-10 w-10 shrink-0 rounded-md border border-slate-300 text-center leading-none" type="button" onClick={() => updatePartial({ year: Math.max(1, year - 1) })}>-</button>
-            <div className="min-w-0 flex-1 overflow-hidden rounded-md border border-slate-300 px-3 py-2 text-center" dir="rtl">
+            <div className="min-w-[110px] flex-shrink-0 whitespace-nowrap rounded-md border border-slate-300 px-3 py-2 text-center" dir="rtl">
               {getYearLabel(year)}
             </div>
             <button className="h-10 w-10 shrink-0 rounded-md border border-slate-300 text-center leading-none" type="button" onClick={() => updatePartial({ year: year + 1 })}>+</button>
