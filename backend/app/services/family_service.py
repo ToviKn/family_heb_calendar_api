@@ -197,6 +197,8 @@ def _notify_admins_of_join_request(db: Session, family: Family, request_user: Us
             metadata_json={
                 "actor": {"id": request_user.id, "name": request_user.name},
                 "target": {"id": request_user.id, "name": request_user.name},
+                "requesting_user_id": request_user.id,
+                "requesting_user_name": request_user.name,
                 "family_id": family.id,
                 "family_name": family.name,
             },
@@ -349,7 +351,7 @@ def create_join_request(db: Session, family_id: int, actor_user_id: int) -> dict
 
 
 def list_pending_join_requests(db: Session, family_id: int, actor_user_id: int) -> list[dict[str, object]]:
-    _get_family_or_raise(db, family_id)
+    family = _get_family_or_raise(db, family_id)
     ensure_admin_in_family(db, actor_user_id, family_id)
 
     request_user = aliased(User)
@@ -371,6 +373,7 @@ def list_pending_join_requests(db: Session, family_id: int, actor_user_id: int) 
             "id": join_request.id,
             "user_id": join_request.user_id,
             "family_id": join_request.family_id,
+            "family_name": family.name,
             "requested_by": join_request.requested_by,
             "status": join_request.status,
             "created_at": join_request.created_at,

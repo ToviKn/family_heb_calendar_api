@@ -13,7 +13,7 @@ export function HomePage() {
       <h1 className="text-2xl font-semibold text-slate-900">{t('home.title')}</h1>
       <p className="mt-2 text-slate-600">{t('home.description')}</p>
       <p className="text-sm text-slate-500">
-        {t('home.welcome', { name: user?.name ?? '' })}
+        {t('home.welcome', { id: user?.id ?? '', name: user?.name ?? '' })}
       </p>
       <div className="mt-6 flex flex-wrap gap-3">
         <Link className="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700" to="/events">

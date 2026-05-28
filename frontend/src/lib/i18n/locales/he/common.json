@@ -126,7 +126,8 @@
       "description": "תיאור",
       "date": "תאריך",
       "time": "שעה",
-      "repeat_type": "סוג חזרה"
+      "repeat_type": "סוג חזרה",
+      "family": "משפחה"
     },
     "errors": {
       "load": "לא ניתן לטעון את פרטי האירוע.",
@@ -225,7 +226,7 @@
         "loading": "טוען..."
       },
       "success": {
-        "approved": "בקשת ההצטרפות אושרה עבור החשבון {{userId}} למשפחה {{familyId}}.",
+        "approved": "בקשת ההצטרפות אושרה עבור החשבון {{userId}} למשפחה {{family}}.",
         "rejected": "בקשת ההצטרפות נדחתה."
       },
       "empty": {
@@ -257,12 +258,18 @@
       "errors": {
         "load_failed": "לא ניתן לטעון אירועי משפחה. יש לבדוק הרשאות ומזהה משפחה."
       }
+    },
+    "display": {
+      "label": "משפחה: {{family}}",
+      "name_with_id": "{{name}} (ID: {{id}})",
+      "id_only": "מזהה משפחה: {{id}}",
+      "unknown": "משפחה לא ידועה"
     }
   },
   "home": {
     "title": "לוח שנה משפחתי עברי",
     "description": "התחברת בהצלחה. ניתן לנהל אירועים, משפחות והתראות ממסך הניהול.",
-    "welcome": "ברוך הבא, {{name}}!",
+    "welcome": "ברוך הבא, {{name}} (ID: {{id}})!",
     "actions": {
       "events": "פתיחת אירועים",
       "families": "פתיחת משפחות",
@@ -328,13 +335,13 @@
       "event_created": "נוצר אירוע חדש: {{title}}",
       "event_updated_title": "אירוע עודכן",
       "event_updated": "האירוע עודכן: {{title}}",
-      "invited_to_family": "{{actorName}} הזמין/ה את {{targetName}} למשפחה {{familyName}}.",
+      "invited_to_family": "{{actorName}} הזמין/ה את {{targetName}} למשפחה {{family}}.",
       "join_request_title": "בקשת הצטרפות",
-      "requested_to_join": "{{actorName}} ביקש/ה להצטרף למשפחה {{familyName}}.",
+      "requested_to_join": "המשתמש {{userName}} ביקש להצטרף למשפחת {{family}}",
       "join_request_approved_title": "בקשת הצטרפות אושרה",
-      "join_request_approved": "{{actorName}} אישר/ה את בקשתך להצטרף למשפחה {{familyName}}.",
+      "join_request_approved": "{{actorName}} אישר/ה את בקשתך להצטרף למשפחה {{family}}.",
       "join_request_rejected_title": "בקשת הצטרפות נדחתה",
-      "join_request_rejected": "{{actorName}} דחה/תה את בקשתך להצטרף למשפחה {{familyName}}.",
+      "join_request_rejected": "{{actorName}} דחה/תה את בקשתך להצטרף למשפחה {{family}}.",
       "untitled_event": "אירוע ללא כותרת"
     },
     "metadata_line": "נוצרה {{createdAt}}",

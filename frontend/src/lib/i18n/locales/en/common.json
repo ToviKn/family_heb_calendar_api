@@ -126,7 +126,8 @@
       "description": "Description",
       "date": "Date",
       "time": "Time",
-      "repeat_type": "Repeat type"
+      "repeat_type": "Repeat type",
+      "family": "Family"
     },
     "errors": {
       "load": "Unable to load event details.",
@@ -225,7 +226,7 @@
         "loading": "Loading..."
       },
       "success": {
-        "approved": "Approved user {{userId}} for family {{familyId}}.",
+        "approved": "Approved user {{userId}} for {{family}}.",
         "rejected": "Join request rejected."
       },
       "empty": {
@@ -257,12 +258,18 @@
       "errors": {
         "load_failed": "Unable to load family events. Verify family ID and permissions."
       }
+    },
+    "display": {
+      "label": "Family: {{family}}",
+      "name_with_id": "{{name}} (ID: {{id}})",
+      "id_only": "Family ID: {{id}}",
+      "unknown": "Unknown family"
     }
   },
   "home": {
     "title": "Family Hebrew Calendar",
     "description": "You are logged in. Manage events, families, and notifications from the dashboard.",
-    "welcome": "Welcome, {{name}}!",
+    "welcome": "Welcome, {{name}} (ID: {{id}})!",
     "actions": {
       "events": "Open events",
       "families": "Open families",
@@ -328,13 +335,13 @@
       "event_created": "New event created: {{title}}",
       "event_updated_title": "Event updated",
       "event_updated": "Event updated: {{title}}",
-      "invited_to_family": "{{actorName}} invited {{targetName}} to family {{familyName}}.",
+      "invited_to_family": "{{actorName}} invited {{targetName}} to family {{family}}.",
       "join_request_title": "Join request",
-      "requested_to_join": "{{actorName}} requested to join family {{familyName}}.",
+      "requested_to_join": "{{userName}} requested to join family {{family}}.",
       "join_request_approved_title": "Join request approved",
-      "join_request_approved": "{{actorName}} approved your request to join family {{familyName}}.",
+      "join_request_approved": "{{actorName}} approved your request to join family {{family}}.",
       "join_request_rejected_title": "Join request rejected",
-      "join_request_rejected": "{{actorName}} rejected your request to join family {{familyName}}.",
+      "join_request_rejected": "{{actorName}} rejected your request to join family {{family}}.",
       "untitled_event": "Untitled event"
     },
     "metadata_line": "Created {{createdAt}}",

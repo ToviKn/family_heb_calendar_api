@@ -22,6 +22,8 @@ class NotificationResponse(BaseModel):
     target: UserSummary | None = None
     type: NotificationType
     event_id: int | None = None
+    family_id: int | None = None
+    family_name: str | None = None
     created_at: datetime
     is_read: bool
 
@@ -39,13 +41,17 @@ class NotificationResponse(BaseModel):
         if self.metadata is None:
             return self
         metadata = dict(self.metadata)
-        actor_payload = metadata.pop("actor", metadata.pop("requested_by", None))
-        target_payload = metadata.pop("target", metadata.pop("requested_user", None))
+        actor_payload = metadata.get("actor") or metadata.get("requested_by")
+        target_payload = metadata.get("target") or metadata.get("requested_user")
         if self.actor is None and isinstance(actor_payload, dict):
             self.actor = self.UserSummary.model_validate(actor_payload)
         if self.target is None and isinstance(target_payload, dict):
             self.target = self.UserSummary.model_validate(target_payload)
         self.metadata = metadata or None
+        if self.family_id is None and isinstance(metadata.get("family_id"), int):
+            self.family_id = metadata["family_id"]
+        if self.family_name is None and isinstance(metadata.get("family_name"), str):
+            self.family_name = metadata["family_name"]
         return self
 
 
