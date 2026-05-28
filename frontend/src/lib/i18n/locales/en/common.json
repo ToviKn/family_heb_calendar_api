@@ -269,7 +269,7 @@
   "home": {
     "title": "Family Hebrew Calendar",
     "description": "You are logged in. Manage events, families, and notifications from the dashboard.",
-    "welcome": "Welcome, {{name}} (ID: {{id}})!",
+    "welcome": "Welcome, {{name}}!",
     "actions": {
       "events": "Open events",
       "families": "Open families",

@@ -269,7 +269,7 @@
   "home": {
     "title": "לוח שנה משפחתי עברי",
     "description": "התחברת בהצלחה. ניתן לנהל אירועים, משפחות והתראות ממסך הניהול.",
-    "welcome": "ברוך הבא, {{name}} (ID: {{id}})!",
+    "welcome": "ברוך הבא, {{name}}!",
     "actions": {
       "events": "פתיחת אירועים",
       "families": "פתיחת משפחות",
@@ -309,7 +309,7 @@
       "process": "עיבוד תזכורות",
       "processing": "מעבד...",
       "refresh": "רענון",
-      "mark_read": "סימון כנקרא",
+      "mark_read": "סימון כנקראה",
       "marking": "מסמן...",
       "delete": "מחיקה",
       "deleting": "מוחק..."
@@ -335,13 +335,13 @@
       "event_created": "נוצר אירוע חדש: {{title}}",
       "event_updated_title": "אירוע עודכן",
       "event_updated": "האירוע עודכן: {{title}}",
-      "invited_to_family": "{{actorName}} הזמין/ה את {{targetName}} למשפחה {{family}}.",
+      "invited_to_family": "הזמנה למשפחה {{family}} עבור {{targetName}} על ידי {{actorName}}.",
       "join_request_title": "בקשת הצטרפות",
-      "requested_to_join": "המשתמש {{userName}} ביקש להצטרף למשפחת {{family}}",
+      "requested_to_join": "בקשת הצטרפות למשפחה {{family}} על ידי {{userName}}.",
       "join_request_approved_title": "בקשת הצטרפות אושרה",
-      "join_request_approved": "{{actorName}} אישר/ה את בקשתך להצטרף למשפחה {{family}}.",
+      "join_request_approved": "אושרה בקשתך להצטרף למשפחה {{family}} על ידי {{actorName}}.",
       "join_request_rejected_title": "בקשת הצטרפות נדחתה",
-      "join_request_rejected": "{{actorName}} דחה/תה את בקשתך להצטרף למשפחה {{family}}.",
+      "join_request_rejected": "נדחתה בקשתך להצטרף למשפחה {{family}} על ידי {{actorName}}.",
       "untitled_event": "אירוע ללא כותרת"
     },
     "metadata_line": "נוצרה {{createdAt}}",
@@ -400,7 +400,7 @@
     "permission_denied": "אין לך הרשאה לבצע פעולה זו.",
     "resource_not_found": "{{resource}} עם המזהה {{identifier}} לא נמצא.",
     "unauthorized": "יש להתחבר כדי להמשיך.",
-    "user_already_family_member": "המשתמש כבר חבר במשפחה זו.",
+    "user_already_family_member": "הינך כבר חבר במשפחה זו.",
     "user_not_in_family": "אינך חבר במשפחה זו.",
     "resources": {
       "event": "אירוע",
