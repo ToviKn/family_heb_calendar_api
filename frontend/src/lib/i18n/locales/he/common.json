@@ -204,7 +204,8 @@
         "pending": "בקשה ממתינה"
       },
       "messages": {
-        "pending": "בקשת ההצטרפות נשלחה וממתינה לאישור."
+        "pending": "בקשת ההצטרפות נשלחה וממתינה לאישור.",
+        "completed": "בקשת הגישה למשפחה הושלמה."
       },
       "errors": {
         "invalid_family_id": "יש להזין מזהה משפחה תקין.",
@@ -234,7 +235,8 @@
       "errors": {
         "invalid_family_id": "הזנת מזהה משפחה תקין כדי לטעון בקשות.",
         "load_failed": "לא ניתן לטעון בקשות הצטרפות. יש לבדוק הרשאות ומזהה משפחה.",
-        "action_failed": "לא ניתן לבצע את הפעולה {{action}} על הבקשה."
+        "action_failed": "לא ניתן לבצע את הפעולה {{action}} על הבקשה.",
+        "invalid_family_id_before_review": "יש להזין מזהה משפחה תקין לפני בדיקת הבקשות."
       }
     },
     "events": {
@@ -321,8 +323,22 @@
       "reminder_title": "תזכורת: {{title}}",
       "scheduled_for": "מתוזמן לתאריך {{date}}",
       "event_reminder_fallback": "תזכורת מתוזמנת",
-      "invite_title": "הזמנה למשפחה"
-    }
+      "invite_title": "הזמנה למשפחה",
+      "event_created_title": "אירוע חדש",
+      "event_created": "נוצר אירוע חדש: {{title}}",
+      "event_updated_title": "אירוע עודכן",
+      "event_updated": "האירוע עודכן: {{title}}",
+      "invited_to_family": "{{actorName}} הזמין/ה את {{targetName}} למשפחה {{familyName}}.",
+      "join_request_title": "בקשת הצטרפות",
+      "requested_to_join": "{{actorName}} ביקש/ה להצטרף למשפחה {{familyName}}.",
+      "join_request_approved_title": "בקשת הצטרפות אושרה",
+      "join_request_approved": "{{actorName}} אישר/ה את בקשתך להצטרף למשפחה {{familyName}}.",
+      "join_request_rejected_title": "בקשת הצטרפות נדחתה",
+      "join_request_rejected": "{{actorName}} דחה/תה את בקשתך להצטרף למשפחה {{familyName}}.",
+      "untitled_event": "אירוע ללא כותרת"
+    },
+    "metadata_line": "נוצרה {{createdAt}}",
+    "metadata_line_withEvent": "נוצרה {{createdAt}} • מזהה אירוע: {{eventId}}"
   },
   "settings": {
     "title": "הגדרות",
@@ -346,6 +362,45 @@
       "password_updated": "הסיסמה עודכנה בהצלחה.",
       "change_password_failed": "לא ניתן לשנות סיסמה. יש לבדוק את הסיסמה הנוכחית ולנסות שוב.",
       "updating_password": "מעדכן את הסיסמה שלך..."
+    }
+  },
+  "language": {
+    "hebrew": "עברית",
+    "english": "אנגלית"
+  },
+  "api_errors": {
+    "current_password_incorrect": "הסיסמה הנוכחית שגויה.",
+    "email_already_exists": "כבר קיים חשבון עם כתובת האימייל הזו.",
+    "invalid_credentials": "שם המשתמש או הסיסמה שגויים.",
+    "invalid_email_format": "יש להזין כתובת אימייל תקינה.",
+    "invalid_notification_type": "סוג ההתראה אינו תקין.",
+    "invalid_token": "ההתחברות אינה תקינה. יש להתחבר מחדש.",
+    "new_password_must_differ": "הסיסמה החדשה חייבת להיות שונה מהסיסמה הנוכחית.",
+    "not_authorized_family_members": "אין לך הרשאה להוסיף בני משפחה.",
+    "not_authorized_delete_event": "אין לך הרשאה למחוק אירוע זה.",
+    "not_authorized_family_events": "אין לך הרשאה לצפות באירועי משפחה זו.",
+    "not_authorized_update_event": "אין לך הרשאה לעדכן אירוע זה.",
+    "operation_failed": "הפעולה נכשלה. יש לנסות שוב.",
+    "password_empty": "הסיסמה אינה יכולה להיות ריקה.",
+    "password_contains_email": "הסיסמה אינה יכולה להכיל את כתובת האימייל שלך.",
+    "password_min_length": "הסיסמה חייבת להכיל לפחות 10 תווים.",
+    "password_lowercase": "הסיסמה חייבת לכלול אות קטנה באנגלית.",
+    "password_uppercase": "הסיסמה חייבת לכלול אות גדולה באנגלית.",
+    "password_number": "הסיסמה חייבת לכלול ספרה.",
+    "password_special": "הסיסמה חייבת לכלול תו מיוחד.",
+    "password_too_long": "הסיסמה ארוכה מדי.",
+    "password_too_long_hashing": "הסיסמה ארוכה מדי להצפנה מאובטחת.",
+    "permission_denied": "אין לך הרשאה לבצע פעולה זו.",
+    "resource_not_found": "{{resource}} עם המזהה {{identifier}} לא נמצא.",
+    "unauthorized": "יש להתחבר כדי להמשיך.",
+    "user_already_family_member": "המשתמש כבר חבר במשפחה זו.",
+    "user_not_in_family": "אינך חבר במשפחה זו.",
+    "resources": {
+      "event": "אירוע",
+      "family": "משפחה",
+      "family_join_request": "בקשת הצטרפות למשפחה",
+      "notification": "התראה",
+      "user": "משתמש"
     }
   }
 }

@@ -9,12 +9,21 @@ export interface NotificationSummary {
   direction: 'rtl' | 'ltr';
 }
 
+interface NotificationActorMetadata {
+  id?: number;
+  name?: string;
+}
+
 interface NotificationMetadata {
+  actor?: NotificationActorMetadata;
+  calendar_type?: string;
   date?: string;
   event_title?: string;
-  calendar_type?: string;
+  family_name?: string;
   formatted_hebrew_date?: string;
   hebrew_date?: { day?: number; month?: number; year?: number };
+  status?: string;
+  target?: NotificationActorMetadata;
 }
 
 export function getNotificationMetadata(notification: NotificationResponse): NotificationMetadata {
@@ -95,11 +104,80 @@ function formatReminderDate(metadata: NotificationMetadata, locale: string): { v
   return { value: '', direction: 'ltr' };
 }
 
+function summarizeFamilyNotification(notificationType: NotificationResponse['type'], metadata: NotificationMetadata, t: TFunction): NotificationSummary | null {
+  const actorName = metadata.actor?.name;
+  const targetName = metadata.target?.name;
+  const familyName = metadata.family_name;
+
+  if (!actorName || !familyName) {
+    return null;
+  }
+
+  if (metadata.status === 'approved') {
+    return {
+      title: t('notifications.summary.join_request_approved_title'),
+      subtitle: t('notifications.summary.join_request_approved', { actorName, familyName }),
+      direction: 'ltr',
+    };
+  }
+
+  if (metadata.status === 'rejected') {
+    return {
+      title: t('notifications.summary.join_request_rejected_title'),
+      subtitle: t('notifications.summary.join_request_rejected', { actorName, familyName }),
+      direction: 'ltr',
+    };
+  }
+
+  if (notificationType === 'invite' && targetName) {
+    return {
+      title: t('notifications.summary.invite_title'),
+      subtitle: t('notifications.summary.invited_to_family', { actorName, targetName, familyName }),
+      direction: 'ltr',
+    };
+  }
+
+  if (notificationType === 'join_request') {
+    return {
+      title: t('notifications.summary.join_request_title'),
+      subtitle: t('notifications.summary.requested_to_join', { actorName, familyName }),
+      direction: 'ltr',
+    };
+  }
+
+  return null;
+}
+
+function summarizeSystemNotification(message: string, t: TFunction): NotificationSummary | null {
+  const createdMatch = message.match(/^New event created: (.+)$/);
+  if (createdMatch) {
+    return {
+      title: t('notifications.summary.event_created_title'),
+      subtitle: t('notifications.summary.event_created', { title: createdMatch[1] }),
+      direction: 'ltr',
+    };
+  }
+
+  const updatedMatch = message.match(/^Event updated: (.+)$/);
+  if (updatedMatch) {
+    return {
+      title: t('notifications.summary.event_updated_title'),
+      subtitle: t('notifications.summary.event_updated', { title: updatedMatch[1] }),
+      direction: 'ltr',
+    };
+  }
+
+  return null;
+}
+
 export function getNotificationSummary(notification: NotificationResponse, t: TFunction, locale: string): NotificationSummary {
   const metadata = getNotificationMetadata(notification);
 
   if (notification.type === 'EVENT_REMINDER' || notification.type === 'event reminder') {
-    const title = t('notifications.summary.reminder_title', { title: metadata.event_title ?? notification.message });
+    const legacyTitleMatch = notification.message.match(/^Reminder: (.+?) on .+$/);
+    const title = t('notifications.summary.reminder_title', {
+      title: metadata.event_title ?? legacyTitleMatch?.[1] ?? t('notifications.summary.untitled_event'),
+    });
     const formattedDate = formatReminderDate(metadata, locale);
     if (formattedDate.value) {
       return {
@@ -116,17 +194,23 @@ export function getNotificationSummary(notification: NotificationResponse, t: TF
     };
   }
 
-  if (notification.type === 'invite') {
-    return {
-      title: t('notifications.summary.invite_title'),
-      subtitle: notification.message,
-      direction: 'ltr',
-    };
+  if (notification.type === 'invite' || notification.type === 'join_request') {
+    const familySummary = summarizeFamilyNotification(notification.type, metadata, t);
+    if (familySummary) {
+      return familySummary;
+    }
+  }
+
+  if (notification.type === 'system') {
+    const systemSummary = summarizeSystemNotification(notification.message, t);
+    if (systemSummary) {
+      return systemSummary;
+    }
   }
 
   return {
     title: t('notifications.default_title'),
-    subtitle: notification.message || t('notifications.default_subtitle'),
+    subtitle: t('notifications.default_subtitle'),
     direction: 'ltr',
   };
 }

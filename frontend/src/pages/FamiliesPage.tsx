@@ -116,7 +116,7 @@ export function FamiliesPage() {
         return;
       }
       setPendingJoinFamilyId(null);
-      setJoinResultMessage(result.message);
+      setJoinResultMessage(t('families.join.messages.completed'));
     } catch (error) {
       setJoinError(getApiErrorMessage(error, t('families.join.errors.failed')));
     } finally {
@@ -160,7 +160,7 @@ export function FamiliesPage() {
 
     const familyId = parsePositiveFamilyId(joinRequestsForm.familyId);
     if (familyId === null) {
-      setJoinRequestsError('Enter a valid family ID before reviewing requests.');
+      setJoinRequestsError(t('families.requests.errors.invalid_family_id_before_review'));
       return;
     }
 

@@ -56,10 +56,6 @@ export function HebrewDatePicker({ value, onChange }: HebrewDatePickerProps) {
   const year = normalizeHebrewYear(value?.year ?? todayHebrew.year);
 
   useEffect(() => {
-    console.log('HebrewDatePicker mounted/updated', { day, month, year });
-  }, [day, month, year]);
-
-  useEffect(() => {
     if (!value) {
       onChange(todayHebrew);
     }
@@ -73,8 +69,6 @@ export function HebrewDatePicker({ value, onChange }: HebrewDatePickerProps) {
       month: next.month ?? month ?? 1,
       year: normalizeHebrewYear(next.year ?? year ?? 5786),
     };
-    console.log('HebrewDatePicker onChange', merged);
-    console.log('Hebrew year:', merged.year);
     onChange(merged);
   }
 

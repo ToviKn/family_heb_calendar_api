@@ -18,7 +18,6 @@ export function getCurrentHebrewDate(): SimpleDate {
     month: today.getMonth(),
     year: normalizeHebrewYear(today.getFullYear()),
   };
-  console.log('Current Hebrew date:', currentHebrewDate);
   return currentHebrewDate;
 }
 

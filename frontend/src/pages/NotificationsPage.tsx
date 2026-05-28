@@ -2,7 +2,7 @@ import { EmptyMessage, ErrorMessage, LoadingMessage, SuccessMessage } from '../c
 import { FormEvent, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { formatNotificationCreatedAt, getNotificationMetadata, getNotificationSummary } from '../lib/notifications/formatters';
+import { formatNotificationCreatedAt, getNotificationSummary } from '../lib/notifications/formatters';
 import {
   createNotification,
   deleteNotification,
@@ -217,10 +217,6 @@ export function NotificationsPage() {
         {!isLoading && notifications.length > 0 ? (
           <ul className="mt-4 space-y-3">
             {notifications.map((notification) => {
-              const metadata = getNotificationMetadata(notification);
-              console.log('Notification metadata:', metadata);
-              console.log('formatted_hebrew_date:', metadata.formatted_hebrew_date);
-              console.log('calendar_type:', metadata.calendar_type);
               const summary = getNotificationSummary(notification, t, i18n.language);
 
               return (
@@ -233,8 +229,11 @@ export function NotificationsPage() {
                     <p className="font-medium text-slate-900">{summary.title || t('notifications.default_title')}</p>
                     <p className="mt-1 text-sm text-slate-600" dir={summary.direction}>{summary.subtitle || t('notifications.default_subtitle')}</p>
                     <p className="mt-1 text-xs text-slate-500">
-                      {t('notifications.created_label')}: {formatNotificationCreatedAt(notification.created_at, i18n.language)}
-                      {notification.event_id ? ` • ${t('notifications.event_id_label')}: ${notification.event_id}` : ''}
+                      {t('notifications.metadata_line', {
+                        createdAt: formatNotificationCreatedAt(notification.created_at, i18n.language),
+                        eventId: notification.event_id ?? '',
+                        context: notification.event_id ? 'withEvent' : 'createdOnly',
+                      })}
                     </p>
                   </div>
 

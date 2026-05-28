@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 
 export function LanguageSwitcher() {
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
 
   return (
     <div className="flex items-center gap-2">
@@ -14,7 +14,7 @@ export function LanguageSwitcher() {
             : 'bg-slate-200 text-slate-700'
         }`}
       >
-        עברית
+        {t('language.hebrew')}
       </button>
 
       <button
@@ -26,7 +26,7 @@ export function LanguageSwitcher() {
             : 'bg-slate-200 text-slate-700'
         }`}
       >
-        English
+        {t('language.english')}
       </button>
     </div>
   );
