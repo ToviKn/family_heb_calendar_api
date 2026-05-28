@@ -23,6 +23,51 @@ EVENT_REMINDER_TYPES = (
 )
 
 
+
+_GEMATRIA_ONES = {1: "א", 2: "ב", 3: "ג", 4: "ד", 5: "ה", 6: "ו", 7: "ז", 8: "ח", 9: "ט"}
+_GEMATRIA_TENS = {10: "י", 20: "כ", 30: "ל", 40: "מ", 50: "נ", 60: "ס", 70: "ע", 80: "פ", 90: "צ"}
+_GEMATRIA_HUNDREDS = {100: "ק", 200: "ר", 300: "ש", 400: "ת"}
+
+
+def _gematria(value: int) -> str:
+    value = value % 1000
+    letters: list[str] = []
+
+    while value >= 400:
+        letters.append(_GEMATRIA_HUNDREDS[400])
+        value -= 400
+
+    for amount in (300, 200, 100):
+        if value >= amount:
+            letters.append(_GEMATRIA_HUNDREDS[amount])
+            value -= amount
+
+    if value == 15:
+        letters.extend(["ט", "ו"])
+        value = 0
+    elif value == 16:
+        letters.extend(["ט", "ז"])
+        value = 0
+
+    for amount in (90, 80, 70, 60, 50, 40, 30, 20, 10):
+        if value >= amount:
+            letters.append(_GEMATRIA_TENS[amount])
+            value -= amount
+            break
+
+    if value:
+        letters.append(_GEMATRIA_ONES[value])
+
+    if len(letters) == 1:
+        return f"{letters[0]}׳"
+
+    return f"{''.join(letters[:-1])}״{letters[-1]}"
+
+
+def _format_hebrew_date_gematria(year: int, month: int, day: int) -> str:
+    month_name = hebrew.MONTHS_HEB[month - 1]
+    return f"{_gematria(day)} {month_name} {_gematria(year)}"
+
 def _build_reminder_metadata(event: Event, occurrence: date) -> dict:
     metadata = {
         "event_title": event.title,
@@ -33,8 +78,17 @@ def _build_reminder_metadata(event: Event, occurrence: date) -> dict:
 
     if str(event.calendar_type).lower() == "hebrew" and event.year is not None:
         metadata["calendar_type"] = "HEBREW"
+        metadata["hebrew_date"] = {
+            "day": event.day,
+            "month": event.month,
+            "year": event.year,
+        }
         try:
-            metadata["formatted_hebrew_date"] = hebrew.format(event.year, event.month, event.day, hebrew=True)
+            metadata["formatted_hebrew_date"] = _format_hebrew_date_gematria(
+                event.year,
+                event.month,
+                event.day,
+            )
         except Exception:
             metadata["formatted_hebrew_date"] = f"{event.day}/{event.month}/{event.year}"
 

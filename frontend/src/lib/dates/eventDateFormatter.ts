@@ -30,5 +30,5 @@ export function formatEventDisplayDate(event: Pick<EventResponse, 'calendar_type
 }
 
 export function isHebrewCalendarType(calendarType?: string | null): boolean {
-  return calendarType === 'hebrew';
+  return calendarType?.toLowerCase() === 'hebrew';
 }

@@ -2,7 +2,7 @@ import type { TFunction } from 'i18next';
 
 import type { NotificationResponse } from '../api';
 import { isHebrewCalendarType } from '../dates/eventDateFormatter';
-import { formatHebrewDate, formatHebrewDateNumeric } from '../dates/hebrewDateFormatter';
+import { formatHebrewDate } from '../dates/hebrewDateFormatter';
 export interface NotificationSummary {
   title: string;
   subtitle: string;
@@ -14,9 +14,10 @@ interface NotificationMetadata {
   event_title?: string;
   calendar_type?: string;
   formatted_hebrew_date?: string;
+  hebrew_date?: { day?: number; month?: number; year?: number };
 }
 
-function getNotificationMetadata(notification: NotificationResponse): NotificationMetadata {
+export function getNotificationMetadata(notification: NotificationResponse): NotificationMetadata {
   if (notification.metadata && typeof notification.metadata === 'object') {
     return notification.metadata as NotificationMetadata;
   }
@@ -53,15 +54,22 @@ export function formatNotificationCreatedAt(value: string, locale?: string): str
 }
 
 function formatReminderDate(metadata: NotificationMetadata, locale: string): { value: string; direction: 'rtl' | 'ltr' } {
-  const isHebrew = isHebrewCalendarType((metadata.calendar_type ?? '').toLowerCase());
+  const isHebrew = isHebrewCalendarType(metadata.calendar_type);
   if (isHebrew) {
     if (metadata.formatted_hebrew_date) {
       const parsedHebrew = parseNumericHebrewDate(metadata.formatted_hebrew_date);
-      if (parsedHebrew) {
-        return { value: formatHebrewDate(parsedHebrew), direction: 'rtl' };
-      }
+      return {
+        value: parsedHebrew ? formatHebrewDate(parsedHebrew) : metadata.formatted_hebrew_date,
+        direction: 'rtl',
+      };
+    }
 
-      return { value: metadata.formatted_hebrew_date, direction: 'rtl' };
+    const hebrewDate = metadata.hebrew_date;
+    if (hebrewDate?.day && hebrewDate.month && hebrewDate.year) {
+      return {
+        value: formatHebrewDate({ day: hebrewDate.day, month: hebrewDate.month, year: hebrewDate.year }),
+        direction: 'rtl',
+      };
     }
 
     if (metadata.date) {
@@ -70,6 +78,8 @@ function formatReminderDate(metadata: NotificationMetadata, locale: string): { v
         return { value: formatHebrewDate(parsedHebrew), direction: 'rtl' };
       }
     }
+
+    return { value: '', direction: 'rtl' };
   }
 
   if (metadata.date) {
@@ -79,13 +89,6 @@ function formatReminderDate(metadata: NotificationMetadata, locale: string): { v
         value: parsed.toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' }),
         direction: 'ltr',
       };
-    }
-  }
-
-  if (isHebrew && metadata.date) {
-    const parsedHebrew = parseNumericHebrewDate(metadata.date);
-    if (parsedHebrew) {
-      return { value: formatHebrewDateNumeric(parsedHebrew), direction: 'rtl' };
     }
   }
 

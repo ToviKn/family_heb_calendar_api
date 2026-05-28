@@ -2,7 +2,7 @@ import { EmptyMessage, ErrorMessage, LoadingMessage, SuccessMessage } from '../c
 import { FormEvent, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { formatNotificationCreatedAt, getNotificationSummary } from '../lib/notifications/formatters';
+import { formatNotificationCreatedAt, getNotificationMetadata, getNotificationSummary } from '../lib/notifications/formatters';
 import {
   createNotification,
   deleteNotification,
@@ -217,6 +217,10 @@ export function NotificationsPage() {
         {!isLoading && notifications.length > 0 ? (
           <ul className="mt-4 space-y-3">
             {notifications.map((notification) => {
+              const metadata = getNotificationMetadata(notification);
+              console.log('Notification metadata:', metadata);
+              console.log('formatted_hebrew_date:', metadata.formatted_hebrew_date);
+              console.log('calendar_type:', metadata.calendar_type);
               const summary = getNotificationSummary(notification, t, i18n.language);
 
               return (
