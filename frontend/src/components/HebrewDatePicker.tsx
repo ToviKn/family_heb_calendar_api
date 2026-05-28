@@ -80,7 +80,7 @@ export function HebrewDatePicker({ value, onChange }: HebrewDatePickerProps) {
 
   return (
     <div className="space-y-2">
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-[0.8fr_0.8fr_1.4fr] gap-3">
         <label className="text-sm text-slate-700">
           {t('events.form.day')}
           <select className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2" value={day ?? ''} onChange={(e) => updatePartial({ day: Number(e.target.value) })}>
