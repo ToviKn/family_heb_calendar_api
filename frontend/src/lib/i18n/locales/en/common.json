@@ -126,7 +126,8 @@
       "description": "Description",
       "date": "Date",
       "time": "Time",
-      "repeat_type": "Repeat type"
+      "repeat_type": "Repeat type",
+      "family": "Family"
     },
     "errors": {
       "load": "Unable to load event details.",
@@ -204,7 +205,8 @@
         "pending": "Request pending"
       },
       "messages": {
-        "pending": "Join request sent. Waiting for approval."
+        "pending": "Join request sent. Waiting for approval.",
+        "completed": "Family access request completed."
       },
       "errors": {
         "invalid_family_id": "Enter a valid family ID.",
@@ -224,7 +226,7 @@
         "loading": "Loading..."
       },
       "success": {
-        "approved": "Approved user {{userId}} for family {{familyId}}.",
+        "approved": "Approved user {{userId}} for {{family}}.",
         "rejected": "Join request rejected."
       },
       "empty": {
@@ -234,7 +236,8 @@
       "errors": {
         "invalid_family_id": "Enter a valid family ID to load join requests.",
         "load_failed": "Unable to load join requests. Verify family ID and admin permissions.",
-        "action_failed": "Unable to {{action}} join request. Please try again."
+        "action_failed": "Unable to {{action}} join request. Please try again.",
+        "invalid_family_id_before_review": "Enter a valid family ID before reviewing requests."
       }
     },
     "events": {
@@ -255,6 +258,12 @@
       "errors": {
         "load_failed": "Unable to load family events. Verify family ID and permissions."
       }
+    },
+    "display": {
+      "label": "Family: {{family}}",
+      "name_with_id": "{{name}} (ID: {{id}})",
+      "id_only": "Family ID: {{id}}",
+      "unknown": "Unknown family"
     }
   },
   "home": {
@@ -321,8 +330,22 @@
       "reminder_title": "Reminder: {{title}}",
       "scheduled_for": "Scheduled for {{date}}",
       "event_reminder_fallback": "Scheduled reminder",
-      "invite_title": "Family invitation"
-    }
+      "invite_title": "Family invitation",
+      "event_created_title": "New event",
+      "event_created": "New event created: {{title}}",
+      "event_updated_title": "Event updated",
+      "event_updated": "Event updated: {{title}}",
+      "invited_to_family": "{{actorName}} invited {{targetName}} to family {{family}}.",
+      "join_request_title": "Join request",
+      "requested_to_join": "{{userName}} requested to join family {{family}}.",
+      "join_request_approved_title": "Join request approved",
+      "join_request_approved": "{{actorName}} approved your request to join family {{family}}.",
+      "join_request_rejected_title": "Join request rejected",
+      "join_request_rejected": "{{actorName}} rejected your request to join family {{family}}.",
+      "untitled_event": "Untitled event"
+    },
+    "metadata_line": "Created {{createdAt}}",
+    "metadata_line_withEvent": "Created {{createdAt}} • Event ID: {{eventId}}"
   },
   "settings": {
     "title": "Settings",
@@ -346,6 +369,45 @@
       "password_updated": "Password updated successfully.",
       "change_password_failed": "Unable to change password. Please verify your current password and try again.",
       "updating_password": "Updating your password..."
+    }
+  },
+  "language": {
+    "hebrew": "Hebrew",
+    "english": "English"
+  },
+  "api_errors": {
+    "current_password_incorrect": "Current password is incorrect.",
+    "email_already_exists": "An account with this email already exists.",
+    "invalid_credentials": "Invalid username or password.",
+    "invalid_email_format": "Enter a valid email address.",
+    "invalid_notification_type": "Invalid notification type.",
+    "invalid_token": "Your session is invalid. Please sign in again.",
+    "new_password_must_differ": "New password must be different from current password.",
+    "not_authorized_family_members": "You are not authorized to add family members.",
+    "not_authorized_delete_event": "You are not authorized to delete this event.",
+    "not_authorized_family_events": "You are not authorized to view this family’s events.",
+    "not_authorized_update_event": "You are not authorized to update this event.",
+    "operation_failed": "The operation failed. Please try again.",
+    "password_empty": "Password cannot be empty.",
+    "password_contains_email": "Password cannot contain your email address.",
+    "password_min_length": "Password must be at least 10 characters.",
+    "password_lowercase": "Password must include a lowercase letter.",
+    "password_uppercase": "Password must include an uppercase letter.",
+    "password_number": "Password must include a number.",
+    "password_special": "Password must include a special character.",
+    "password_too_long": "Password is too long.",
+    "password_too_long_hashing": "Password is too long for secure hashing.",
+    "permission_denied": "You do not have permission to perform this action.",
+    "resource_not_found": "{{resource}} with identifier {{identifier}} was not found.",
+    "unauthorized": "You must sign in to continue.",
+    "user_already_family_member": "User is already a member of this family.",
+    "user_not_in_family": "You are not a member of this family.",
+    "resources": {
+      "event": "Event",
+      "family": "Family",
+      "family_join_request": "Family join request",
+      "notification": "Notification",
+      "user": "User"
     }
   }
 }

@@ -187,6 +187,7 @@ class EventResponse(EventBase):
     created_at: datetime
     updated_at: datetime
     next_occurrence: date | None = None
+    family_name: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 
 import { formatEventDisplayDate, isHebrewCalendarType } from '../lib/dates/eventDateFormatter';
+import { formatFamilyLabel } from '../utils/familyDisplay';
 import { HebrewDatePicker } from '../components/HebrewDatePicker';
 import { getCurrentHebrewDate, normalizeHebrewYear } from '../lib/dates/hebrewDateFormatter';
 
@@ -472,7 +473,7 @@ export function EventsPage() {
                       </h3>
                       <p className="text-sm text-slate-600">{eventItem.description || t('events.no_description')}</p>
                       <p className="mt-1 text-xs text-slate-500" dir={isHebrewCalendarType(eventItem.calendar_type) ? 'rtl' : 'ltr'}>
-                        {t('events.family')} {eventItem.family_id} •{' '}
+                        {formatFamilyLabel(eventItem, t)} •{' '}
                         {formatEventListDate(eventItem)}
                       </p>
                     </div>
