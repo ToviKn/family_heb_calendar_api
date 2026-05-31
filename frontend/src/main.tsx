@@ -7,9 +7,6 @@ import { App } from './app/App';
 import { AuthProvider } from './features/auth/AuthContext';
 import './styles/index.css';
 
-document.documentElement.dir = 'rtl';
-document.documentElement.lang = 'he';
-
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>

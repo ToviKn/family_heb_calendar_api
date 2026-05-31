@@ -32,6 +32,15 @@
       "register_failed": "Registration failed. Please verify your details and try again."
     }
   },
+  "landing": {
+    "app_name": "Family Hebrew Calendar",
+    "title": "Plan family moments in Hebrew and English.",
+    "description": "Manage family events, Hebrew dates, reminders, and notifications from one shared calendar.",
+    "actions": {
+      "login": "Sign in",
+      "register": "Create account"
+    }
+  },
   "events": {
     "title": "Events",
     "description": "Create, view, edit, and delete family events.",
