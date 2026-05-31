@@ -45,7 +45,7 @@ function translateApiMessage(message: string): string | null {
   const notFoundMatch = trimmedMessage.match(/^(.+) with identifier '(.+)' not found$/);
   if (notFoundMatch) {
     return i18n.t('api_errors.resource_not_found', {
-      resource: i18n.t(`api_errors.resources.${notFoundMatch[1].toLowerCase().replaceAll(' ', '_')}`, {
+      resource: i18n.t(`api_errors.resources.${notFoundMatch[1].toLowerCase().replace(/_/g, ' ')}`, {
         defaultValue: notFoundMatch[1],
       }),
       identifier: notFoundMatch[2],
