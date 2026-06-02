@@ -43,13 +43,13 @@ export function AppRouter() {
         <Route path="/landing" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="convert" element={<ConvertPage />} />
       </Route>
 
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
           <Route path="events" element={<EventsPage />} />
           <Route path="events/:eventId" element={<EventDetailsPage />} />
-          <Route path="convert" element={<ConvertPage />} />
           <Route path="families" element={<FamiliesPage />} />
           <Route path="notifications" element={<NotificationsPage />} />
           <Route path="settings" element={<SettingsPage />} />

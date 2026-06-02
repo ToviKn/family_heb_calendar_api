@@ -38,7 +38,8 @@
     "description": "Manage family events, Hebrew dates, reminders, and notifications from one shared calendar.",
     "actions": {
       "login": "Sign in",
-      "register": "Create account"
+      "register": "Create account",
+      "convert": "Date conversion"
     }
   },
   "events": {

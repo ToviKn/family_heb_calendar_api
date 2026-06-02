@@ -23,6 +23,9 @@ export function LandingPage() {
         <Link className="rounded-md bg-slate-800 px-4 py-2 font-medium text-white hover:bg-slate-900" to="/register">
           {t('landing.actions.register')}
         </Link>
+        <Link className="rounded-md bg-slate-800 px-4 py-2 font-medium text-white hover:bg-slate-900" to="/convert">
+          {t('landing.actions.convert')}
+        </Link>
       </div>
     </section>
   );
