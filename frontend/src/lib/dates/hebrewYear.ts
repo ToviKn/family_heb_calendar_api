@@ -29,6 +29,7 @@ const HEBREW_NUMERAL_VALUES: Record<string, number> = {
 };
 
 const HEBREW_LETTER_PATTERN = /[א-ת]/;
+const HEBREW_YEAR_INPUT_PATTERN = /^[\s\u200e\u200fא-ת׳״'\"]+$/;
 const HEBREW_THOUSANDS_SEPARATOR_PATTERN = /[׳']/;
 const HEBREW_GERESH = '׳';
 const HEBREW_GERSHAYIM = '״';
@@ -54,13 +55,10 @@ function sumHebrewNumeralLetters(value: string): number | null {
 }
 
 export function normalizeHebrewYear(year: number): number {
-  if (year < 1000) {
-    return 5700 + year;
-  }
-  return year;
+  return Math.floor(year);
 }
 
-export function parseHebrewYearInput(input: string, referenceYear: number): number | null {
+export function parseHebrewYearInput(input: string, _referenceYear: number): number | null {
   const trimmed = input.trim();
 
   if (!trimmed) {
@@ -72,7 +70,7 @@ export function parseHebrewYearInput(input: string, referenceYear: number): numb
     return numericYear >= 1 ? normalizeHebrewYear(numericYear) : null;
   }
 
-  if (!HEBREW_LETTER_PATTERN.test(trimmed)) {
+  if (!HEBREW_LETTER_PATTERN.test(trimmed) || !HEBREW_YEAR_INPUT_PATTERN.test(trimmed)) {
     return null;
   }
 
@@ -90,21 +88,8 @@ export function parseHebrewYearInput(input: string, referenceYear: number): numb
     }
   }
 
-  const yearRemainder = sumHebrewNumeralLetters(trimmed);
-
-  if (yearRemainder === null || yearRemainder < 1) {
-    return null;
-  }
-
-  const normalizedReferenceYear = normalizeHebrewYear(referenceYear);
-
-  if (yearRemainder < 100) {
-    const referenceCentury = Math.floor(normalizedReferenceYear / 100) * 100;
-    return referenceCentury + yearRemainder;
-  }
-
-  const referenceMillennium = Math.floor(normalizedReferenceYear / 1000) * 1000;
-  return referenceMillennium + yearRemainder;
+  const year = sumHebrewNumeralLetters(trimmed);
+  return year !== null && year >= 1 ? year : null;
 }
 
 function formatHebrewYearPart(value: number): string {
@@ -160,7 +145,7 @@ export function formatHebrewYear(year: number): string {
     return String(year);
   }
 
-  const normalizedYear = Math.floor(year);
+  const normalizedYear = normalizeHebrewYear(year);
   const yearRemainder = normalizedYear % 1000;
 
   if (yearRemainder > 0) {
@@ -168,4 +153,27 @@ export function formatHebrewYear(year: number): string {
   }
 
   return formatHebrewYearPart(Math.floor(normalizedYear / 1000));
+}
+
+export function formatHebrewYearInput(year: number): string {
+  if (!Number.isFinite(year) || year < 1) {
+    return String(year);
+  }
+
+  const normalizedYear = normalizeHebrewYear(year);
+
+  if (normalizedYear < 1000) {
+    const yearPart = formatHebrewYearPart(normalizedYear);
+    return yearPart.endsWith(HEBREW_GERESH) ? yearPart.slice(0, -1) : yearPart;
+  }
+
+  const thousands = Math.floor(normalizedYear / 1000);
+  const yearRemainder = normalizedYear % 1000;
+  const thousandsLabel = formatHebrewYearPart(thousands);
+
+  if (yearRemainder === 0) {
+    return thousandsLabel;
+  }
+
+  return `${thousandsLabel}${formatHebrewYearPart(yearRemainder)}`;
 }

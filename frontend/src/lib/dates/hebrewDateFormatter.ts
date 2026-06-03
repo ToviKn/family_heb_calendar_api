@@ -3,7 +3,7 @@ import { HDate } from '@hebcal/core';
 import type { SimpleDate } from '../api';
 import { formatHebrewYear, normalizeHebrewYear } from './hebrewYear';
 
-export { formatHebrewYear, normalizeHebrewYear, parseHebrewYearInput } from './hebrewYear';
+export { formatHebrewYear, formatHebrewYearInput, normalizeHebrewYear, parseHebrewYearInput } from './hebrewYear';
 
 const RTL_MARK = '\u200F';
 
