@@ -104,6 +104,7 @@ export function EventsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingEventId, setEditingEventId] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<EventsViewMode>('date');
+  const [isHebrewYearValid, setIsHebrewYearValid] = useState(true);
 
   const [form, setForm] = useState<EventFormState>(() => getDefaultFormState(toDateInputValue(new Date())));
   const monthMax = form.calendarType === 'hebrew' ? 13 : 12;
@@ -164,11 +165,17 @@ export function EventsPage() {
 
   function resetForm() {
     setForm(getDefaultFormState(selectedDate));
+    setIsHebrewYearValid(true);
     setEditingEventId(null);
   }
 
   async function handleCreateOrUpdate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (form.calendarType === 'hebrew' && !isHebrewYearValid) {
+      setError(t('events.form.invalid_hebrew_year'));
+      return;
+    }
 
     if (hasInvalidTimeRange(form.startTime, form.endTime)) {
       setError(t('events.errors.invalid_time'));
@@ -205,6 +212,7 @@ export function EventsPage() {
 
   function startEdit(eventItem: EventResponse) {
     setEditingEventId(eventItem.id);
+    setIsHebrewYearValid(true);
     setForm({
       title: eventItem.title,
       description: eventItem.description ?? '',
@@ -285,6 +293,7 @@ export function EventsPage() {
                   month: String(value.month),
                   year: String(value.year),
                 }))}
+                onValidityChange={setIsHebrewYearValid}
               />
             ) : (
               <div className="grid grid-cols-3 gap-3">
@@ -347,8 +356,10 @@ export function EventsPage() {
                   value={form.calendarType}
                   onChange={(e) => {
                     const nextType = e.target.value as CalendarType;
+                    setIsHebrewYearValid(true);
                     setForm((prev) => {
                       if (nextType === prev.calendarType) return prev;
+
                       if (nextType === 'hebrew') {
                         const currentHebrew = getCurrentHebrewDate();
                         return { ...prev, calendarType: nextType, day: String(currentHebrew.day), month: String(currentHebrew.month), year: String(currentHebrew.year) };
@@ -386,7 +397,7 @@ export function EventsPage() {
               <button
                 className="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:bg-blue-300"
                 type="submit"
-                disabled={isSubmitting}
+                disabled={isSubmitting || (form.calendarType === 'hebrew' && !isHebrewYearValid)}
               >
                 {isSubmitting ? t('events.actions.saving') : editingEventId ? t('events.actions.update') : t('events.actions.create')}
               </button>

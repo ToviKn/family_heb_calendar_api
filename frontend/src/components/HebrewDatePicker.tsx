@@ -1,7 +1,7 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { formatHebrewDate, getCurrentHebrewDate, normalizeHebrewYear } from '../lib/dates/hebrewDateFormatter';
+import { formatHebrewDate, getCurrentHebrewDate, normalizeHebrewYear, parseHebrewYearInput } from '../lib/dates/hebrewDateFormatter';
 
 type HebrewDateValue = {
   day: number;
@@ -12,8 +12,8 @@ type HebrewDateValue = {
 type HebrewDatePickerProps = {
   value: HebrewDateValue | null;
   onChange: (value: HebrewDateValue) => void;
+  onValidityChange?: (isValid: boolean) => void;
 };
-
 
 const HEBREW_MONTHS = [
   { value: 1, key: 'events.hebrew_months.1' },
@@ -48,18 +48,28 @@ function getYearLabel(year: number): string {
   }
 }
 
-export function HebrewDatePicker({ value, onChange }: HebrewDatePickerProps) {
+export function HebrewDatePicker({ value, onChange, onValidityChange }: HebrewDatePickerProps) {
   const { t } = useTranslation();
   const todayHebrew = useMemo(() => getCurrentHebrewDate(), []);
   const day = value?.day ?? todayHebrew.day;
   const month = value?.month ?? todayHebrew.month;
   const year = normalizeHebrewYear(value?.year ?? todayHebrew.year);
+  const yearLabel = getYearLabel(year);
+  const [yearInput, setYearInput] = useState(yearLabel);
+  const [isEditingYear, setIsEditingYear] = useState(false);
+  const [yearError, setYearError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!value) {
       onChange(todayHebrew);
     }
   }, [onChange, todayHebrew, value]);
+
+  useEffect(() => {
+    if (!isEditingYear) {
+      setYearInput(yearLabel);
+    }
+  }, [isEditingYear, yearLabel]);
 
   const preview = useMemo(() => formatHebrewDate({ day, month, year }), [day, month, year]);
 
@@ -69,7 +79,53 @@ export function HebrewDatePicker({ value, onChange }: HebrewDatePickerProps) {
       month: next.month ?? month ?? 1,
       year: normalizeHebrewYear(next.year ?? year ?? 5786),
     };
+    if (next.year !== undefined) {
+      setYearError(null);
+      onValidityChange?.(true);
+    }
+
     onChange(merged);
+  }
+
+  function updateYearFromInput(input: string): boolean {
+    const parsedYear = parseHebrewYearInput(input, year);
+
+    if (!parsedYear || parsedYear < 1) {
+      setYearError(t('events.form.invalid_hebrew_year'));
+      onValidityChange?.(false);
+      return false;
+    }
+
+    setYearError(null);
+    onValidityChange?.(true);
+    updatePartial({ year: parsedYear });
+    return true;
+  }
+
+  function handleYearInputChange(input: string) {
+    setYearInput(input);
+
+    if (!input.trim()) {
+      setYearError(t('events.form.invalid_hebrew_year'));
+      onValidityChange?.(false);
+      return;
+    }
+
+    updateYearFromInput(input);
+  }
+
+  function handleYearInputBlur() {
+    setIsEditingYear(false);
+
+    if (updateYearFromInput(yearInput)) {
+      const parsedYear = parseHebrewYearInput(yearInput, year);
+      setYearInput(getYearLabel(parsedYear ?? year));
+      return;
+    }
+
+    setYearError(null);
+    onValidityChange?.(true);
+    setYearInput(yearLabel);
   }
 
   return (
@@ -99,11 +155,22 @@ export function HebrewDatePicker({ value, onChange }: HebrewDatePickerProps) {
           {t('events.form.year')}
           <div className="mt-1 flex items-center gap-2">
             <button className="h-10 w-10 shrink-0 rounded-md border border-slate-300 text-center leading-none" type="button" onClick={() => updatePartial({ year: Math.max(1, year - 1) })}>-</button>
-            <div className="min-w-[110px] flex-shrink-0 whitespace-nowrap rounded-md border border-slate-300 px-3 py-2 text-center" dir="rtl">
-              {getYearLabel(year)}
-            </div>
+            <input
+              aria-invalid={yearError ? 'true' : 'false'}
+              className="h-10 min-w-[110px] flex-shrink-0 rounded-md border border-slate-300 px-3 py-2 text-center"
+              dir="rtl"
+              inputMode="text"
+              value={yearInput}
+              onBlur={handleYearInputBlur}
+              onChange={(event) => handleYearInputChange(event.target.value)}
+              onFocus={(event) => {
+                setIsEditingYear(true);
+                event.target.select();
+              }}
+            />
             <button className="h-10 w-10 shrink-0 rounded-md border border-slate-300 text-center leading-none" type="button" onClick={() => updatePartial({ year: year + 1 })}>+</button>
           </div>
+          {yearError ? <p className="mt-1 text-xs text-red-600">{yearError}</p> : null}
         </label>
       </div>
 

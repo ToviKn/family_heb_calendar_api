@@ -35,11 +35,16 @@ function parseGregorianDate(value: string): { year: number; month: number; day: 
 
 
 function validateHebrewInput(form: HebrewFormState): { year: number; month: number; day: number } | null {
-  const year = normalizeHebrewYear(Number(form.year));
+  const rawYear = Number(form.year);
+  const year = normalizeHebrewYear(rawYear);
   const month = Number(form.month);
   const day = Number(form.day);
 
   if ([year, month, day].some((part) => Number.isNaN(part))) {
+    return null;
+  }
+
+  if (rawYear < 1) {
     return null;
   }
 
@@ -66,6 +71,7 @@ export function ConvertPage() {
   const [result, setResult] = useState<DateConversionResponse | null>(null);
   const [activeAction, setActiveAction] = useState<ActiveAction>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isHebrewYearValid, setIsHebrewYearValid] = useState(true);
 
   const isLoading = activeAction !== null;
 
@@ -100,7 +106,7 @@ export function ConvertPage() {
     event.preventDefault();
 
     const parsed = validateHebrewInput(hebrewForm);
-    if (!parsed) {
+    if (!parsed || !isHebrewYearValid) {
       setResult(null);
       setError(t('convert.errors.invalid_hebrew'));
       return;
@@ -184,12 +190,13 @@ export function ConvertPage() {
                 month: String(value.month),
                 day: String(value.day),
               })}
+              onValidityChange={setIsHebrewYearValid}
             />
 
             <button
               className="rounded-md bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700 disabled:bg-indigo-300"
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || !isHebrewYearValid}
             >
               {activeAction === 'hebrew_to_gregorian' ? t('convert.actions.converting') : t('convert.actions.convert_hebrew')}
             </button>
