@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { formatHebrewDate, getCurrentHebrewDate, normalizeHebrewYear, parseHebrewYearInput } from '../lib/dates/hebrewDateFormatter';
+import { formatHebrewDate, formatHebrewYear, getCurrentHebrewDate, normalizeHebrewYear, parseHebrewYearInput } from '../lib/dates/hebrewDateFormatter';
 
 type HebrewDateValue = {
   day: number;
@@ -40,12 +40,7 @@ function getDayLabel(day: number): string {
 }
 
 function getYearLabel(year: number): string {
-  try {
-    const parts = formatHebrewDate({ day: 1, month: 1, year: normalizeHebrewYear(year) }).split(' ');
-    return parts[parts.length - 1] ?? String(year);
-  } catch {
-    return String(year);
-  }
+  return formatHebrewYear(normalizeHebrewYear(year));
 }
 
 export function HebrewDatePicker({ value, onChange, onValidityChange }: HebrewDatePickerProps) {
