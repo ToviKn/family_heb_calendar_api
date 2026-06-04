@@ -53,12 +53,12 @@ export function SettingsPage() {
     setIsSubmitting(true);
 
     try {
-      const response = await changePassword({
+      await changePassword({
         current_password: form.currentPassword,
         new_password: form.newPassword,
       });
       setForm(initialFormState);
-      setSuccess(response.message || t('settings.messages.password_updated'));
+      setSuccess(t('settings.messages.password_updated'));
     } catch (caughtError) {
       setError(
         getApiErrorMessage(caughtError, t('settings.messages.change_password_failed'))

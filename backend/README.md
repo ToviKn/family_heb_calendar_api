@@ -39,6 +39,8 @@ backend/
 ## Environment variables
 Copy `.env.example` and configure:
 - `DATABASE_URL` (required)
+  - **Local Docker Compose**: use `@db:5432` (service name `db` from `docker-compose.yml`) so the backend container reaches Postgres over the Docker network.
+  - **Production (optional)**: swap to a hosted URL (for example Neon) and keep SSL options such as `sslmode=require`.
 - `JWT_SECRET_KEY` (required)
 - `ALLOWED_ORIGINS` (required in production)
 - optional: `ENV`, `ENABLE_API_DOCS`, `ACCESS_TOKEN_EXPIRE_MINUTES`, `DEBUG`, pool/log settings
@@ -46,6 +48,7 @@ Copy `.env.example` and configure:
 ## Local setup
 #### Linux/macOS
 ```bash
+cd backend
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
@@ -54,6 +57,7 @@ cp .env.example .env
 
 #### Windows PowerShell
 ```powershell
+cd backend
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
@@ -89,6 +93,45 @@ pytest -v
 docker build -t family-calendar-api .
 docker run --env-file .env -p 8000:8000 family-calendar-api
 ```
+
+## Local Docker Compose workflow
+Use the monorepo root `docker-compose.yml` for local full-stack development:
+
+```bash
+docker compose up --build
+```
+
+### Why `db` is used in `DATABASE_URL`
+Within Docker Compose, services communicate using their service names on the internal network.
+Example:
+postgresql+psycopg://user:password@db:5432/database
+Using localhost inside the backend container would point back 
+to the backend container itself rather than the PostgreSQL container.
+
+### Swagger/OpenAPI in local dev
+Local `.env` sets `ENABLE_API_DOCS=true`, so these endpoints are available:
+- `/docs`
+- `/redoc`
+- `/openapi.json`
+
+### Migrations in local dev
+This project currently does **not** use Alembic migrations in local Docker startup.
+On API startup (development only), it will:
+1. Log `Running database migrations...`
+2. Run `Base.metadata.create_all(...)` if required core tables are missing
+3. Run legacy safe schema migrations when `RUN_LEGACY_STARTUP_MIGRATIONS=true`
+4. Validate required tables exist, then log `Database schema ready.`
+
+This behavior is disabled for production (`ENV=production`), so schema bootstrap is never auto-run there.
+
+To reset the local database:
+
+```bash
+docker compose down -v
+docker compose up --build
+```
+
+The `-v` flag removes the PostgreSQL volume and recreates the database from scratch.
 
 ## Deploy
 - Render start command: `gunicorn -k uvicorn.workers.UvicornWorker -w 2 -b 0.0.0.0:$PORT app.main:app`.

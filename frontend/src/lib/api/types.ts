@@ -35,6 +35,7 @@ export interface EventCreate {
   month: number;
   day: number;
   family_id: number;
+  family_name?: string | null;
   start_time?: string | null;
   end_time?: string | null;
   description?: string | null;
@@ -63,6 +64,7 @@ export interface EventResponse {
   month: number;
   day: number;
   family_id: number;
+  family_name?: string | null;
   start_time?: string | null;
   end_time?: string | null;
   description?: string | null;
@@ -89,6 +91,7 @@ export interface FamilyMembershipResponse {
   id: number;
   user_id: number;
   family_id: number;
+  family_name?: string | null;
   role: string;
   joined_at: string;
 }
@@ -110,6 +113,7 @@ export interface FamilyJoinRequestDetailResponse {
   id: number;
   user_id: number;
   family_id: number;
+  family_name?: string | null;
   requested_by: number;
   status: string;
   created_at: string;
@@ -126,12 +130,23 @@ export interface NotificationCreate {
   event_id: number;
 }
 
+export interface NotificationUserSummary {
+  id: number;
+  name: string;
+}
+
 export interface NotificationResponse {
   id: number;
   user_id: number;
   message: string;
   type: NotificationType;
+  metadata?: Record<string, unknown> | null;
+  metadata_json?: Record<string, unknown> | null;
+  actor?: NotificationUserSummary | null;
+  target?: NotificationUserSummary | null;
   event_id?: number | null;
+  family_id?: number | null;
+  family_name?: string | null;
   created_at: string;
   is_read: boolean;
 }

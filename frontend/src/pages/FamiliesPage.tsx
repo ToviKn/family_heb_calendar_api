@@ -2,6 +2,9 @@ import { EmptyMessage, ErrorMessage, LoadingMessage, SuccessMessage } from '../c
 import { FormEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { formatEventDisplayDate, isHebrewCalendarType } from '../lib/dates/eventDateFormatter';
+import { formatFamilyLabel, formatFamilyNameWithId } from '../utils/familyDisplay';
+
 import {
   approveFamilyJoinRequest,
   createFamily,
@@ -114,7 +117,7 @@ export function FamiliesPage() {
         return;
       }
       setPendingJoinFamilyId(null);
-      setJoinResultMessage(result.message);
+      setJoinResultMessage(t('families.join.messages.completed'));
     } catch (error) {
       setJoinError(getApiErrorMessage(error, t('families.join.errors.failed')));
     } finally {
@@ -158,7 +161,7 @@ export function FamiliesPage() {
 
     const familyId = parsePositiveFamilyId(joinRequestsForm.familyId);
     if (familyId === null) {
-      setJoinRequestsError('Enter a valid family ID before reviewing requests.');
+      setJoinRequestsError(t('families.requests.errors.invalid_family_id_before_review'));
       return;
     }
 
@@ -167,7 +170,7 @@ export function FamiliesPage() {
     try {
       if (action === 'approve') {
         const membership = await approveFamilyJoinRequest(familyId, requestId);
-        setJoinRequestsSuccess(t('families.requests.success.approved', {userId: membership.user_id, familyId: membership.family_id,}));
+        setJoinRequestsSuccess(t('families.requests.success.approved', { userId: membership.user_id, family: formatFamilyNameWithId(membership, t) }));
       } else {
         await rejectFamilyJoinRequest(familyId, requestId);
         setJoinRequestsSuccess(t('families.requests.success.rejected'));
@@ -336,6 +339,9 @@ export function FamiliesPage() {
                       <p className="font-medium text-slate-900">{request.user.name}</p>
                       <p className="text-sm text-slate-600">{request.user.email}</p>
                       <p className="text-xs text-slate-500">
+                        {formatFamilyLabel(request, t)}
+                      </p>
+                      <p className="text-xs text-slate-500">
                         {t('families.requests.requested_by', {name: request.requested_by_user.name, date: new Date(request.created_at).toLocaleString(),})}
                       </p>
                     </div>
@@ -421,9 +427,9 @@ export function FamiliesPage() {
                   <li key={eventItem.id} className="rounded-md border border-slate-200 p-3">
                     <p className="font-medium text-slate-900">{eventItem.title}</p>
                     <p className="text-sm text-slate-600">{eventItem.description || t('families.events.no_description')}</p>
-                    <p className="text-xs text-slate-500">
-                      {eventItem.month}/{eventItem.day}
-                      {eventItem.year ? `/${eventItem.year}` : ''}
+                    <p className="text-xs text-slate-500">{formatFamilyLabel(eventItem, t)}</p>
+                    <p className="text-xs text-slate-500" dir={isHebrewCalendarType(eventItem.calendar_type) ? 'rtl' : 'ltr'}>
+                      {formatEventDisplayDate(eventItem)}
                     </p>
                   </li>
                 ))}

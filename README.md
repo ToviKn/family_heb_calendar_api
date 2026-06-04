@@ -1,14 +1,14 @@
 # Family Calendar Monorepo
 
-This repository is organized as a monorepo with separate backend and frontend apps.
+This repository is organized as a monorepo with separate backend and frontend applications.
 
 ## Project Structure
 
 ```text
 family_calendar_api/
-├── backend/                # FastAPI backend app, tests, and backend deployment configs
+├── backend/                # FastAPI backend app, tests, and deployment configs
 ├── frontend/               # React + Vite frontend app
-├── docker-compose.yml      # Local full-stack orchestration (API + DB + optional tests)
+├── docker-compose.yml      # Local full-stack orchestration
 ├── PRODUCTION_CHECKLIST.md # Deployment hardening checklist
 ├── mypy.ini                # Python static type checker config
 └── backup.sql              # Database backup artifact
@@ -16,18 +16,18 @@ family_calendar_api/
 
 ## Architecture Overview
 
-The platform is split into two deployable applications and one managed database:
+The platform consists of:
 
-- **Frontend (Vercel)**: Serves the React SPA, handles client-side routing, and calls backend APIs over HTTPS.
-- **Backend (Render)**: Runs FastAPI (`app.main:app`) for authentication, family/event business logic, and data access.
-- **Neon PostgreSQL**: Managed Postgres instance used by the backend via `DATABASE_URL`.
+* **Frontend (Vercel)** – React SPA served globally.
+* **Backend (Render)** – FastAPI application (`app.main:app`).
+* **Neon PostgreSQL** – Managed PostgreSQL database.
 
-### Runtime interaction model
+### Runtime Interaction Model
 
-1. Browser loads frontend from Vercel.
-2. Frontend sends authenticated API requests (JWT Bearer token) to backend on Render.
-3. Backend validates auth/permissions, executes service logic, and reads/writes Neon PostgreSQL.
-4. Backend returns JSON responses to frontend.
+1. Browser loads the frontend from Vercel.
+2. Frontend sends authenticated API requests (JWT Bearer token) to the backend.
+3. Backend validates permissions, executes business logic, and accesses PostgreSQL.
+4. Backend returns JSON responses.
 
 ### Request Flow Diagram
 
@@ -44,15 +44,31 @@ The platform is split into two deployable applications and one managed database:
 [Neon PostgreSQL]
 ```
 
-### Deployment flow
+## Deployment
 
-- **Backend deploy**: Render builds from `backend/`, installs `backend/requirements.txt`, starts `app.main:app` via Gunicorn/Uvicorn worker.
-- **Frontend deploy**: Vercel builds from `frontend/`, injects API base URL env vars, and serves static assets at edge.
-- **Cross-service config**: Backend `ALLOWED_ORIGINS` must include Vercel domain(s); frontend must point to Render API base URL.
+### Backend (Render)
 
-## Quick start
+* Builds from `backend/`
+* Installs dependencies from `backend/requirements.txt`
+* Runs `app.main:app` via Gunicorn/Uvicorn workers
+
+### Frontend (Vercel)
+
+* Builds from `frontend/`
+* Injects environment variables during build
+* Serves static assets globally
+
+### Cross-Service Configuration
+
+* Backend `ALLOWED_ORIGINS` must include frontend domains.
+* Frontend API URL must point to the deployed backend.
+
+## Quick Start
+
 ### Backend
+
 #### Linux/macOS
+
 ```bash
 cd backend
 python -m venv .venv
@@ -63,6 +79,7 @@ uvicorn app.main:app --reload
 ```
 
 #### Windows PowerShell
+
 ```powershell
 cd backend
 python -m venv .venv
@@ -73,79 +90,9 @@ uvicorn app.main:app --reload
 ```
 
 ### Frontend
+
 #### Linux/macOS
 
-### Request Flow Diagram
-
-```text
-[User Browser]
-      |
-      v
-[Vercel Frontend (React/Vite)]
-      | HTTPS JSON API (Bearer JWT)
-      v
-[Render Backend (FastAPI)]
-      | SQLAlchemy / psycopg
-      v
-[Neon PostgreSQL]
-```
-
-### Deployment flow
-
-- **Backend deploy**: Render builds from `backend/`, installs `backend/requirements.txt`, starts `app.main:app` via Gunicorn/Uvicorn worker.
-- **Frontend deploy**: Vercel builds from `frontend/`, injects API base URL env vars, and serves static assets at edge.
-- **Cross-service config**: Backend `ALLOWED_ORIGINS` must include Vercel domain(s); frontend must point to Render API base URL.
-
-## Quick start
-### Backend
-#### Linux/macOS
-
-The platform is split into two deployable applications and one managed database:
-
-- **Frontend (Vercel)**: Serves the React SPA, handles client-side routing, and calls backend APIs over HTTPS.
-- **Backend (Render)**: Runs FastAPI (`app.main:app`) for authentication, family/event business logic, and data access.
-- **Neon PostgreSQL**: Managed Postgres instance used by the backend via `DATABASE_URL`.
-
-### Runtime interaction model
-
-1. Browser loads frontend from Vercel.
-2. Frontend sends authenticated API requests (JWT Bearer token) to backend on Render.
-3. Backend validates auth/permissions, executes service logic, and reads/writes Neon PostgreSQL.
-4. Backend returns JSON responses to frontend.
-
-### Request Flow Diagram
-
-```text
-[User Browser]
-      |
-      v
-[Vercel Frontend (React/Vite)]
-      | HTTPS JSON API (Bearer JWT)
-      v
-[Render Backend (FastAPI)]
-      | SQLAlchemy / psycopg
-      v
-[Neon PostgreSQL]
-```
-
-### Deployment flow
-
-- **Backend deploy**: Render builds from `backend/`, installs `backend/requirements.txt`, starts `app.main:app` via Gunicorn/Uvicorn worker.
-- **Frontend deploy**: Vercel builds from `frontend/`, injects API base URL env vars, and serves static assets at edge.
-- **Cross-service config**: Backend `ALLOWED_ORIGINS` must include Vercel domain(s); frontend must point to Render API base URL.
-
-## Quick start
-### Backend
-```bash
-cd backend
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env
-uvicorn app.main:app --reload
-```
-
-### Frontend
 ```bash
 cd frontend
 npm install
@@ -154,6 +101,7 @@ npm run dev
 ```
 
 #### Windows PowerShell
+
 ```powershell
 cd frontend
 npm install
@@ -161,59 +109,28 @@ Copy-Item .env.example .env
 npm run dev
 ```
 
-### Full stack with Docker
-```bash
-cd backend
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env
-uvicorn app.main:app --reload
-```
+### Full Stack with Docker
 
-#### Windows PowerShell
-```powershell
-cd backend
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-Copy-Item .env.example .env
-uvicorn app.main:app --reload
-```
-
-### Frontend
-#### Linux/macOS
-```bash
-cd frontend
-npm install
-cp .env.example .env
-npm run dev
-```
-
-#### Windows PowerShell
-```powershell
-cd frontend
-npm install
-Copy-Item .env.example .env
-npm run dev
-```
-
-### Full stack with Docker
 ```bash
 docker compose up --build
 ```
 
+## CI
+
+A GitHub Actions pipeline runs on every `push` and `pull_request`.
+
+### Backend Job
+
+* Installs Python dependencies
+* Runs `pytest`
+
+### Frontend Job
+
+* Installs Node dependencies
+* Builds the production bundle
+
+The workflow fails automatically if tests or builds fail.
 
 ## License
 
 This project is licensed under the MIT License. See the [LICENSE](./LICENSE) file for details.
-
-
-## CI
-
-A minimal GitHub Actions pipeline runs on every `push` and `pull_request`:
-
-- **Backend job**: installs Python dependencies and runs `pytest` in `backend/`.
-- **Frontend job**: installs Node dependencies and verifies production build in `frontend/`.
-
-The workflow fails automatically on test or build errors.

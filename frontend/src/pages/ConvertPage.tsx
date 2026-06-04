@@ -1,7 +1,11 @@
 import { ErrorMessage } from '../components/Feedback';
+import { HebrewDatePicker } from '../components/HebrewDatePicker';
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+
+import { formatHebrewDate, formatHebrewDateNumeric, getCurrentHebrewDate, normalizeHebrewYear } from '../lib/dates/hebrewDateFormatter';
+import { formatGregorianDateNumeric } from '../lib/dates/eventDateFormatter';
 
 import {
   convertGregorianToHebrew,
@@ -31,11 +35,16 @@ function parseGregorianDate(value: string): { year: number; month: number; day: 
 
 
 function validateHebrewInput(form: HebrewFormState): { year: number; month: number; day: number } | null {
-  const year = Number(form.year);
+  const rawYear = Number(form.year);
+  const year = normalizeHebrewYear(rawYear);
   const month = Number(form.month);
   const day = Number(form.day);
 
   if ([year, month, day].some((part) => Number.isNaN(part))) {
+    return null;
+  }
+
+  if (rawYear < 1) {
     return null;
   }
 
@@ -54,11 +63,15 @@ export function ConvertPage() {
   const { t } = useTranslation();
 
   const [gregorianDate, setGregorianDate] = useState('');
-  const [hebrewForm, setHebrewForm] = useState<HebrewFormState>({ year: '', month: '', day: '' });
+  const [hebrewForm, setHebrewForm] = useState<HebrewFormState>(() => {
+    const current = getCurrentHebrewDate();
+    return { year: String(current.year), month: String(current.month), day: String(current.day) };
+  });
 
   const [result, setResult] = useState<DateConversionResponse | null>(null);
   const [activeAction, setActiveAction] = useState<ActiveAction>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isHebrewYearValid, setIsHebrewYearValid] = useState(true);
 
   const isLoading = activeAction !== null;
 
@@ -93,7 +106,7 @@ export function ConvertPage() {
     event.preventDefault();
 
     const parsed = validateHebrewInput(hebrewForm);
-    if (!parsed) {
+    if (!parsed || !isHebrewYearValid) {
       setResult(null);
       setError(t('convert.errors.invalid_hebrew'));
       return;
@@ -166,43 +179,24 @@ export function ConvertPage() {
           <h2 className="text-lg font-semibold text-slate-900">{t('convert.hebrew_to_gregorian.title')}</h2>
 
           <form className="mt-4 space-y-3" onSubmit={handleHebrewToGregorian}>
-            <div className="grid grid-cols-3 gap-3">
-              <input
-                className="rounded-md border border-slate-300 px-3 py-2"
-                type="number"
-                min={1}
-                placeholder={t('convert.form.year')}
-                value={hebrewForm.year}
-                onChange={(event) => setHebrewForm((prev) => ({ ...prev, year: event.target.value }))}
-                required
-              />
-              <input
-                className="rounded-md border border-slate-300 px-3 py-2"
-                type="number"
-                min={1}
-                max={13}
-                placeholder={t('convert.form.month')}
-                value={hebrewForm.month}
-                onChange={(event) => setHebrewForm((prev) => ({ ...prev, month: event.target.value }))}
-                required
-              />
-              <input
-                className="rounded-md border border-slate-300 px-3 py-2"
-                type="number"
-                min={1}
-                max={30}
-                placeholder={t('convert.form.day')}
-                value={hebrewForm.day}
-                onChange={(event) => setHebrewForm((prev) => ({ ...prev, day: event.target.value }))}
-                required
-              />
-            </div>
-            <p className="text-xs text-slate-500">{t('convert.hebrew_to_gregorian.day_range')}</p>
+            <HebrewDatePicker
+              value={hebrewForm.day && hebrewForm.month && hebrewForm.year ? {
+                day: Number(hebrewForm.day),
+                month: Number(hebrewForm.month),
+                year: normalizeHebrewYear(Number(hebrewForm.year)),
+              } : null}
+              onChange={(value) => setHebrewForm({
+                year: String(value.year),
+                month: String(value.month),
+                day: String(value.day),
+              })}
+              onValidityChange={setIsHebrewYearValid}
+            />
 
             <button
               className="rounded-md bg-indigo-600 px-4 py-2 text-white hover:bg-indigo-700 disabled:bg-indigo-300"
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || !isHebrewYearValid}
             >
               {activeAction === 'hebrew_to_gregorian' ? t('convert.actions.converting') : t('convert.actions.convert_hebrew')}
             </button>
@@ -236,12 +230,11 @@ export function ConvertPage() {
             <h3 className="font-semibold text-emerald-900">{t('convert.result.title')}</h3>
             <div className="mt-2 grid gap-2 text-sm text-emerald-900 md:grid-cols-2">
               <p>
-                <span className="font-medium">{t('convert.result.gregorian')}:</span> {result.gregorian_date.year}-{String(result.gregorian_date.month).padStart(2, '0')}-
-                {String(result.gregorian_date.day).padStart(2, '0')}
+                <span className="font-medium">{t('convert.result.gregorian')}:</span> {formatGregorianDateNumeric(result.gregorian_date)}
               </p>
-              <p>
-                <span className="font-medium">{t('convert.result.hebrew')}:</span> {result.hebrew_date.year}-{String(result.hebrew_date.month).padStart(2, '0')}-
-                {String(result.hebrew_date.day).padStart(2, '0')}
+              <p dir="rtl">
+                <span className="font-medium">{t('convert.result.hebrew')}:</span> {formatHebrewDate(result.hebrew_date)}
+                <span className="sr-only"> ({formatHebrewDateNumeric(result.hebrew_date)})</span>
               </p>
             </div>
           </div>

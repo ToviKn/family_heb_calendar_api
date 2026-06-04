@@ -15,6 +15,7 @@ class FamilyMembershipResponse(BaseModel):
     id: int
     user_id: int
     family_id: int
+    family_name: str | None = None
     role: str
     joined_at: datetime
 
@@ -43,6 +44,7 @@ class FamilyJoinRequestDetailResponse(BaseModel):
     id: int
     user_id: int
     family_id: int
+    family_name: str | None = None
     requested_by: int
     status: str
     created_at: datetime

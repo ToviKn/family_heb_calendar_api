@@ -220,6 +220,8 @@ def test_request_to_join_family_creates_self_join_request(
     assert admin_notification.metadata_json == {
         "actor": {"id": sample_users["outsider"].id, "name": sample_users["outsider"].name},
         "target": {"id": sample_users["outsider"].id, "name": sample_users["outsider"].name},
+        "requesting_user_id": sample_users["outsider"].id,
+        "requesting_user_name": sample_users["outsider"].name,
         "family_id": sample_family.id,
         "family_name": sample_family.name,
     }

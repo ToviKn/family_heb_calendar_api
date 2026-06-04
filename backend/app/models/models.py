@@ -53,6 +53,10 @@ class FamilyMembership(Base):
     user: Mapped[User] = relationship(back_populates="memberships")
     family: Mapped[Family] = relationship(back_populates="members")
 
+    @property
+    def family_name(self) -> str | None:
+        return self.family.name if self.family is not None else None
+
 
 class FamilyJoinRequest(Base):
     __tablename__ = "family_join_requests"
@@ -107,6 +111,10 @@ class Event(Base):
         back_populates="event", cascade="all, delete-orphan"
     )
 
+    @property
+    def family_name(self) -> str | None:
+        return self.family.name if self.family is not None else None
+
 
 class EventParticipant(Base):
     __tablename__ = "event_participants"
@@ -143,3 +151,11 @@ class Notification(Base):
 
     user: Mapped[User] = relationship(back_populates="notifications")
     event: Mapped[Event | None] = relationship(back_populates="notifications")
+
+    @property
+    def family_id(self) -> int | None:
+        return self.event.family_id if self.event is not None else None
+
+    @property
+    def family_name(self) -> str | None:
+        return self.event.family.name if self.event is not None and self.event.family is not None else None

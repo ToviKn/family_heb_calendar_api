@@ -3,6 +3,11 @@ import { FormEvent, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 
+import { formatEventDisplayDate, isHebrewCalendarType } from '../lib/dates/eventDateFormatter';
+import { formatFamilyLabel } from '../utils/familyDisplay';
+import { HebrewDatePicker } from '../components/HebrewDatePicker';
+import { getCurrentHebrewDate, normalizeHebrewYear } from '../lib/dates/hebrewDateFormatter';
+
 import {
   createEvent,
   deleteEvent,
@@ -50,7 +55,7 @@ function buildCreatePayload(form: EventFormState): EventCreate {
     family_id: Number(form.familyId),
     month: Number(form.month),
     day: Number(form.day),
-    year: form.year ? Number(form.year) : null,
+    year: form.year ? normalizeHebrewYear(Number(form.year)) : null,
     calendar_type: form.calendarType,
     repeat_type: form.repeatType,
     start_time: form.startTime || null,
@@ -58,22 +63,28 @@ function buildCreatePayload(form: EventFormState): EventCreate {
   };
 }
 
-function getDefaultFormState(date: string): EventFormState {
+function getDefaultFormState(date: string, calendarType: CalendarType = 'gregorian'): EventFormState {
   const { year, month, day } = parseDateInput(date);
+  const currentHebrew = getCurrentHebrewDate();
 
   return {
     title: '',
     description: '',
     familyId: '',
-    month: String(month),
-    day: String(day),
-    year: String(year),
+    month: calendarType === 'hebrew' ? String(currentHebrew.month) : String(month),
+    day: calendarType === 'hebrew' ? String(currentHebrew.day) : String(day),
+    year: calendarType === 'hebrew' ? String(currentHebrew.year) : String(year),
     startTime: '',
     endTime: '',
-    calendarType: 'gregorian',
+    calendarType,
     repeatType: 'none',
   };
 }
+
+function formatEventListDate(eventItem: EventResponse): string {
+  return formatEventDisplayDate(eventItem);
+}
+
 
 function hasInvalidTimeRange(startTime: string, endTime: string): boolean {
   if (!startTime || !endTime) {
@@ -93,6 +104,7 @@ export function EventsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingEventId, setEditingEventId] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<EventsViewMode>('date');
+  const [isHebrewYearValid, setIsHebrewYearValid] = useState(true);
 
   const [form, setForm] = useState<EventFormState>(() => getDefaultFormState(toDateInputValue(new Date())));
   const monthMax = form.calendarType === 'hebrew' ? 13 : 12;
@@ -153,11 +165,17 @@ export function EventsPage() {
 
   function resetForm() {
     setForm(getDefaultFormState(selectedDate));
+    setIsHebrewYearValid(true);
     setEditingEventId(null);
   }
 
   async function handleCreateOrUpdate(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (form.calendarType === 'hebrew' && !isHebrewYearValid) {
+      setError(t('events.form.invalid_hebrew_year'));
+      return;
+    }
 
     if (hasInvalidTimeRange(form.startTime, form.endTime)) {
       setError(t('events.errors.invalid_time'));
@@ -174,7 +192,7 @@ export function EventsPage() {
           description: form.description || null,
           month: Number(form.month),
           day: Number(form.day),
-          year: form.year ? Number(form.year) : null,
+          year: form.year ? normalizeHebrewYear(Number(form.year)) : null,
           repeat_type: form.repeatType,
           start_time: form.startTime || null,
           end_time: form.endTime || null,
@@ -194,6 +212,7 @@ export function EventsPage() {
 
   function startEdit(eventItem: EventResponse) {
     setEditingEventId(eventItem.id);
+    setIsHebrewYearValid(true);
     setForm({
       title: eventItem.title,
       description: eventItem.description ?? '',
@@ -261,39 +280,57 @@ export function EventsPage() {
               disabled={editingEventId !== null}
             />
 
-            <div className="grid grid-cols-3 gap-3">
-              <input
-                className="rounded-md border border-slate-300 px-3 py-2"
-                type="number"
-                min={1}
-                max={31}
-                placeholder={t('events.form.day')}
-                value={form.day}
-                onChange={(e) => setForm((prev) => ({ ...prev, day: e.target.value }))}
-                required
+            {form.calendarType === 'hebrew' ? (
+              <HebrewDatePicker
+                value={form.day && form.month && form.year ? {
+                  day: Number(form.day),
+                  month: Number(form.month),
+                  year: normalizeHebrewYear(Number(form.year)),
+                } : null}
+                onChange={(value) => setForm((prev) => ({
+                  ...prev,
+                  day: String(value.day),
+                  month: String(value.month),
+                  year: String(value.year),
+                }))}
+                onValidityChange={setIsHebrewYearValid}
               />
-              <input
-                className="rounded-md border border-slate-300 px-3 py-2"
-                type="number"
-                min={1}
-                max={monthMax}
-                placeholder={t('events.form.month', { max: monthMax })}
-                value={form.month}
-                onChange={(e) => setForm((prev) => ({ ...prev, month: e.target.value }))}
-                required
-              />
-              <input
-                className="rounded-md border border-slate-300 px-3 py-2"
-                type="number"
-                min={1}
-                max={9999}
-                placeholder={t('events.form.year')}
-                value={form.year}
-                onChange={(e) => setForm((prev) => ({ ...prev, year: e.target.value }))}
-                required={form.repeatType === 'none'}
-              />
-            </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-3">
+                <input
+                  className="rounded-md border border-slate-300 px-3 py-2"
+                  type="number"
+                  min={1}
+                  max={31}
+                  placeholder={t('events.form.day')}
+                  value={form.day}
+                  onChange={(e) => setForm((prev) => ({ ...prev, day: e.target.value }))}
+                  required
+                />
+                <input
+                  className="rounded-md border border-slate-300 px-3 py-2"
+                  type="number"
+                  min={1}
+                  max={monthMax}
+                  placeholder={t('events.form.month', { max: monthMax })}
+                  value={form.month}
+                  onChange={(e) => setForm((prev) => ({ ...prev, month: e.target.value }))}
+                  required
+                />
+                <input
+                  className="rounded-md border border-slate-300 px-3 py-2"
+                  type="number"
+                  min={1}
+                  max={9999}
+                  placeholder={t('events.form.year')}
+                  value={form.year}
+                  onChange={(e) => setForm((prev) => ({ ...prev, year: e.target.value }))}
+                  required={form.repeatType === 'none'}
+                />
+              </div>
+            )}
 
+              
             <div className="grid grid-cols-2 gap-3">
               <input
                 className="rounded-md border border-slate-300 px-3 py-2"
@@ -317,7 +354,20 @@ export function EventsPage() {
                 <select
                   className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2"
                   value={form.calendarType}
-                  onChange={(e) => setForm((prev) => ({ ...prev, calendarType: e.target.value as CalendarType }))}
+                  onChange={(e) => {
+                    const nextType = e.target.value as CalendarType;
+                    setIsHebrewYearValid(true);
+                    setForm((prev) => {
+                      if (nextType === prev.calendarType) return prev;
+
+                      if (nextType === 'hebrew') {
+                        const currentHebrew = getCurrentHebrewDate();
+                        return { ...prev, calendarType: nextType, day: String(currentHebrew.day), month: String(currentHebrew.month), year: String(currentHebrew.year) };
+                      }
+                      const greg = parseDateInput(selectedDate);
+                      return { ...prev, calendarType: nextType, day: String(greg.day), month: String(greg.month), year: String(greg.year) };
+                    });
+                  }}
                   disabled={editingEventId !== null}
                   required
                 >
@@ -347,7 +397,7 @@ export function EventsPage() {
               <button
                 className="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:bg-blue-300"
                 type="submit"
-                disabled={isSubmitting}
+                disabled={isSubmitting || (form.calendarType === 'hebrew' && !isHebrewYearValid)}
               >
                 {isSubmitting ? t('events.actions.saving') : editingEventId ? t('events.actions.update') : t('events.actions.create')}
               </button>
@@ -433,9 +483,9 @@ export function EventsPage() {
                         </Link>
                       </h3>
                       <p className="text-sm text-slate-600">{eventItem.description || t('events.no_description')}</p>
-                      <p className="mt-1 text-xs text-slate-500">
-                        {t('events.family')} {eventItem.family_id} • {eventItem.month}/{eventItem.day}
-                        {eventItem.year ? `/${eventItem.year}` : ''}
+                      <p className="mt-1 text-xs text-slate-500" dir={isHebrewCalendarType(eventItem.calendar_type) ? 'rtl' : 'ltr'}>
+                        {formatFamilyLabel(eventItem, t)} •{' '}
+                        {formatEventListDate(eventItem)}
                       </p>
                     </div>
                     <div className="flex gap-2">

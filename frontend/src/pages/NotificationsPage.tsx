@@ -18,7 +18,7 @@ interface CreateNotificationForm {
 
 
 export function NotificationsPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const [notifications, setNotifications] = useState<NotificationResponse[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -217,7 +217,7 @@ export function NotificationsPage() {
         {!isLoading && notifications.length > 0 ? (
           <ul className="mt-4 space-y-3">
             {notifications.map((notification) => {
-              const summary = getNotificationSummary(notification);
+              const summary = getNotificationSummary(notification, t, i18n.language);
 
               return (
               <li
@@ -227,10 +227,13 @@ export function NotificationsPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="font-medium text-slate-900">{summary.title || t('notifications.default_title')}</p>
-                    <p className="mt-1 text-sm text-slate-600">{summary.subtitle || t('notifications.default_subtitle')}</p>
+                    <p className="mt-1 text-sm text-slate-600" dir={summary.direction}>{summary.subtitle || t('notifications.default_subtitle')}</p>
                     <p className="mt-1 text-xs text-slate-500">
-                      {t('notifications.created_label')}:{' '} {formatNotificationCreatedAt(notification.created_at)}
-                      {notification.event_id ? ` • $ {t('notifications.event_id_label')}: ${notification.event_id}` : ''}
+                      {t('notifications.metadata_line', {
+                        createdAt: formatNotificationCreatedAt(notification.created_at, i18n.language),
+                        eventId: notification.event_id ?? '',
+                        context: notification.event_id ? 'withEvent' : 'createdOnly',
+                      })}
                     </p>
                   </div>
 
