@@ -48,6 +48,7 @@ Copy `.env.example` and configure:
 ## Local setup
 #### Linux/macOS
 ```bash
+cd backend
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
@@ -56,6 +57,7 @@ cp .env.example .env
 
 #### Windows PowerShell
 ```powershell
+cd backend
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
@@ -92,11 +94,6 @@ docker build -t family-calendar-api .
 docker run --env-file .env -p 8000:8000 family-calendar-api
 ```
 
-## Deploy
-- Render start command: `gunicorn -k uvicorn.workers.UvicornWorker -w 2 -b 0.0.0.0:$PORT app.main:app`.
-- Vercel-compatible frontend should call this backend URL through env config.
-
-
 ## Local Docker Compose workflow
 Use the monorepo root `docker-compose.yml` for local full-stack development:
 
@@ -105,8 +102,11 @@ docker compose up --build
 ```
 
 ### Why `db` is used in `DATABASE_URL`
-Inside Docker Compose, services communicate over an internal network by **service name**.  
-That is why the backend uses `postgresql+psycopg://...@db:5432/...` instead of `localhost`.
+Within Docker Compose, services communicate using their service names on the internal network.
+Example:
+postgresql+psycopg://user:password@db:5432/database
+Using localhost inside the backend container would point back 
+to the backend container itself rather than the PostgreSQL container.
 
 ### Swagger/OpenAPI in local dev
 Local `.env` sets `ENABLE_API_DOCS=true`, so these endpoints are available:
@@ -124,11 +124,15 @@ On API startup (development only), it will:
 
 This behavior is disabled for production (`ENV=production`), so schema bootstrap is never auto-run there.
 
-If you need to re-run from a clean local database:
+To reset the local database:
 
 ```bash
 docker compose down -v
 docker compose up --build
 ```
 
-`docker compose down -v` removes the Postgres volume and resets local DB data.
+The `-v` flag removes the PostgreSQL volume and recreates the database from scratch.
+
+## Deploy
+- Render start command: `gunicorn -k uvicorn.workers.UvicornWorker -w 2 -b 0.0.0.0:$PORT app.main:app`.
+- Vercel-compatible frontend should call this backend URL through env config.

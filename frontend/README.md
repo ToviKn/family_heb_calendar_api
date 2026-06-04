@@ -34,9 +34,16 @@ frontend/
 - **Auth flow (`src/features/auth`, `src/lib/auth`, `src/router/ProtectedRoute.tsx`)**: Token persistence, auth context, and route protection.
 - **Routing/pages (`src/router`, `src/pages`)**: URL mapping and top-level page experiences.
 
+## Environment variables
+Copy `.env.example` and configure:
+
+- `VITE_API_BASE_URL` – Backend API URL
+- Additional Vite environment variables as needed
+
 ## Development
 #### Linux/macOS
 ```bash
+cd frontend
 npm install
 cp .env.example .env
 npm run dev
@@ -44,12 +51,16 @@ npm run dev
 
 #### Windows PowerShell
 ```powershell
+cd frontend
 npm install
 Copy-Item .env.example .env
 npm run dev
 ```
 
 ## Build
+
+Creates an optimized production build in the `dist/` directory.
+
 ```bash
 npm run build
 ```
