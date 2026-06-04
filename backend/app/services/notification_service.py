@@ -78,16 +78,21 @@ def _build_reminder_metadata(event: Event, occurrence: date) -> dict:
 
     if str(event.calendar_type).lower() == "hebrew" and event.year is not None:
         metadata["calendar_type"] = "HEBREW"
+        hy, hm, hd = hebrew.from_gregorian(
+            occurrence.year,
+            occurrence.month,
+            occurrence.day,
+        )
         metadata["hebrew_date"] = {
-            "day": event.day,
-            "month": event.month,
-            "year": event.year,
+            "day": hd,
+            "month": hm,
+            "year": hy,
         }
         try:
             metadata["formatted_hebrew_date"] = _format_hebrew_date_gematria(
-                event.year,
-                event.month,
-                event.day,
+                hy,
+                hm,
+                hd,
             )
         except Exception:
             metadata["formatted_hebrew_date"] = f"{event.day}/{event.month}/{event.year}"
