@@ -10,8 +10,7 @@ family_calendar_api/
 ├── frontend/               # React + Vite frontend app
 ├── docker-compose.yml      # Local full-stack orchestration
 ├── PRODUCTION_CHECKLIST.md # Deployment hardening checklist
-├── mypy.ini                # Python static type checker config
-└── backup.sql              # Database backup artifact
+└── mypy.ini                # Python static type checker config
 ```
 
 ## Architecture Overview
@@ -134,3 +133,14 @@ The workflow fails automatically if tests or builds fail.
 ## License
 
 This project is licensed under the MIT License. See the [LICENSE](./LICENSE) file for details.
+
+## Third-Party Libraries
+
+This project depends on several open-source libraries, including FastAPI, SQLAlchemy, Pydantic, Uvicorn, Convertdate, HTTPX, Passlib, and PostgreSQL drivers.
+
+All third-party libraries remain the property of their respective authors and are distributed under their own licenses. See `requirements.txt` and the respective project repositories for license details.
+
+## Acknowledgements
+
+Hebrew calendar calculations are based on the open-source `convertdate` library.
+
