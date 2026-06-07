@@ -370,18 +370,15 @@ def _event_occurs_within_window(next_occurrence: date, today: date) -> bool:
 
 def _resolve_occurrence_without_commit(event: Event, today: date) -> date | None:
     current_next_occurrence = cast(date | None, event.next_occurrence)
-    if current_next_occurrence is not None and current_next_occurrence >= today:
-        return current_next_occurrence
-    return calculate_next_occurrence(event)
+    if current_next_occurrence is None:
+        current_next_occurrence = calculate_next_occurrence(event)
+        event.next_occurrence = current_next_occurrence
 
+    if current_next_occurrence < today:
+        current_next_occurrence = calculate_next_occurrence(event, reference_date=current_next_occurrence + timedelta(days=1))
+        event.next_occurrence = current_next_occurrence
 
-def _advance_next_occurrence_after_reminder(event: Event, sent_for_occurrence: date) -> None:
-    if event.repeat_type == RepeatType.NONE:
-        return
-
-    event.next_occurrence = calculate_next_occurrence(
-        event, reference_date=sent_for_occurrence + timedelta(days=1)
-    )
+    return current_next_occurrence
 
 
 def _today_reminder_pairs(db: Session, today: date) -> set[tuple[int, int]]:
@@ -463,10 +460,6 @@ def process_event_reminders(db: Session, _within_hours: int = 24) -> int:
                                 "entity_id": notification.id,
                             },
                         )
-
-        for event in events:
-            if created_by_event.get(event.id, 0) > 0 and event.id in event_occurrences:
-                _advance_next_occurrence_after_reminder(event, event_occurrences[event.id])
 
         db.commit()
         return created_count
