@@ -370,13 +370,27 @@ def _event_occurs_within_window(next_occurrence: date, today: date) -> bool:
 
 def _resolve_occurrence_without_commit(event: Event, today: date) -> date | None:
     current_next_occurrence = cast(date | None, event.next_occurrence)
+
+    if current_next_occurrence is not None and current_next_occurrence >= today:
+        return current_next_occurrence
+
+    return calculate_next_occurrence(event)
+
+
+def _advance_expired_occurrence(event: Event, today: date) -> date | None:
+    current_next_occurrence = cast(date | None, event.next_occurrence)
+
     if current_next_occurrence is None:
         current_next_occurrence = calculate_next_occurrence(event)
         event.next_occurrence = current_next_occurrence
+        return current_next_occurrence
 
-    if current_next_occurrence < today:
+    if event.repeat_type == RepeatType.NONE:
+        return current_next_occurrence
+
+    while current_next_occurrence < today:
         current_next_occurrence = calculate_next_occurrence(event, reference_date=current_next_occurrence + timedelta(days=1))
-        event.next_occurrence = current_next_occurrence
+    event.next_occurrence = current_next_occurrence
 
     return current_next_occurrence
 
@@ -412,6 +426,7 @@ def process_event_reminders(db: Session, _within_hours: int = 24) -> int:
 
         events_by_family: dict[int, list[Event]] = defaultdict(list)
         for event in events:
+            _advance_expired_occurrence(event, today)
             events_by_family[event.family_id].append(event)
 
         event_occurrences: dict[int, date] = {}
@@ -424,7 +439,6 @@ def process_event_reminders(db: Session, _within_hours: int = 24) -> int:
                 event_occurrences[event.id] = next_occurrence
 
         sent_pairs = _today_reminder_pairs(db, today)
-        created_by_event: dict[int, int] = defaultdict(int)
 
         for user in users:
             user_family_ids = get_user_family_ids(db, user.id)
@@ -447,7 +461,6 @@ def process_event_reminders(db: Session, _within_hours: int = 24) -> int:
                     )
                     if created:
                         created_count += 1
-                        created_by_event[event.id] += 1
                         sent_pairs.add((event.id, user.id))
                         logger.info(
                             "Reminder notification created",
