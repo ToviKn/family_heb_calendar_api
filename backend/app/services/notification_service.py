@@ -72,6 +72,7 @@ def _build_reminder_metadata(event: Event, occurrence: date) -> dict:
     metadata = {
         "event_title": event.title,
         "date": str(occurrence),
+        "occurrence_date": str(occurrence),
         "start_time": event.start_time.isoformat() if event.start_time is not None else None,
         "family_id": event.family_id,
     }
@@ -395,20 +396,26 @@ def _advance_expired_occurrence(event: Event, today: date) -> date | None:
     return current_next_occurrence
 
 
-def _today_reminder_pairs(db: Session, today: date) -> set[tuple[int, int]]:
-    start_of_day = datetime.combine(today, datetime.min.time())
-    end_of_day = start_of_day + timedelta(days=1)
-    rows = (
-        db.query(Notification.event_id, Notification.user_id)
+def _reminder_already_sent(db: Session, user_id: int, event_id: int, occurrence: date,) -> bool:
+    occurrence_str = str(occurrence)
+
+    notifications = (
+        db.query(Notification)
         .filter(
+            Notification.user_id == user_id,
+            Notification.event_id == event_id,
             Notification.type.in_(EVENT_REMINDER_TYPES),
-            Notification.event_id.isnot(None),
-            Notification.send_at >= start_of_day,
-            Notification.send_at < end_of_day,
         )
         .all()
     )
-    return {(event_id, user_id) for event_id, user_id in rows if event_id is not None}
+
+    for notification in notifications:
+        metadata = notification.metadata_json or {}
+
+        if metadata.get("date") == occurrence_str:
+            return True
+
+    return False
 
 
 def process_event_reminders(db: Session, _within_hours: int = 24) -> int:
@@ -432,13 +439,12 @@ def process_event_reminders(db: Session, _within_hours: int = 24) -> int:
         event_occurrences: dict[int, date] = {}
         for event in events:
             next_occurrence = _resolve_occurrence_without_commit(event, today)
-            event.next_occurrence = next_occurrence
+
             if next_occurrence is None:
                 continue
+
             if _event_occurs_within_window(next_occurrence, today):
                 event_occurrences[event.id] = next_occurrence
-
-        sent_pairs = _today_reminder_pairs(db, today)
 
         for user in users:
             user_family_ids = get_user_family_ids(db, user.id)
@@ -447,7 +453,7 @@ def process_event_reminders(db: Session, _within_hours: int = 24) -> int:
                     next_occurrence = event_occurrences.get(event.id)
                     if next_occurrence is None:
                         continue
-                    if (event.id, user.id) in sent_pairs:
+                    if _reminder_already_sent(db, user.id, event.id, next_occurrence, ):
                         continue
 
                     reminder_message = f"Reminder: {event.title} on {next_occurrence}"
@@ -461,7 +467,6 @@ def process_event_reminders(db: Session, _within_hours: int = 24) -> int:
                     )
                     if created:
                         created_count += 1
-                        sent_pairs.add((event.id, user.id))
                         logger.info(
                             "Reminder notification created",
                             extra={
