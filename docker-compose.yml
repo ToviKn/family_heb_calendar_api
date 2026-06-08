@@ -1,52 +1,70 @@
 services:
   db:
     image: postgres:16
-    container_name: family-postgres
-    restart: always
+    container_name: family-calendar-db
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
     environment:
-      POSTGRES_USER: family_user
-      POSTGRES_PASSWORD: family_pass
-      POSTGRES_DB: family_calendar
+      POSTGRES_USER: ${POSTGRES_USER:-family_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-family_calendar}
+      POSTGRES_DB: ${POSTGRES_DB:-family_calendar}
     ports:
       - "5432:5432"
     volumes:
+      # Persistent local PostgreSQL data volume.
       - family_pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U family_user -d family_calendar" ]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-family_user} -d ${POSTGRES_DB:-family_calendar}"]
       interval: 5s
       timeout: 5s
-      retries: 5
-
+      retries: 10
+      start_period: 10s
 
   api:
-    build: .
-    container_name: family-api
-    restart: always
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: family-calendar-api
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
     depends_on:
       db:
         condition: service_healthy
     ports:
       - "8000:8000"
     environment:
-      JWT_SECRET_KEY: test_secret
-      DATABASE_URL: postgresql+psycopg://family_user:family_pass@db:5432/family_calendar
+      # Use Docker network hostname "db" (the service name above), not localhost.
+      DATABASE_URL: postgresql+psycopg://family_user:family_calendar@db:5432/family_calendar
+      ENV: development
+      DEBUG: "true"
+      ENABLE_API_DOCS: "true"
+      ALLOWED_ORIGINS: http://localhost:5173
     volumes:
-      - .:/app
-    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+      - ./backend:/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
-
-  tests:
+  frontend:
     build:
-      context: .
-      dockerfile: Dockerfile.test
-    container_name: family-api-tests
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: family-calendar-frontend
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_started
+    ports:
+      - "5173:5173"
     environment:
-      DATABASE_URL: sqlite:///./calendar_test_bootstrap.db
+      VITE_API_BASE_URL: http://localhost:8000
+      CHOKIDAR_USEPOLLING: "true"
+      WATCHPACK_POLLING: "true"
     volumes:
-      - .:/app
-    command: pytest -v
-    profiles:
-      - test
+      - ./frontend:/usr/src/app
+      - /usr/src/app/node_modules
+    working_dir: /usr/src/app
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 5173"
 
 volumes:
   family_pgdata:

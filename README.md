@@ -1,182 +1,146 @@
-# Family Calendar API
+# Family Calendar Monorepo
 
-A production-oriented FastAPI backend for managing family events across Gregorian and Hebrew calendars. The API provides JWT-based authentication, family-scoped event management, notifications, and date conversion utilities.
-
-## Features
-
-- JWT authentication and protected endpoints.
-- Family management and membership support.
-- Event CRUD with Gregorian/Hebrew date handling.
-- Date conversion endpoints (`/convert/hebrew`, `/convert/gregorian`).
-- Notification creation and listing.
-- Structured JSON logging with request correlation IDs.
-- OpenAPI documentation via `/docs` and `/redoc`.
-
-## Tech Stack
-
-- Python 3.11
-- FastAPI + Uvicorn/Gunicorn
-- SQLAlchemy 2.x
-- PostgreSQL (production), SQLite (tests)
-- Passlib + python-jose for authentication
-- Docker + Render deployment support
+This repository is organized as a monorepo with separate backend and frontend applications.
 
 ## Project Structure
 
 ```text
-.
-├── main.py                  # FastAPI entry point and middleware
-├── models/                  # ORM and API schema models
-│   ├── models.py               # SQLAlchemy ORM models
-│   ├── user.py                 # User API schema types
-│   ├── event.py                # Event/date conversion API schema types
-│   └── notification.py         # Notification API schema types 
-├── routes/                  # API route modules
-│   ├── auth.py                 # Login endpoint
-│   ├── users.py                # User creation endpoint
-│   ├── events.py               # Event CRUD and search endpoints
-│   ├── families.py             # Family + membership endpoints
-│   ├── notifications.py        # Notification endpoints and reminder trigger
-│   └── convert.py              # Date conversion endpoints
-├── services/                # Business logic layer
-│   ├── auth_service.py         # Password hashing, JWT, current-user resolution
-│   ├── user_service.py         # User creation logic
-│   ├── family_service.py       # Family + membership creation logic
-│   ├── event_service.py        # Event rules, queries, and mutation logic
-│   ├── date_service.py         # Date validation/conversion/recurrence calculations
-│   └── notification_service.py # Notification and reminder workflows
-├── storage/                 # Database/session/migration helpers
-│   ├── database.py             # Engine/session configuration and DB session dependency
-│   ├── enums.py                # Shared enum values
-│   └── schema_migrations.py    # Runtime-safe schema migration helpers
-├── utils/                   # Shared utility module
-│   └── date_utils.py           # Hebrew month length calculations
-├── tests/                   # Automated tests
-│   ├── conftest.py             # Shared pytest fixtures (DB, client, auth helpers)
-│   ├── test_authentication.py  # Auth/login and token-related API tests
-│   ├── test_convert.py         # Date conversion endpoint tests
-│   ├── test_date_service.py    # Recurrence/date service unit tests
-│   ├── test_endpoint_failures_parametrized.py # Parameterized negative API tests
-│   ├── test_events.py          # Event endpoint and authorization tests
-│   ├── test_families.py        # Family/membership endpoint tests
-│   ├── test_notifications.py   # Notification/reminder endpoint tests
-│   ├── test_permissions.py     # Cross-endpoint permission/token tests
-│   └── test_notification_migrations.py # Notification schema migration tests
-├── logging_config.py        # Structured logging config
-├── exceptions.py            # Domain/API exception types
-├── requirements.txt         # Runtime dependencies
-├── Dockerfile               # Production container image
-├── Dockerfile.test          # Test container image
-├── docker-compose.yml       # Local development/test orchestration
-├── render.yaml              # Render blueprint
-└── .env.example             # Environment variable template
+family_calendar_api/
+├── backend/                # FastAPI backend app, tests, and deployment configs
+├── frontend/               # React + Vite frontend app
+├── docker-compose.yml      # Local full-stack orchestration
+├── PRODUCTION_CHECKLIST.md # Deployment hardening checklist
+└── mypy.ini                # Python static type checker config
 ```
 
-## Environment Variables
+## Architecture Overview
 
-Copy `.env.example` and set secure values before running in production.
+The platform consists of:
 
-Required:
+* **Frontend (Vercel)** – React SPA served globally.
+* **Backend (Render)** – FastAPI application (`app.main:app`).
+* **Neon PostgreSQL** – Managed PostgreSQL database.
 
-- `DATABASE_URL`: SQLAlchemy database URL.
-  - Example (Render/Postgres): `postgresql+psycopg://USER:PASSWORD@HOST:5432/DB_NAME`
-- `JWT_SECRET_KEY`: Strong random secret for signing access tokens.
-- `ALLOWED_ORIGINS`: Comma-separated frontend origins for CORS.
+### Runtime Interaction Model
 
-Optional:
+1. Browser loads the frontend from Vercel.
+2. Frontend sends authenticated API requests (JWT Bearer token) to the backend.
+3. Backend validates permissions, executes business logic, and accesses PostgreSQL.
+4. Backend returns JSON responses.
 
-- `ACCESS_TOKEN_EXPIRE_MINUTES` (default: `60`)
-- `DEBUG` (default: `false`)
-- `LOG_LEVEL` (default: `INFO`)
-- `SQL_LOG_LEVEL` (default: `WARNING`)
-- `ENV` (default: `production`)
+### Request Flow Diagram
 
-## Local Setup
+```text
+[User Browser]
+      |
+      v
+[Vercel Frontend (React/Vite)]
+      | HTTPS JSON API (Bearer JWT)
+      v
+[Render Backend (FastAPI)]
+      | SQLAlchemy / psycopg
+      v
+[Neon PostgreSQL]
+```
+
+## Deployment
+
+### Backend (Render)
+
+* Builds from `backend/`
+* Installs dependencies from `backend/requirements.txt`
+* Runs `app.main:app` via Gunicorn/Uvicorn workers
+
+### Frontend (Vercel)
+
+* Builds from `frontend/`
+* Injects environment variables during build
+* Serves static assets globally
+
+### Cross-Service Configuration
+
+* Backend `ALLOWED_ORIGINS` must include frontend domains.
+* Frontend API URL must point to the deployed backend.
+
+## Quick Start
+
+### Backend
+
+#### Linux/macOS
 
 ```bash
+cd backend
 python -m venv .venv
-source venv\Scripts\activate 
-pip install --upgrade pip
+source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
+uvicorn app.main:app --reload
 ```
 
-Start locally:
+#### Windows PowerShell
+
+```powershell
+cd backend
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+Copy-Item .env.example .env
+uvicorn app.main:app --reload
+```
+
+### Frontend
+
+#### Linux/macOS
 
 ```bash
-gunicorn -k uvicorn.workers.UvicornWorker -w 2 -b 0.0.0.0:8000 main:app
+cd frontend
+npm install
+cp .env.example .env
+npm run dev
 ```
 
-Docs:
+#### Windows PowerShell
 
-- Swagger UI: `http://localhost:8000/docs`
-- ReDoc: `http://localhost:8000/redoc`
+```powershell
+cd frontend
+npm install
+Copy-Item .env.example .env
+npm run dev
+```
 
-## Docker Setup
-
-Build and run API + Postgres locally:
+### Full Stack with Docker
 
 ```bash
 docker compose up --build
 ```
 
-Run tests profile:
+## CI
 
-```bash
-docker compose --profile test run --rm tests
-```
+A GitHub Actions pipeline runs on every `push` and `pull_request`.
 
-## Render Deployment
+### Backend Job
 
-This repository includes `render.yaml` for service provisioning.
+* Installs Python dependencies
+* Runs `pytest`
 
-1. Push this repository to GitHub.
-2. In Render, create a **Blueprint** from the repo.
-3. Set `DATABASE_URL`, `JWT_SECRET_KEY`, and `ALLOWED_ORIGINS` as environment variables.
-4. Deploy and verify `/health` and `/docs`.
+### Frontend Job
 
-Start command used in production:
+* Installs Node dependencies
+* Builds the production bundle
 
-```bash
-gunicorn -k uvicorn.workers.UvicornWorker -w 2 -b 0.0.0.0:$PORT main:app
-```
+The workflow fails automatically if tests or builds fail.
 
-## API Usage
+## License
 
-### Authentication
+This project is licensed under the MIT License. See the [LICENSE](./LICENSE) file for details.
 
-```bash
-curl -X POST "http://localhost:8000/auth/login" \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "username=user@example.com&password=StrongPass123"
-```
+## Third-Party Libraries
 
-Use the returned token:
+This project depends on several open-source libraries, including FastAPI, SQLAlchemy, Pydantic, Uvicorn, Convertdate, HTTPX, Passlib, and PostgreSQL drivers.
 
-```bash
--H "Authorization: Bearer <access_token>"
-```
+All third-party libraries remain the property of their respective authors and are distributed under their own licenses. See `requirements.txt` and the respective project repositories for license details.
 
-### Documentation
+## Acknowledgements
 
-- `GET /docs` for interactive Swagger UI.
-- `GET /openapi.json` for raw OpenAPI schema.
+Hebrew calendar calculations are based on the open-source `convertdate` library.
 
-## 🌐 Live API
-
-Base URL:
-https://family-heb-calendar-api.onrender.com
-
-API Documentation (Swagger):
-https://family-heb-calendar-api.onrender.com/docs
-
-Health Check:
-https://family-heb-calendar-api.onrender.com/health
-
-
-## Production Notes
-
-- Do not commit `.env` files or secrets.
-- Restrict `ALLOWED_ORIGINS` to trusted frontend domains.
-- Keep `DEBUG=false` in production.
-- Use managed PostgreSQL for production workloads.

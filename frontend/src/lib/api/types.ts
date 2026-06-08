@@ -1,0 +1,180 @@
+export type CalendarType = 'gregorian' | 'hebrew';
+
+export type RepeatType = 'none' | 'daily' | 'yearly' | 'monthly' | 'weekly';
+
+export type NotificationType = 'EVENT_REMINDER' | 'event reminder' | 'invite' | 'join_request' | 'system';
+
+export interface ApiMessageResponse {
+  message: string;
+}
+
+export interface SimpleDate {
+  year: number;
+  month: number;
+  day: number;
+}
+
+export interface DateConversionResponse {
+  gregorian_date: SimpleDate;
+  hebrew_date: SimpleDate;
+}
+
+export interface AuthLoginRequest {
+  username: string;
+  password: string;
+}
+
+export interface AuthLoginResponse {
+  access_token: string;
+  token_type: string;
+  user: UserResponse;
+}
+
+export interface EventCreate {
+  title: string;
+  month: number;
+  day: number;
+  family_id: number;
+  family_name?: string | null;
+  start_time?: string | null;
+  end_time?: string | null;
+  description?: string | null;
+  calendar_type?: CalendarType;
+  year?: number | null;
+  repeat_type?: RepeatType;
+}
+
+export interface EventUpdate {
+  start_time?: string | null;
+  end_time?: string | null;
+  title?: string | null;
+  description?: string | null;
+  year?: number | null;
+  month?: number | null;
+  day?: number | null;
+  repeat_type?: RepeatType | null;
+}
+
+export interface EventResponse {
+  id: number;
+  created_by: number;
+  created_at: string;
+  updated_at: string;
+  title: string;
+  month: number;
+  day: number;
+  family_id: number;
+  family_name?: string | null;
+  start_time?: string | null;
+  end_time?: string | null;
+  description?: string | null;
+  calendar_type?: CalendarType | null;
+  year?: number | null;
+  repeat_type?: RepeatType | null;
+  next_occurrence?: string | null;
+}
+
+export interface EventListResponse {
+  events: EventResponse[];
+  total: number;
+  page?: number | null;
+  per_page?: number | null;
+}
+
+export interface FamilyResponse {
+  id: number;
+  name: string;
+  created_at: string;
+}
+
+export interface FamilyMembershipResponse {
+  id: number;
+  user_id: number;
+  family_id: number;
+  family_name?: string | null;
+  role: string;
+  joined_at: string;
+}
+
+export type FamilyJoinRequestStatus = 'pending' | 'rejected';
+
+export interface FamilyJoinRequestResponse {
+  status: FamilyJoinRequestStatus;
+  message: string;
+}
+
+export interface FamilyJoinRequestUserResponse {
+  id: number;
+  name: string;
+  email: string;
+}
+
+export interface FamilyJoinRequestDetailResponse {
+  id: number;
+  user_id: number;
+  family_id: number;
+  family_name?: string | null;
+  requested_by: number;
+  status: string;
+  created_at: string;
+  user: FamilyJoinRequestUserResponse;
+  requested_by_user: FamilyJoinRequestUserResponse;
+}
+
+export interface FamilyJoinRequestListResponse {
+  requests: FamilyJoinRequestDetailResponse[];
+  total: number;
+}
+
+export interface NotificationCreate {
+  event_id: number;
+}
+
+export interface NotificationUserSummary {
+  id: number;
+  name: string;
+}
+
+export interface NotificationResponse {
+  id: number;
+  user_id: number;
+  message: string;
+  type: NotificationType;
+  metadata?: Record<string, unknown> | null;
+  metadata_json?: Record<string, unknown> | null;
+  actor?: NotificationUserSummary | null;
+  target?: NotificationUserSummary | null;
+  event_id?: number | null;
+  family_id?: number | null;
+  family_name?: string | null;
+  created_at: string;
+  is_read: boolean;
+}
+
+export interface NotificationListResponse {
+  events: NotificationResponse[];
+  notifications?: NotificationResponse[];
+  total: number;
+}
+
+
+export interface ChangePasswordRequest {
+  current_password: string;
+  new_password: string;
+}
+
+export interface ChangePasswordResponse extends ApiMessageResponse {
+  status: string;
+}
+
+export interface UserCreateRequest {
+  email: string;
+  name: string;
+  password: string;
+}
+
+export interface UserResponse {
+  id: number;
+  email: string;
+  name: string;
+}

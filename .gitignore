@@ -18,6 +18,11 @@ env/
 *.sqlite
 *.sqlite3
 
+backup.sql
+*.dump
+*.sql
+*.backup
+
 # Tooling caches
 .pytest_cache/
 .mypy_cache/

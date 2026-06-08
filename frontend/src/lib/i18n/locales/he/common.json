@@ -1,0 +1,424 @@
+{
+  "nav": {
+    "home": "בית",
+    "events": "אירועים",
+    "families": "משפחות",
+    "notifications": "התראות",
+    "convert": "המרת תאריכים",
+    "settings": "הגדרות",
+    "logout": "התנתקות"
+  },
+  "auth": {
+    "login": "התחברות",
+    "login_description": "שימוש בחשבון שלך כדי לגשת ללוח השנה המשפחתי.",
+    "username": "שם",
+    "username_placeholder": "הזנת שם",
+    "password": "סיסמה",
+    "password_placeholder": "הזנת סיסמה",
+    "sign_in": "התחברות",
+    "signing_in": "מתחבר...",
+    "no_account": "אין לך חשבון?",
+    "create_account": "יצירת חשבון",
+    "register": "הרשמה",
+    "register_description": "יצירת חשבון חדש כדי להתחיל להשתמש ביומן המשפחתי.",
+    "name": "שם",
+    "name_placeholder": "שם מלא",
+    "email": "אימייל",
+    "email_placeholder": "אימייל",
+    "creating_account": "יוצר חשבון...",
+    "already_have_account": "כבר יש לך חשבון?",
+    "errors": {
+      "login_failed": "ההתחברות נכשלה. יש לבדוק את פרטי ההתחברות.",
+      "register_failed": "ההרשמה נכשלה. יש לבדוק את הפרטים ולנסות שוב."
+    }
+  },
+  "landing": {
+    "app_name": "לוח שנה משפחתי עברי",
+    "title": "ניהול רגעים משפחתיים בעברית ובאנגלית.",
+    "description": "ניהול אירועים משפחתיים, תאריכים עבריים, תזכורות והתראות מלוח שנה משותף אחד.",
+    "actions": {
+      "login": "כניסה",
+      "register": "יצירת חשבון",
+      "convert": "המרת תאריכים"
+    }
+  },
+  "events": {
+    "title": "אירועים",
+    "description": "יצירת, צפייה, עריכת ומחיקת אירועי משפחה.",
+    "list_title": "רשימת אירועים",
+    "loading": "טוען אירועים...",
+    "family": "משפחה",
+    "no_description": "ללא תיאור",
+    "form": {
+      "title": "כותרת",
+      "description": "תיאור",
+      "family_id": "מזהה משפחה",
+      "day": "יום",
+      "month": "חודש",
+      "year": "שנה",
+      "start_time": "שעת התחלה",
+      "end_time": "שעת סיום",
+      "calendar_type": "סוג תאריך",
+      "repeat_type": "סוג חזרה",
+      "hebrew_preview_label": "תצוגה",
+      "hebrew_preview_empty": "יש להזין יום, חודש ושנה",
+      "hebrew_month": "חודש עברי",
+      "invalid_hebrew_year": "יש להזין שנה עברית מ־א׳ ומעלה."
+    },
+    "actions": {
+      "create": "יצירת אירוע",
+      "update": "עדכון אירוע",
+      "edit": "עריכת אירוע",
+      "saving": "שומר..."
+    },
+    "view": {
+      "by_date": "לפי תאריך",
+      "today": "היום",
+      "upcoming": "בקרוב"
+    },
+    "calendar": {
+      "gregorian": "לועזי",
+      "hebrew": "עברי"
+    },
+    "repeat": {
+      "none": "ללא",
+      "daily": "יומי",
+      "weekly": "שבועי",
+      "monthly": "חודשי",
+      "yearly": "שנתי"
+    },
+    "messages": {
+      "today": "רשימת אירועים להיום.",
+      "upcoming": "רשימת אירועים קרובים.",
+      "date_mode": "בחירת תאריך זמינה רק במצב 'לפי תאריך'."
+    },
+    "empty": {
+      "today": "אין אירועים להיום.",
+      "upcoming": "אין אירועים קרובים.",
+      "date": "אין אירועים לתאריך זה."
+    },
+    "errors": {
+      "load_today": "שגיאה בטעינת אירועי היום.",
+      "load_upcoming": "שגיאה בטעינת אירועים קרובים.",
+      "load_date": "שגיאה בטעינת אירועים לתאריך שנבחר.",
+      "delete": "שגיאה במחיקת אירוע.",
+      "save": "שגיאה בשמירת אירוע. יש לבדוק את כל השדות.",
+      "invalid_time": "שעת סיום חייבת להיות אחרי שעת התחלה."
+    },
+    "hebrew_months": {
+      "1": "ניסן",
+      "2": "אייר",
+      "3": "סיוון",
+      "4": "תמוז",
+      "5": "אב",
+      "6": "אלול",
+      "7": "תשרי",
+      "8": "חשוון",
+      "9": "כסלו",
+      "10": "טבת",
+      "11": "שבט",
+      "12": "אדר",
+      "13": "אדר ב׳"
+    }
+  },
+  "common": {
+    "cancel": "ביטול",
+    "edit": "עריכה",
+    "delete": "מחיקה"
+  },
+  "event_details": {
+    "title": "פרטי אירוע",
+    "back": "חזרה לאירועים",
+    "loading": "טוען פרטי אירוע...",
+    "event_id": "מזהה אירוע",
+    "no_description": "אין תיאור",
+    "no_time": "לא צוינה שעה",
+    "fields": {
+      "description": "תיאור",
+      "date": "תאריך",
+      "time": "שעה",
+      "repeat_type": "סוג חזרה",
+      "family": "משפחה"
+    },
+    "errors": {
+      "load": "לא ניתן לטעון את פרטי האירוע.",
+      "missing_id": "מזהה אירוע חסר.",
+      "invalid_id": "מזהה אירוע לא תקין."
+    }
+  },
+  "convert": {
+    "title": "המרת תאריכים",
+    "description": "המרה בין תאריכים לועזיים ועבריים באמצעות ה־API.",
+    "gregorian_to_hebrew": {
+      "title": "לועזי ← עברי",
+      "label": "תאריך לועזי"
+    },
+    "hebrew_to_gregorian": {
+      "title": "עברי ← לועזי",
+      "day_range": "טווח ימים חוקי: 1-30 עבור תאריך עברי."
+    },
+    "today": {
+      "title": "התאריך של היום"
+    },
+    "form": {
+      "year": "שנה",
+      "month": "חודש",
+      "day": "יום"
+    },
+    "actions": {
+      "converting": "ממיר...",
+      "loading": "טוען...",
+      "convert_gregorian": "המרת לועזי ← עברי",
+      "convert_hebrew": "המרת עברי ← לועזי",
+      "get_today": "קבלת התאריך של היום (בשני הסוגים)"
+    },
+    "result": {
+      "title": "תוצאת ההמרה",
+      "gregorian": "לועזי",
+      "hebrew": "עברי"
+    },
+    "messages": {
+      "no_result": "בחירת תאריך כדי לבצע המרה."
+    },
+    "errors": {
+      "invalid_gregorian": "יש לבחור תאריך לועזי תקין בתבנית YYYY-MM-DD.",
+      "invalid_hebrew": "יש להזין תאריך עברי תקין. היום חייב להיות בין 1 ל־30.",
+      "convert_failed": "לא ניתן להמיר את התאריך. יש לבדוק את הנתונים ולנסות שוב."
+    }
+  },
+  "families": {
+    "title": "משפחות",
+    "description": "יצירה או הצטרפות למשפחה וצפייה באירועים משפחתיים.",
+    "create": {
+      "title": "יצירת משפחה",
+      "form": {
+        "name": "שם משפחה"
+      },
+      "actions": {
+        "create": "יצירת משפחה",
+        "creating": "יוצר..."
+      },
+      "success": "המשפחה \"{{name}}\" נוצרה (מזהה: {{id}}).",
+      "errors": {
+        "name_required": "שם משפחה הוא שדה חובה.",
+        "failed": "לא ניתן ליצור משפחה. יש לנסוות שם אחר."
+      }
+    },
+    "join": {
+      "title": "הצטרפות למשפחה",
+      "description": "הזנת מזהה משפחה כדי לשלוח בקשת הצטרפות למנהל המשפחה.",
+      "form": {
+        "family_id": "מזהה משפחה"
+      },
+      "actions": {
+        "request": "שליחת בקשת הצטרפות",
+        "sending": "שולח...",
+        "pending": "בקשה ממתינה"
+      },
+      "messages": {
+        "pending": "בקשת ההצטרפות נשלחה וממתינה לאישור.",
+        "completed": "בקשת הגישה למשפחה הושלמה."
+      },
+      "errors": {
+        "invalid_family_id": "יש להזין מזהה משפחה תקין.",
+        "failed": "לא ניתן לשלוח בקשת הצטרפות. יש לבדוק את מזהה המשפחה ולנסות שוב."
+      }
+    },
+    "requests": {
+      "title": "בקשות הצטרפות",
+      "description": "מנהלי משפחה יכולים לבדוק בקשות הצטרפות ממתינות.",
+      "loading": "טעינת בקשות הצטרפות...",
+      "requested_by": "הבקשה נשלחה על ידי {{name}} בתאריך {{date}}",
+      "actions": {
+        "approve": "אישור",
+        "reject": "דחייה",
+        "working": "מעבד...",
+        "load": "טעינת בקשות הצטרפות",
+        "loading": "טוען..."
+      },
+      "success": {
+        "approved": "בקשת ההצטרפות אושרה עבור החשבון {{userId}} למשפחה {{family}}.",
+        "rejected": "בקשת ההצטרפות נדחתה."
+      },
+      "empty": {
+        "initial": "טעינת משפחה כדי לצפות בבקשות הצטרפות.",
+        "no_requests": "אין בקשות הצטרפות ממתינות למשפחה זו."
+      },
+      "errors": {
+        "invalid_family_id": "הזנת מזהה משפחה תקין כדי לטעון בקשות.",
+        "load_failed": "לא ניתן לטעון בקשות הצטרפות. יש לבדוק הרשאות ומזהה משפחה.",
+        "action_failed": "לא ניתן לבצע את הפעולה {{action}} על הבקשה.",
+        "invalid_family_id_before_review": "יש להזין מזהה משפחה תקין לפני בדיקת הבקשות."
+      }
+    },
+    "events": {
+      "title": "צפייה באירועי משפחה",
+      "form": {
+        "family_id": "מזהה משפחה",
+        "page": "עמוד",
+        "per_page": "כמות לעמוד"
+      },
+      "actions": {
+        "load": "טעינת אירועים",
+        "loading": "טוען..."
+      },
+      "loading": "טוען אירועי משפחה...",
+      "empty": "עדיין לא נטענו אירועים משפחתיים.",
+      "total": "סה\"כ אירועים: {{total}}",
+      "no_description": "אין תיאור",
+      "errors": {
+        "load_failed": "לא ניתן לטעון אירועי משפחה. יש לבדוק הרשאות ומזהה משפחה."
+      }
+    },
+    "display": {
+      "label": "משפחה: {{family}}",
+      "name_with_id": "{{name}} (ID: {{id}})",
+      "id_only": "מזהה משפחה: {{id}}",
+      "unknown": "משפחה לא ידועה"
+    }
+  },
+  "home": {
+    "title": "לוח שנה משפחתי עברי",
+    "description": "התחברת בהצלחה. ניתן לנהל אירועים, משפחות והתראות ממסך הניהול.",
+    "welcome": "ברוך הבא, {{name}}!",
+    "actions": {
+      "events": "פתיחת אירועים",
+      "families": "פתיחת משפחות",
+      "notifications": "פתיחת התראות",
+      "logout": "התנתקות"
+    }
+  },
+  "notFound": {
+    "title": "העמוד לא נמצא",
+    "description": "העמוד שחיפשת אינו קיים או שהועבר למיקום אחר.",
+    "backHome": "חזרה לדף הבית"
+  },
+  "notifications": {
+    "title": "התראות",
+    "description": "צפייה ויצירת התראות, ועיבוד תזכורות.",
+    "loading": "טוען...",
+    "empty": "אין התראות זמינות.",
+    "default_title": "התראה",
+    "default_subtitle": "אין פרטים זמינים.",
+    "created_label": "נוצרה",
+    "event_id_label": "מזהה אירוע",
+    "read": "נקראה",
+    "create": {
+      "title": "יצירת התראה",
+      "event_id_placeholder": "מזהה אירוע"
+    },
+    "process": {
+      "title": "עיבוד תזכורות",
+      "description": "יצירת התראות עבור תזכורות לאירועים שהגיע זמנן."
+    },
+    "list": {
+      "title": "ההתראות שלך"
+    },
+    "actions": {
+      "create": "יצירת התראה",
+      "creating": "יוצר...",
+      "process": "עיבוד תזכורות",
+      "processing": "מעבד...",
+      "refresh": "רענון",
+      "mark_read": "סימון כנקראה",
+      "marking": "מסמן...",
+      "delete": "מחיקה",
+      "deleting": "מוחק..."
+    },
+    "success": {
+      "created": "ההתראה נוצרה בהצלחה.",
+      "processed": "עובדו תזכורות. נוצרו {{count}} התראות."
+    },
+    "errors": {
+      "load": "לא ניתן לטעון התראות.",
+      "mark_read": "לא ניתן לסמן את ההתראה כנקראה.",
+      "delete": "לא ניתן למחוק את ההתראה.",
+      "invalid_event_id": "יש להזין מזהה אירוע חוקי הגדול מ־0.",
+      "create": "לא ניתן ליצור התראה. יש לוודא שמזהה האירוע תקין.",
+      "process": "לא ניתן לעבד תזכורות."
+    },
+    "summary": {
+      "reminder_title": "תזכורת: {{title}}",
+      "scheduled_for": "מתוזמן לתאריך {{date}}",
+      "event_reminder_fallback": "תזכורת מתוזמנת",
+      "invite_title": "הזמנה למשפחה",
+      "event_created_title": "אירוע חדש",
+      "event_created": "נוצר אירוע חדש: {{title}}",
+      "event_updated_title": "אירוע עודכן",
+      "event_updated": "האירוע עודכן: {{title}}",
+      "invited_to_family": "הזמנה למשפחה {{family}} עבור {{targetName}} על ידי {{actorName}}.",
+      "join_request_title": "בקשת הצטרפות",
+      "requested_to_join": "בקשת הצטרפות למשפחה {{family}} על ידי {{userName}}.",
+      "join_request_approved_title": "בקשת הצטרפות אושרה",
+      "join_request_approved": "אושרה בקשתך להצטרף למשפחה {{family}} על ידי {{actorName}}.",
+      "join_request_rejected_title": "בקשת הצטרפות נדחתה",
+      "join_request_rejected": "נדחתה בקשתך להצטרף למשפחה {{family}} על ידי {{actorName}}.",
+      "untitled_event": "אירוע ללא כותרת"
+    },
+    "metadata_line": "נוצרה {{createdAt}}",
+    "metadata_line_withEvent": "נוצרה {{createdAt}} • מזהה אירוע: {{eventId}}"
+  },
+  "settings": {
+    "title": "הגדרות",
+    "description": "ניהול הגדרות אבטחת החשבון שלך.",
+    "change_password": {
+      "title": "שינוי סיסמה",
+      "description": "יש להזין את הסיסמה הנוכחית ובחירת סיסמה חדשה לחשבון שלך."
+    },
+    "fields": {
+      "current_password": "סיסמה נוכחית",
+      "new_password": "סיסמה חדשה",
+      "confirm_password": "אימות סיסמה חדשה"
+    },
+    "password_policy": "הסיסמה החדשה חייבת להכיל לפחות 10 תווים, כולל אות גדולה, אות קטנה, מספר ותו מיוחד.",
+    "actions": {
+      "update": "עדכון סיסמה",
+      "updating": "מעדכן סיסמה..."
+    },
+    "messages": {
+      "password_mismatch": "הסיסמה החדשה והאימות אינם תואמים.",
+      "password_updated": "הסיסמה עודכנה בהצלחה.",
+      "change_password_failed": "לא ניתן לשנות סיסמה. יש לבדוק את הסיסמה הנוכחית ולנסות שוב.",
+      "updating_password": "מעדכן את הסיסמה שלך..."
+    }
+  },
+  "language": {
+    "hebrew": "עברית",
+    "english": "אנגלית"
+  },
+  "api_errors": {
+    "current_password_incorrect": "הסיסמה הנוכחית שגויה.",
+    "email_already_exists": "כבר קיים חשבון עם כתובת האימייל הזו.",
+    "invalid_credentials": "שם המשתמש או הסיסמה שגויים.",
+    "invalid_email_format": "יש להזין כתובת אימייל תקינה.",
+    "invalid_notification_type": "סוג ההתראה אינו תקין.",
+    "invalid_token": "ההתחברות אינה תקינה. יש להתחבר מחדש.",
+    "new_password_must_differ": "הסיסמה החדשה חייבת להיות שונה מהסיסמה הנוכחית.",
+    "not_authorized_family_members": "אין לך הרשאה להוסיף בני משפחה.",
+    "not_authorized_delete_event": "אין לך הרשאה למחוק אירוע זה.",
+    "not_authorized_family_events": "אין לך הרשאה לצפות באירועי משפחה זו.",
+    "not_authorized_update_event": "אין לך הרשאה לעדכן אירוע זה.",
+    "operation_failed": "הפעולה נכשלה. יש לנסות שוב.",
+    "password_empty": "הסיסמה אינה יכולה להיות ריקה.",
+    "password_contains_email": "הסיסמה אינה יכולה להכיל את כתובת האימייל שלך.",
+    "password_min_length": "הסיסמה חייבת להכיל לפחות 10 תווים.",
+    "password_lowercase": "הסיסמה חייבת לכלול אות קטנה באנגלית.",
+    "password_uppercase": "הסיסמה חייבת לכלול אות גדולה באנגלית.",
+    "password_number": "הסיסמה חייבת לכלול ספרה.",
+    "password_special": "הסיסמה חייבת לכלול תו מיוחד.",
+    "password_too_long": "הסיסמה ארוכה מדי.",
+    "password_too_long_hashing": "הסיסמה ארוכה מדי להצפנה מאובטחת.",
+    "permission_denied": "אין לך הרשאה לבצע פעולה זו.",
+    "resource_not_found": "{{resource}} עם המזהה {{identifier}} לא נמצא.",
+    "unauthorized": "יש להתחבר כדי להמשיך.",
+    "user_already_family_member": "הינך כבר חבר במשפחה זו.",
+    "user_not_in_family": "אינך חבר במשפחה זו.",
+    "resources": {
+      "event": "אירוע",
+      "family": "משפחה",
+      "family_join_request": "בקשת הצטרפות למשפחה",
+      "notification": "התראה",
+      "user": "משתמש"
+    }
+  }
+}
