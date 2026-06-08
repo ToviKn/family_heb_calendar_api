@@ -82,7 +82,7 @@ enable_docs = settings.enable_api_docs or not IS_PRODUCTION
 app = FastAPI(
     title="Family Calendar API",
     description="A calendar API supporting both Hebrew and Gregorian dates",
-    version="1.0.0",
+    version="2.0.0",
     docs_url="/docs" if enable_docs else None,
     redoc_url="/redoc" if enable_docs else None,
     openapi_url="/openapi.json" if enable_docs else None,
@@ -237,7 +237,7 @@ async def general_exception_handler(request: Request, exc: Exception) -> JSONRes
 def root() -> dict[str, str]:
     return {
         "message": "Family Calendar API",
-        "version": "1.0.0",
+        "version": "2.0.0",
         "docs": "/docs",
         "health": "/health",
     }
