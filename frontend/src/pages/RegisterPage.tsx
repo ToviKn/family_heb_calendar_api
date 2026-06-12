@@ -74,6 +74,10 @@ export function RegisterPage() {
           />
         </label>
 
+        <p id="password-policy" className="text-sm text-slate-600">
+            {t('auth.password_policy')}
+          </p>
+
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
 
         <button
