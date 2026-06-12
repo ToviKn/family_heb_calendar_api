@@ -24,9 +24,43 @@ export function RegisterPage() {
     try {
       await register({ email, name, password });
       navigate('/login', { replace: true });
-    } catch {
-      setError(t('auth.errors.register_failed'));
-    } finally {
+    } catch (err: any) {
+      const message = err?.response?.data?.message;
+
+      switch (message) {
+        case 'Email already exists':
+          setError(t('auth.errors.Email_exists'));
+          break;
+
+        case 'Invalid email format':
+          setError(t('auth.errors.invalid_email'));
+          break;
+
+        case 'Password must be at least 10 characters':
+          setError(t('auth.errors.least'));
+          break;
+
+        case 'Password must include a lowercase letter':
+          setError(t('auth.errors.lowercase'));
+          break;
+
+        case 'Password must include an uppercase letter':
+          setError(t('auth.errors.uppercase'));
+          break;
+
+        case 'Password must include a number':
+          setError(t('auth.errors.number'));
+          break;
+
+        case 'Password must include a special character':
+          setError(t('auth.errors.special'));
+          break;
+
+        default:
+          setError(t('auth.errors.register_failed'));
+      }
+    }
+     finally {
       setIsSubmitting(false);
     }
   }
@@ -73,6 +107,14 @@ export function RegisterPage() {
             required
           />
         </label>
+
+        <ul className="mt-2 text-sm text-slate-600">
+          <li>{password.length >= 10 ? '✓' : '•'} {t('auth.least')}</li>
+          <li>{/[a-z]/.test(password) ? '✓' : '•'} {t('auth.lowercase')}</li>
+          <li>{/[A-Z]/.test(password) ? '✓' : '•'} {t('auth.uppercase')}</li>
+          <li>{/\d/.test(password) ? '✓' : '•'} {t('auth.number')}</li>
+          <li>{/[^A-Za-z0-9]/.test(password) ? '✓' : '•'} {t('auth.special')}</li>
+        </ul>
 
         <p id="password-policy" className="text-sm text-slate-600">
             {t('auth.password_policy')}

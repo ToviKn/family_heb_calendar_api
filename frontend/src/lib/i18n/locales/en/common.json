@@ -25,12 +25,24 @@
     "name_placeholder": "Enter full name",
     "email": "Email",
     "email_placeholder": "Enter email",
+    "least": "at least 10 characters",
+    "lowercase": "lowercase",
+    "uppercase": "uppercase",
+    "number": "number",
+    "special": "special characters",
     "password_policy": "password must be at least 10 characters and include uppercase, lowercase, number, and special characters.",
     "creating_account": "Creating account...",
     "already_have_account": "Already have an account?",
     "errors": {
       "login_failed": "Login failed. Please check your credentials.",
-      "register_failed": "Registration failed. Please verify your details and try again."
+      "register_failed": "Registration failed. Please verify your details and try again.",
+      "Email_exists": "Email already exists.",
+      "invalid_email": "Invalid email format.",
+      "least": "Password must be at least 10 characters.",
+      "lowercase": "Password must include a lowercase letter.",
+      "uppercase": "Password must include an uppercase letter.",
+      "number": "Password must include a number.",
+      "special": "Password must include a special character."
     }
   },
   "landing": {
