@@ -11,8 +11,8 @@
   "auth": {
     "login": "התחברות",
     "login_description": "שימוש בחשבון שלך כדי לגשת ללוח השנה המשפחתי.",
-    "username": "שם",
-    "username_placeholder": "הזנת שם",
+    "username": "אימייל",
+    "username_placeholder": "הזנת אימייל",
     "password": "סיסמה",
     "password_placeholder": "הזנת סיסמה",
     "sign_in": "התחברות",
@@ -25,6 +25,7 @@
     "name_placeholder": "שם מלא",
     "email": "אימייל",
     "email_placeholder": "אימייל",
+    "password_policy": "הסיסמה חייבת להכיל לפחות 10 תווים, כולל אות גדולה, אות קטנה, מספר ותו מיוחד.",
     "creating_account": "יוצר חשבון...",
     "already_have_account": "כבר יש לך חשבון?",
     "errors": {

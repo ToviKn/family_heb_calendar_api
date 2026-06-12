@@ -11,8 +11,8 @@
   "auth": {
     "login": "Login",
     "login_description": "Use your account to access your family calendar.",
-    "username": "Username",
-    "username_placeholder": "Enter username",
+    "username": "email",
+    "username_placeholder": "Enter email",
     "password": "Password",
     "password_placeholder": "Enter password",
     "sign_in": "Sign in",
@@ -25,6 +25,7 @@
     "name_placeholder": "Enter full name",
     "email": "Email",
     "email_placeholder": "Enter email",
+    "password_policy": "password must be at least 10 characters and include uppercase, lowercase, number, and special characters.",
     "creating_account": "Creating account...",
     "already_have_account": "Already have an account?",
     "errors": {
