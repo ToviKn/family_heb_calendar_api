@@ -393,6 +393,33 @@
       "password_updated": "Password updated successfully.",
       "change_password_failed": "Unable to change password. Please verify your current password and try again.",
       "updating_password": "Updating your password..."
+    },
+    "notifications": {
+      "title": "Notifications",
+      "description": "Choose how reminder notifications are delivered.",
+      "fields": {
+        "email_enabled": "Enable Email",
+        "push_enabled": "Enable Push",
+        "notify_today": "Notify Today",
+        "notify_day_before": "Notify One Day Before"
+      },
+      "actions": {
+        "enable_browser": "Enable",
+        "save_preferences": "Save preferences"
+      },
+      "messages": {
+        "browser_disabled": "Browser notifications are disabled.",
+        "browser_enable": "Enable browser notifications.",
+        "browser_enabled": "Notifications enabled successfully.",
+        "permission_denied": "Permission denied.",
+        "settings_saved": "Notification settings saved successfully.",
+        "loading": "Loading notification preferences..."
+      },
+      "errors": {
+        "load_preferences": "Failed to load notification settings.",
+        "enable_browser": "Failed to enable browser notifications.",
+        "save_preferences": "Failed to save notification settings."
+      }
     }
   },
   "language": {

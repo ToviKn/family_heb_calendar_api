@@ -26,11 +26,11 @@ export function SettingsPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [preferences, setPreferences] = useState<NotificationPreferences | null>(null);
-  const [preferencesMessage, setPreferencesMessage] = useState<string | null>(null);
+  const [preferencesMessageKey, setPreferencesMessageKey] = useState<string | null>(null);
   const [permission, setPermission] = useState(getBrowserNotificationPermission());
 
   useEffect(() => {
-    getNotificationPreferences().then(setPreferences).catch(() => setPreferencesMessage('Unable to load notification preferences.'));
+    getNotificationPreferences().then(setPreferences).catch(() => setPreferencesMessageKey('settings.notifications.errors.load_preferences'));
   }, []);
 
   const passwordsMatch = form.newPassword === form.confirmNewPassword;
@@ -80,7 +80,7 @@ export function SettingsPage() {
 
   async function savePreferences() {
     if (!preferences) return;
-    setPreferencesMessage(null);
+    setPreferencesMessageKey(null);
     try {
       const updated = await updateNotificationPreferences({
         email_enabled: preferences.email_enabled,
@@ -89,9 +89,9 @@ export function SettingsPage() {
         notify_day_before: preferences.notify_day_before,
       });
       setPreferences(updated);
-      setPreferencesMessage('Notification preferences saved.');
+      setPreferencesMessageKey('settings.notifications.messages.settings_saved');
     } catch {
-      setPreferencesMessage('Unable to save notification preferences.');
+      setPreferencesMessageKey('settings.notifications.errors.save_preferences');
     }
   }
 
@@ -99,9 +99,9 @@ export function SettingsPage() {
     try {
       const subscription = await subscribeToPushNotifications();
       setPermission(getBrowserNotificationPermission());
-      setPreferencesMessage(subscription ? 'Browser notifications enabled.' : 'Browser notification permission was not granted.');
+      setPreferencesMessageKey(subscription ? 'settings.notifications.messages.browser_enabled' : 'settings.notifications.messages.permission_denied');
     } catch {
-      setPreferencesMessage('Unable to enable browser notifications.');
+      setPreferencesMessageKey('settings.notifications.errors.enable_browser');
     }
   }
 
@@ -115,26 +115,26 @@ export function SettingsPage() {
 
 
       <article className="max-w-xl rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-slate-900">Notifications</h2>
-        <p className="mt-2 text-sm text-slate-600">Choose how reminder notifications are delivered.</p>
+        <h2 className="text-lg font-semibold text-slate-900">{t('settings.notifications.title')}</h2>
+        <p className="mt-2 text-sm text-slate-600">{t('settings.notifications.description')}</p>
         {preferences ? (
           <div className="mt-4 space-y-3">
-            {([['email_enabled', 'Enable Email'], ['push_enabled', 'Enable Push'], ['notify_today', 'Notify Today'], ['notify_day_before', 'Notify One Day Before']] as const).map(([field, label]) => (
+            {(['email_enabled', 'push_enabled', 'notify_today', 'notify_day_before'] as const).map((field) => (
               <label key={field} className="flex items-center gap-2 text-sm text-slate-700">
                 <input type="checkbox" checked={preferences[field]} onChange={(event) => setPreferences({ ...preferences, [field]: event.target.checked })} />
-                {label}
+                {t(`settings.notifications.fields.${field}`)}
               </label>
             ))}
             {permission !== 'granted' ? (
               <div className="rounded-md bg-blue-50 p-3 text-sm text-blue-900">
-                <p>{permission === 'denied' ? 'Browser notifications are blocked in this browser.' : 'Enable browser notifications to receive reminders when the app is closed.'}</p>
-                {permission !== 'denied' ? <button className="mt-2 rounded-md bg-blue-600 px-3 py-1 font-medium text-white" type="button" onClick={enableBrowserNotifications}>Enable</button> : null}
+                <p>{permission === 'denied' ? t('settings.notifications.messages.browser_disabled') : t('settings.notifications.messages.browser_enable')}</p>
+                {permission !== 'denied' ? <button className="mt-2 rounded-md bg-blue-600 px-3 py-1 font-medium text-white" type="button" onClick={enableBrowserNotifications}>{t('settings.notifications.actions.enable_browser')}</button> : null}
               </div>
             ) : null}
-            {preferencesMessage ? <p className="text-sm text-slate-600">{preferencesMessage}</p> : null}
-            <button className="rounded-md bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700" type="button" onClick={savePreferences}>Save preferences</button>
+            {preferencesMessageKey ? <p className="text-sm text-slate-600">{t(preferencesMessageKey)}</p> : null}
+            <button className="rounded-md bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700" type="button" onClick={savePreferences}>{t('settings.notifications.actions.save_preferences')}</button>
           </div>
-        ) : <LoadingMessage message="Loading notification preferences..." />}
+        ) : <LoadingMessage message={t('settings.notifications.messages.loading')} />}
       </article>
 
       <article className="max-w-xl rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
