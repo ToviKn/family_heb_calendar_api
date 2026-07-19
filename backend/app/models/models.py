@@ -23,6 +23,12 @@ class User(Base):
     )
     events_created: Mapped[list[Event]] = relationship(back_populates="creator")
     notifications: Mapped[list[Notification]] = relationship(back_populates="user")
+    push_subscriptions: Mapped[list[PushSubscription]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
+    notification_preferences: Mapped[UserNotificationPreferences | None] = relationship(
+        back_populates="user", cascade="all, delete-orphan", uselist=False
+    )
 
 
 class Family(Base):
@@ -159,3 +165,29 @@ class Notification(Base):
     @property
     def family_name(self) -> str | None:
         return self.event.family.name if self.event is not None and self.event.family is not None else None
+
+
+class PushSubscription(Base):
+    __tablename__ = "push_subscriptions"
+    __table_args__ = (UniqueConstraint("user_id", "endpoint"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    endpoint: Mapped[str] = mapped_column(Text, nullable=False)
+    p256dh_key: Mapped[str] = mapped_column(String(512), nullable=False)
+    auth_key: Mapped[str] = mapped_column(String(512), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    user: Mapped[User] = relationship(back_populates="push_subscriptions")
+
+
+class UserNotificationPreferences(Base):
+    __tablename__ = "user_notification_preferences"
+
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)
+    email_enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    push_enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    notify_today: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    notify_day_before: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+
+    user: Mapped[User] = relationship(back_populates="notification_preferences")

@@ -144,3 +144,42 @@ All third-party libraries remain the property of their respective authors and ar
 
 Hebrew calendar calculations are based on the open-source `convertdate` library.
 
+
+## Notification delivery
+
+Reminder processing keeps the `notifications` table as the source of truth. When `process_event_reminders()` creates a reminder row, the notification dispatcher attempts each enabled delivery channel independently: email and browser push. One channel failing is logged and does not prevent the other channel from running.
+
+### Email configuration
+
+Email delivery uses SMTP only and reads all configuration from environment variables:
+
+- `EMAIL_PROVIDER=smtp`
+- `SMTP_HOST`
+- `SMTP_PORT`
+- `SMTP_USERNAME`
+- `SMTP_PASSWORD`
+- `EMAIL_FROM`
+
+Emails include both HTML content and a plain-text fallback.
+
+### Browser push configuration
+
+Backend VAPID variables:
+
+- `VAPID_PRIVATE_KEY`
+- `VAPID_PUBLIC_KEY`
+- `VAPID_EMAIL`
+
+Frontend Vite variable:
+
+- `VITE_VAPID_PUBLIC_KEY`
+
+Authenticated clients store browser subscriptions with `POST /api/push/subscribe` and remove them with `DELETE /api/push/unsubscribe`. Expired push subscriptions are deleted automatically after a 404 or 410 response from the push provider.
+
+### User notification preferences
+
+Authenticated users can manage delivery preferences at Settings → Notifications. Preferences include email delivery, push delivery, reminders for events occurring today, and reminders one day before an event.
+
+### Enabling browser notifications
+
+Open Settings → Notifications and choose **Enable** in the browser notification prompt. If permission is granted, the app registers `service-worker.js`, creates a push subscription, and sends that subscription to the API.

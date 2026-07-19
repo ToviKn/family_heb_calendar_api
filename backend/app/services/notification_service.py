@@ -10,6 +10,7 @@ from app.logging_config import get_request_id
 from app.models.models import Event, Family, FamilyMembership, Notification, User
 from app.models.notification import NotificationCreate
 from app.services.date_service import calculate_next_occurrence
+from app.services.notification_dispatcher import dispatch_notification
 from convertdate import hebrew
 from app.services.family_service import ensure_user_in_family, get_user_family_ids
 from app.storage.enums import NotificationType, RepeatType
@@ -422,6 +423,7 @@ def process_event_reminders(db: Session, _within_hours: int = 24) -> int:
     try:
         today = datetime.now(timezone.utc).date()
         created_count = 0
+        created_notifications: list[Notification] = []
 
         users = db.query(User).all()
         memberships = db.query(FamilyMembership.user_id, FamilyMembership.family_id).all()
@@ -466,6 +468,7 @@ def process_event_reminders(db: Session, _within_hours: int = 24) -> int:
                         metadata_json=_build_reminder_metadata(event, next_occurrence),
                     )
                     if created:
+                        created_notifications.append(notification)
                         created_count += 1
                         logger.info(
                             "Reminder notification created",
@@ -480,6 +483,9 @@ def process_event_reminders(db: Session, _within_hours: int = 24) -> int:
                         )
 
         db.commit()
+        for notification in created_notifications:
+            db.refresh(notification)
+            dispatch_notification(db, notification)
         return created_count
     except Exception as exc:
         db.rollback()

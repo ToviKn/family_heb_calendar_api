@@ -178,3 +178,11 @@ export interface UserResponse {
   email: string;
   name: string;
 }
+
+export interface NotificationPreferences {
+  user_id: number;
+  email_enabled: boolean;
+  push_enabled: boolean;
+  notify_today: boolean;
+  notify_day_before: boolean;
+}
