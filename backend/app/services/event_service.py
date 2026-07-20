@@ -121,7 +121,10 @@ def delete_event(db: Session, event_id: int, user_id: int) -> dict[str, str]:
                 {"event_id": event_id, "user_id": user_id},
             )
 
+        family_id = event.family_id
+        event_title = event.title
         db.delete(event)
+        notification_service.notify_family_on_event_deleted(db, family_id, event_title, actor_user_id=user_id)
         db.commit()
         logger.info(
             "Event deleted",

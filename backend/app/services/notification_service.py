@@ -71,6 +71,7 @@ def _format_hebrew_date_gematria(year: int, month: int, day: int) -> str:
 
 def _build_reminder_metadata(event: Event, occurrence: date) -> dict:
     metadata = {
+        "notification_kind": "event_reminder",
         "event_title": event.title,
         "date": str(occurrence),
         "occurrence_date": str(occurrence),
@@ -206,6 +207,12 @@ def _create_notification_record(
     return notification, True
 
 
+
+def dispatch_notifications(db: Session, notifications: list[Notification]) -> None:
+    for notification in notifications:
+        db.refresh(notification)
+        dispatch_notification(db, notification)
+
 def create_notification(db: Session, payload: NotificationCreate, current_user_id: int) -> Notification:
     try:
         event = db.query(Event).filter(Event.id == payload.event_id).first()
@@ -226,6 +233,7 @@ def create_notification(db: Session, payload: NotificationCreate, current_user_i
         )
         db.commit()
         db.refresh(notification)
+        dispatch_notification(db, notification)
         logger.info(
             "Notification created",
             extra={"operation": "create_notification", "user_id": current_user_id, "notification_id": notification.id, "entity_id": notification.id},
@@ -310,6 +318,7 @@ def _notify_family(
     event: Event,
     message_factory: Callable[[Event], str],
     actor_user_id: int | None,
+    notification_kind: str,
 ) -> None:
     memberships = db.query(FamilyMembership).filter(FamilyMembership.family_id == event.family_id).all()
     created_notifications: list[Notification] = []
@@ -322,21 +331,51 @@ def _notify_family(
             event_id=event.id,
             message=message_factory(event),
             notification_type=NotificationType.SYSTEM,
+            metadata_json={"notification_kind": notification_kind, "event_title": event.title, "family_id": event.family_id},
         )
         if created:
             created_notifications.append(notification)
 
     if created_notifications:
         db.commit()
+        dispatch_notifications(db, created_notifications)
 
 
 def notify_family_on_event_created(db: Session, event: Event, actor_user_id: int) -> None:
-    _notify_family(db, event, lambda item: f"New event created: {item.title}", actor_user_id)
+    _notify_family(db, event, lambda item: f"New event created: {item.title}", actor_user_id, "event_created")
 
 
 def notify_family_on_event_updated(db: Session, event: Event, actor_user_id: int | None = None) -> None:
-    _notify_family(db, event, lambda item: f"Event updated: {item.title}", actor_user_id)
+    _notify_family(db, event, lambda item: f"Event updated: {item.title}", actor_user_id, "event_updated")
 
+
+
+def notify_family_on_event_deleted(
+    db: Session, family_id: int, event_title: str, actor_user_id: int | None = None
+) -> None:
+    memberships = db.query(FamilyMembership).filter(FamilyMembership.family_id == family_id).all()
+    created_notifications: list[Notification] = []
+    for member in memberships:
+        if actor_user_id is not None and member.user_id == actor_user_id:
+            continue
+        notification, created = _create_notification_record(
+            db=db,
+            user_id=member.user_id,
+            event_id=None,
+            message=f"Event deleted: {event_title}",
+            notification_type=NotificationType.SYSTEM,
+            metadata_json={
+                "notification_kind": "event_deleted",
+                "event_title": event_title,
+                "family_id": family_id,
+            },
+        )
+        if created:
+            created_notifications.append(notification)
+
+    if created_notifications:
+        db.commit()
+        dispatch_notifications(db, created_notifications)
 
 def notify_family_invitation(db: Session, invited_user_id: int, family_id: int, invited_by_user_id: int) -> None:
     try:
@@ -357,10 +396,12 @@ def notify_family_invitation(db: Session, invited_user_id: int, family_id: int, 
                 "target": {"id": invited_user_id, "name": invited_name},
                 "family_id": family_id,
                 "family_name": family_name,
+                "notification_kind": "family_invitation",
             },
         )
         db.commit()
         db.refresh(notification)
+        dispatch_notification(db, notification)
     except Exception:
         db.rollback()
         raise
@@ -483,9 +524,7 @@ def process_event_reminders(db: Session, _within_hours: int = 24) -> int:
                         )
 
         db.commit()
-        for notification in created_notifications:
-            db.refresh(notification)
-            dispatch_notification(db, notification)
+        dispatch_notifications(db, created_notifications)
         return created_count
     except Exception as exc:
         db.rollback()

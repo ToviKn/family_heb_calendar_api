@@ -4,7 +4,7 @@ from email.message import EmailMessage
 from html import escape
 
 from app.config import settings
-from app.models.models import Event, Notification, User
+from app.models.models import Notification, User
 
 logger = logging.getLogger(__name__)
 

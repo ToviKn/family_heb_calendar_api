@@ -147,7 +147,9 @@ Hebrew calendar calculations are based on the open-source `convertdate` library.
 
 ## Notification delivery
 
-Reminder processing keeps the `notifications` table as the source of truth. When `process_event_reminders()` creates a reminder row, the notification dispatcher attempts each enabled delivery channel independently: email and browser push. One channel failing is logged and does not prevent the other channel from running.
+The `notifications` table remains the source of truth for all in-app notifications. Every application flow that creates a `Notification` sends the committed notification through the notification dispatcher, including event reminders, family invitations, join requests, join request approvals/rejections, and event create/update/delete notifications.
+
+The dispatcher is the single delivery pipeline. It resolves a notification template for the notification type or `metadata.notification_kind`, then attempts each enabled channel independently: email and browser push. Templates define the email subject, HTML body, plain-text body, push title, and push body so new notification types can be added by registering templates without changing dispatcher control flow. One channel failing is logged and does not prevent the other channel from running.
 
 ### Email configuration
 

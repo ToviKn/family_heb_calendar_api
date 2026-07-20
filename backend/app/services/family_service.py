@@ -13,6 +13,7 @@ from app.exceptions import (
     ValidationError,
 )
 from app.models.models import Family, FamilyJoinRequest, FamilyMembership, Notification, User
+from app.services.notification_dispatcher import dispatch_notification
 from app.storage.enums import NotificationType
 
 logger = logging.getLogger(__name__)
@@ -166,47 +167,52 @@ def _add_notification(
     message: str,
     notification_type: NotificationType,
     metadata_json: dict | None = None,
-) -> None:
-    db.add(
-        Notification(
-            user_id=user_id,
-            event_id=None,
-            message=message,
-            metadata_json=metadata_json,
-            type=notification_type.value,
-            is_read=False,
-            created_at=datetime.utcnow(),
-            sent=True,
-            send_at=datetime.utcnow(),
-        )
+) -> Notification:
+    notification = Notification(
+        user_id=user_id,
+        event_id=None,
+        message=message,
+        metadata_json=metadata_json,
+        type=notification_type.value,
+        is_read=False,
+        created_at=datetime.utcnow(),
+        sent=True,
+        send_at=datetime.utcnow(),
     )
+    db.add(notification)
+    return notification
 
 
-def _notify_admins_of_join_request(db: Session, family: Family, request_user: User) -> None:
+def _notify_admins_of_join_request(db: Session, family: Family, request_user: User) -> list[Notification]:
+    notifications: list[Notification] = []
     admin_memberships = (
         db.query(FamilyMembership)
         .filter(FamilyMembership.family_id == family.id, FamilyMembership.role == "admin")
         .all()
     )
     for admin_membership in admin_memberships:
-        _add_notification(
-            db=db,
-            user_id=admin_membership.user_id,
-            message=f"{request_user.name} requested to join family {family.name}",
-            notification_type=NotificationType.JOIN_REQUEST,
-            metadata_json={
-                "actor": {"id": request_user.id, "name": request_user.name},
-                "target": {"id": request_user.id, "name": request_user.name},
-                "requesting_user_id": request_user.id,
-                "requesting_user_name": request_user.name,
-                "family_id": family.id,
-                "family_name": family.name,
-            },
+        notifications.append(
+            _add_notification(
+                db=db,
+                user_id=admin_membership.user_id,
+                message=f"{request_user.name} requested to join family {family.name}",
+                notification_type=NotificationType.JOIN_REQUEST,
+                metadata_json={
+                    "actor": {"id": request_user.id, "name": request_user.name},
+                    "target": {"id": request_user.id, "name": request_user.name},
+                    "requesting_user_id": request_user.id,
+                    "requesting_user_name": request_user.name,
+                    "family_id": family.id,
+                    "family_name": family.name,
+                },
+            )
         )
 
+    return notifications
 
-def _notify_user_directly_added(db: Session, family: Family, added_user: User, actor_user: User) -> None:
-    _add_notification(
+
+def _notify_user_directly_added(db: Session, family: Family, added_user: User, actor_user: User) -> Notification:
+    return _add_notification(
         db=db,
         user_id=added_user.id,
         message=f"{actor_user.name} invited {added_user.name} to family {family.name}",
@@ -220,8 +226,8 @@ def _notify_user_directly_added(db: Session, family: Family, added_user: User, a
     )
 
 
-def _notify_user_join_request_approved(db: Session, family: Family, request_user: User, actor_user: User) -> None:
-    _add_notification(
+def _notify_user_join_request_approved(db: Session, family: Family, request_user: User, actor_user: User) -> Notification:
+    return _add_notification(
         db=db,
         user_id=request_user.id,
         message=f"{actor_user.name} approved your request to join family {family.name}",
@@ -236,8 +242,8 @@ def _notify_user_join_request_approved(db: Session, family: Family, request_user
     )
 
 
-def _notify_user_join_request_rejected(db: Session, family: Family, request_user: User, actor_user: User) -> None:
-    _add_notification(
+def _notify_user_join_request_rejected(db: Session, family: Family, request_user: User, actor_user: User) -> Notification:
+    return _add_notification(
         db=db,
         user_id=request_user.id,
         message=f"{actor_user.name} rejected your request to join family {family.name}",
@@ -264,8 +270,10 @@ def add_member(db: Session, family_id: int, user_id: int, actor_user_id: int) ->
         pending_request = _get_pending_join_request(db, family_id, user_id)
         if pending_request is not None:
             db.delete(pending_request)
-        _notify_user_directly_added(db, family, target_user, actor_user)
+        notification = _notify_user_directly_added(db, family, target_user, actor_user)
         db.commit()
+        db.refresh(notification)
+        dispatch_notification(db, notification)
         db.refresh(membership)
 
         logger.info(
@@ -323,8 +331,11 @@ def create_join_request(db: Session, family_id: int, actor_user_id: int) -> dict
             status="pending",
         )
         db.add(join_request)
-        _notify_admins_of_join_request(db, family, request_user)
+        notifications = _notify_admins_of_join_request(db, family, request_user)
         db.commit()
+        for notification in notifications:
+            db.refresh(notification)
+            dispatch_notification(db, notification)
 
         logger.info(
             "Join request created",
@@ -403,15 +414,19 @@ def approve_join_request(db: Session, family_id: int, request_id: int, actor_use
         existing_membership = _get_existing_membership(db, family_id, join_request.user_id)
         if existing_membership is not None:
             db.delete(join_request)
-            _notify_user_join_request_approved(db, family, request_user, actor_user)
+            notification = _notify_user_join_request_approved(db, family, request_user, actor_user)
             db.commit()
+            db.refresh(notification)
+            dispatch_notification(db, notification)
             db.refresh(existing_membership)
             return existing_membership
 
         membership = _create_membership(db, family_id, join_request.user_id)
         db.delete(join_request)
-        _notify_user_join_request_approved(db, family, request_user, actor_user)
+        notification = _notify_user_join_request_approved(db, family, request_user, actor_user)
         db.commit()
+        db.refresh(notification)
+        dispatch_notification(db, notification)
         db.refresh(membership)
 
         logger.info(
@@ -453,8 +468,10 @@ def reject_join_request(db: Session, family_id: int, request_id: int, actor_user
         request_user = _get_user_or_raise(db, join_request.user_id)
 
         db.delete(join_request)
-        _notify_user_join_request_rejected(db, family, request_user, actor_user)
+        notification = _notify_user_join_request_rejected(db, family, request_user, actor_user)
         db.commit()
+        db.refresh(notification)
+        dispatch_notification(db, notification)
 
         logger.info(
             "Join request rejected",
