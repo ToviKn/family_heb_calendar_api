@@ -55,15 +55,74 @@ def _base_email(user: User, heading: str, body: str) -> tuple[str, str]:
 
 
 def _event_reminder(notification: Notification, user: User) -> NotificationTemplate:
+    metadata = _metadata(notification)
+
     title = _event_title(notification)
-    body = f"This is a reminder that {title} occurs today."
-    text, html = _base_email(user, "Family Calendar Reminder", body)
+
+    description = metadata.get("event_description")
+    event_date = metadata.get("date")
+    start_time = metadata.get("start_time")
+    end_time = metadata.get("end_time")
+    family_name = metadata.get("family_name")
+    repeat_type = metadata.get("repeat_type")
+    reminder_type = metadata.get("reminder_type")
+
+    intro = (
+        "This event is happening today."
+        if reminder_type == "today"
+        else "This event is happening tomorrow."
+        if reminder_type == "tomorrow"
+        else "This is a reminder about an upcoming event."
+    )
+
+    lines = [
+        intro,
+        "",
+        f"Event: {title}",
+    ]
+
+    if description:
+        lines.extend([
+            "",
+            f"Description: {description}",
+        ])
+
+    if event_date:
+        lines.append(f"Date: {event_date}")
+
+    if start_time and end_time:
+        lines.append(f"Time: {start_time} - {end_time}")
+    elif start_time:
+        lines.append(f"Time: {start_time}")
+
+    if family_name:
+        lines.append(f"Family: {family_name}")
+
+    if repeat_type:
+        lines.append(f"Repeats: {repeat_type}")
+
+    body = "\n".join(lines)
+
+    text, html = _base_email(
+        user=user,
+        heading="Family Calendar Reminder",
+        body=body,
+    )
+
+    subject = (
+        f"Reminder: {title} (Today)"
+        if reminder_type == "today"
+        else f"Reminder: {title} (Tomorrow)"
+        if reminder_type == "tomorrow"
+        else f"Reminder: {title}"
+    )
+
     return NotificationTemplate(
-        email_subject="Family Calendar Reminder",
+        email_subject=subject,
         email_text_body=text,
         email_html_body=html,
         push_title="Family Calendar",
-        push_body=f"Reminder: {title}",
+        push_body=subject,
     )
 
 

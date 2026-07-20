@@ -73,11 +73,24 @@ def _build_reminder_metadata(event: Event, occurrence: date) -> dict:
     metadata = {
         "notification_kind": "event_reminder",
         "event_title": event.title,
+        "event_description": event.description,
         "date": str(occurrence),
         "occurrence_date": str(occurrence),
-        "start_time": event.start_time.isoformat() if event.start_time is not None else None,
+        "start_time": (event.start_time.strftime("%H:%M") if event.start_time else None),
+        "end_time": (event.end_time.strftime("%H:%M") if event.end_time else None),
+        "calendar_type": str(event.calendar_type),
         "family_id": event.family_id,
+        "family_name": event.family.name if event.family else None,
     }
+    days_until = (occurrence - date.today()).days
+
+    metadata["reminder_type"] = (
+        "today"
+        if days_until == 0
+        else "tomorrow"
+        if days_until == 1
+        else "future"
+    )
 
     if str(event.calendar_type).lower() == "hebrew" and event.year is not None:
         metadata["calendar_type"] = "HEBREW"
