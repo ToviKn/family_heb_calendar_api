@@ -59,7 +59,6 @@ def _base_email(user: User, heading: str, body: str) -> tuple[str, str]:
     )
     return text, html
 
-
 def _event_reminder(notification: Notification, user: User) -> NotificationTemplate:
     metadata = _metadata(notification)
     t = get_locale(user.language)
@@ -90,14 +89,17 @@ def _event_reminder(notification: Notification, user: User) -> NotificationTempl
     if reminder_type == "today":
         intro = t["reminder_today"]
         subject = f'{t["event_reminder_subject"]}: {title} ({t["today"]})'
+        push_body = t["push_today"].format(title=title)
 
     elif reminder_type == "tomorrow":
         intro = t["reminder_tomorrow"]
         subject = f'{t["event_reminder_subject"]}: {title} ({t["tomorrow"]})'
+        push_body = t["push_tomorrow"].format(title=title)
 
     else:
         intro = t["reminder_future"]
         subject = f'{t["event_reminder_subject"]}: {title}'
+        push_body = t["push_future"].format(title=title)
 
     lines = [
         intro,
@@ -133,20 +135,12 @@ def _event_reminder(notification: Notification, user: User) -> NotificationTempl
         body=body,
     )
 
-    subject = (
-        f"Reminder: {title} (Today)"
-        if reminder_type == "today"
-        else f"Reminder: {title} (Tomorrow)"
-        if reminder_type == "tomorrow"
-        else f"Reminder: {title}"
-    )
-
     return NotificationTemplate(
         email_subject=subject,
         email_text_body=text,
         email_html_body=html,
         push_title=t["push_title"],
-        push_body=f"{title} • {intro}",
+        push_body=push_body,
     )
 
 
