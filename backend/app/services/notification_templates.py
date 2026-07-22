@@ -6,6 +6,12 @@ from typing import Callable
 
 from app.models.models import Notification, User
 from app.storage.enums import NotificationType
+from app.locales import get_locale
+from app.utils.localization import (
+    format_date,
+    format_time_range,
+    translate_repeat_type,
+)
 
 
 @dataclass(frozen=True)
@@ -56,56 +62,74 @@ def _base_email(user: User, heading: str, body: str) -> tuple[str, str]:
 
 def _event_reminder(notification: Notification, user: User) -> NotificationTemplate:
     metadata = _metadata(notification)
+    t = get_locale(user.language)
 
     title = _event_title(notification)
 
     description = metadata.get("event_description")
-    event_date = metadata.get("date")
-    start_time = metadata.get("start_time")
-    end_time = metadata.get("end_time")
     family_name = metadata.get("family_name")
-    repeat_type = metadata.get("repeat_type")
-    reminder_type = metadata.get("reminder_type")
 
-    intro = (
-        "This event is happening today."
-        if reminder_type == "today"
-        else "This event is happening tomorrow."
-        if reminder_type == "tomorrow"
-        else "This is a reminder about an upcoming event."
+    reminder_type = metadata.get("reminder_type")
+    repeat_type = metadata.get("repeat_type")
+
+    event_date = format_date(
+        metadata.get("date"),
+        user.language,
     )
+
+    time_range = format_time_range(
+        metadata.get("start_time"),
+        metadata.get("end_time"),
+    )
+
+    repeat_label = translate_repeat_type(
+        repeat_type,
+        user.language,
+    )
+
+    if reminder_type == "today":
+        intro = t["reminder_today"]
+        subject = f'{t["event_reminder_subject"]}: {title} ({t["today"]})'
+
+    elif reminder_type == "tomorrow":
+        intro = t["reminder_tomorrow"]
+        subject = f'{t["event_reminder_subject"]}: {title} ({t["tomorrow"]})'
+
+    else:
+        intro = t["reminder_future"]
+        subject = f'{t["event_reminder_subject"]}: {title}'
 
     lines = [
         intro,
         "",
-        f"Event: {title}",
+        f"""{t["event"]}: {title}""",
     ]
 
     if description:
-        lines.extend([
-            "",
-            f"Description: {description}",
-        ])
+        lines.append(f'{t["description"]}: {description}')
 
     if event_date:
-        lines.append(f"Date: {event_date}")
+        lines.append(f'{t["date"]}: {event_date}')
 
-    if start_time and end_time:
-        lines.append(f"Time: {start_time} - {end_time}")
-    elif start_time:
-        lines.append(f"Time: {start_time}")
+    if time_range:
+        lines.append(f'{t["time"]}: {time_range}')
 
     if family_name:
-        lines.append(f"Family: {family_name}")
+        lines.append(f'{t["family"]}: {family_name}')
 
-    if repeat_type:
-        lines.append(f"Repeats: {repeat_type}")
+    if repeat_label:
+        lines.append(f'{t["repeat"]}: {repeat_label}')
+
+    if metadata.get("calendar_type") == "HEBREW":
+        hebrew_date = metadata.get("formatted_hebrew_date")
+        if hebrew_date:
+            lines.append(f'{t["hebrew_date"]}: {hebrew_date}')
 
     body = "\n".join(lines)
 
     text, html = _base_email(
         user=user,
-        heading="Family Calendar Reminder",
+        heading=t["event_reminder_subject"],
         body=body,
     )
 
@@ -121,8 +145,8 @@ def _event_reminder(notification: Notification, user: User) -> NotificationTempl
         email_subject=subject,
         email_text_body=text,
         email_html_body=html,
-        push_title="Family Calendar",
-        push_body=subject,
+        push_title=t["push_title"],
+        push_body=f"{title} • {intro}",
     )
 
 

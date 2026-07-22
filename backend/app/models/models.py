@@ -29,6 +29,7 @@ class User(Base):
     notification_preferences: Mapped[UserNotificationPreferences | None] = relationship(
         back_populates="user", cascade="all, delete-orphan", uselist=False
     )
+    language: Mapped[str] = mapped_column(String(5), nullable=False, default="en",)
 
 
 class Family(Base):
