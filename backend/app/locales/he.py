@@ -1,37 +1,40 @@
 MESSAGES = {
-
-    "event_reminder_subject":
-        "תזכורת לאירוע",
-
-    "hello":
-        "שלום",
-
-    "event":
-        "אירוע",
-
-    "description":
-        "תיאור",
-
-    "date":
-        "תאריך",
-
-    "time":
-        "שעה",
-
-    "family":
-        "משפחה",
-
-    "repeat":
-        "חוזר",
-
-    "today":
-        "היום",
-
-    "tomorrow":
-        "מחר",
-
-    "open":
-        "פתח את Family Calendar"
+    "event_reminder_subject": "תזכורת לאירוע",
+    "event_reminder_subject_today": "תזכורת לאירוע: {title} (היום)",
+    "event_reminder_subject_tomorrow": "תזכורת לאירוע: {title} (מחר)",
+    "event_reminder_subject_future": "תזכורת לאירוע: {title}",
+    "hello": "שלום",
+    "hello_name": "שלום {name}",
+    "there": "שם",
+    "reminder_today": "זוהי תזכורת לאירוע שמתקיים היום.",
+    "reminder_tomorrow": "זוהי תזכורת לאירוע שמתקיים מחר.",
+    "reminder_future": "זוהי תזכורת לאירוע קרוב.",
+    "reminder_for": "תזכורת עבור",
+    "event": "אירוע",
+    "description": "תיאור",
+    "date": "תאריך",
+    "time": "שעה",
+    "start_time": "שעת התחלה",
+    "end_time": "שעת סיום",
+    "family": "משפחה",
+    "repeat": "חוזר",
+    "calendar_type": "לוח שנה",
+    "calendar_type_gregorian": "לועזי",
+    "calendar_type_hebrew": "עברי",
+    "hebrew_date": "תאריך עברי",
+    "today": "היום",
+    "tomorrow": "מחר",
+    "open": "פתח את Family Calendar",
+    "open_details": "פתח את האפליקציה כדי לצפות בפרטים.",
+    "push_title": "Family Calendar",
+    "push_today": "תזכורת: {title} מתקיים היום.",
+    "push_tomorrow": "תזכורת: {title} מתקיים מחר.",
+    "push_future": "תזכורת: {title} מתקרב.",
+    "repeat_weekly": "שבועי",
+    "repeat_monthly": "חודשי",
+    "repeat_yearly": "שנתי",
+    "repeat_daily": "יומי",
+    "repeat_none": "ללא חזרה",
 }
 
 REPEAT_TRANSLATIONS = {

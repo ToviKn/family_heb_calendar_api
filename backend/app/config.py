@@ -44,6 +44,7 @@ class Settings:
     smtp_username: str = os.getenv("SMTP_USERNAME", "")
     smtp_password: str = os.getenv("SMTP_PASSWORD", "")
     email_from: str = os.getenv("EMAIL_FROM", "")
+    app_url: str = os.getenv("APP_URL", "http://localhost:5173")
     vapid_private_key: str = os.getenv("VAPID_PRIVATE_KEY", "")
     vapid_public_key: str = os.getenv("VAPID_PUBLIC_KEY", "")
     vapid_email: str = os.getenv("VAPID_EMAIL", "")

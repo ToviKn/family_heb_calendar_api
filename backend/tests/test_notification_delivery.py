@@ -132,3 +132,41 @@ def test_template_registry_covers_required_notification_kinds(sample_users):
         assert template.email_html_body
         assert template.push_title
         assert template.push_body
+
+
+def test_event_reminder_template_uses_localized_structured_fields(sample_users):
+    user = sample_users["owner"]
+    user.language = "he"
+    notification = Notification(
+        user_id=user.id,
+        event_id=None,
+        message="Reminder: Dinner on 2026-07-23",
+        type=NotificationType.EVENT_REMINDER.value,
+        metadata_json={
+            "notification_kind": "event_reminder",
+            "event_title": "Dinner",
+            "event_description": "Bring dessert",
+            "date": "2026-07-23",
+            "formatted_hebrew_date": "ט׳ באב תשפ״ו",
+            "start_time": "18:30",
+            "end_time": "20:00",
+            "family_name": "Cohen",
+            "repeat_type": "weekly",
+            "calendar_type": "hebrew",
+            "reminder_type": "tomorrow",
+        },
+    )
+
+    template = resolve_template(notification, user)
+
+    assert "מחר" in template.email_subject
+    assert "תיאור: Bring dessert" in template.email_text_body
+    assert "תאריך עברי: ט׳ באב תשפ״ו" in template.email_text_body
+    assert "שעת התחלה: 18:30" in template.email_text_body
+    assert "שעת סיום: 20:00" in template.email_text_body
+    assert "משפחה: Cohen" in template.email_text_body
+    assert "חוזר: שבועי" in template.email_text_body
+    assert "לוח שנה: עברי" in template.email_text_body
+    assert "<table" in template.email_html_body
+    assert "Bring dessert" in template.email_html_body
+    assert "תזכורת: Dinner מתקיים מחר." == template.push_body

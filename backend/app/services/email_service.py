@@ -1,7 +1,6 @@
 import logging
 import smtplib
 from email.message import EmailMessage
-from html import escape
 
 from app.config import settings
 from app.models.models import Notification, User
@@ -37,8 +36,12 @@ def send_email(to_email: str, subject: str, text_body: str, html_body: str) -> b
 
 
 def send_event_reminder(user: User, notification: Notification) -> bool:
-    title = (notification.metadata_json or {}).get("event_title") or notification.message
-    first_name = user.name.split()[0] if user.name else "there"
-    text = f"Hello {first_name}\n\nThis is a reminder that:\n\n{title}\n\noccurs today.\n\nOpen the application to view details."
-    html = f"<p>Hello {escape(first_name)}</p><p>This is a reminder that:</p><p><strong>{escape(str(title))}</strong></p><p>occurs today.</p><p>Open the application to view details.</p>"
-    return send_email(user.email, "Family Calendar Reminder", text, html)
+    from app.services.notification_templates import resolve_template
+
+    template = resolve_template(notification, user)
+    return send_email(
+        user.email,
+        template.email_subject,
+        template.email_text_body,
+        template.email_html_body,
+    )

@@ -13,6 +13,7 @@ def run_safe_schema_migrations(engine: Engine) -> None:
     with engine.begin() as connection:
         inspector = inspect(connection)
         table_names = set(inspector.get_table_names())
+        _ensure_user_language_column(connection, inspector, dialect_name, table_names)
         _create_notification_delivery_tables(connection, dialect_name, table_names)
         _normalize_event_repeat_type_values(
             connection,
@@ -83,6 +84,21 @@ def run_safe_schema_migrations(engine: Engine) -> None:
             "Notification schema migration completed",
             extra={"migration": "notifications", "dialect": dialect_name},
         )
+
+
+def _ensure_user_language_column(connection, inspector, dialect_name: str, table_names: set[str]) -> None:
+    if "users" not in table_names:
+        return
+
+    columns = {column["name"] for column in inspector.get_columns("users")}
+    if "language" in columns:
+        return
+
+    if dialect_name == "sqlite":
+        connection.execute(text("ALTER TABLE users ADD COLUMN language VARCHAR(5) NOT NULL DEFAULT 'en'"))
+        return
+
+    connection.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS language VARCHAR(5) NOT NULL DEFAULT 'en'"))
 
 
 def _normalize_legacy_notification_type_values(connection) -> None:

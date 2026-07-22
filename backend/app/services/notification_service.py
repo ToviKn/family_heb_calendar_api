@@ -70,6 +70,8 @@ def _format_hebrew_date_gematria(year: int, month: int, day: int) -> str:
     return f"{_gematria(day)} {month_name} {_gematria(year)}"
 
 def _build_reminder_metadata(event: Event, occurrence: date) -> dict:
+    calendar_type = getattr(event.calendar_type, "value", event.calendar_type)
+    repeat_type = getattr(event.repeat_type, "value", event.repeat_type)
     metadata = {
         "notification_kind": "event_reminder",
         "event_title": event.title,
@@ -78,7 +80,8 @@ def _build_reminder_metadata(event: Event, occurrence: date) -> dict:
         "occurrence_date": str(occurrence),
         "start_time": (event.start_time.strftime("%H:%M") if event.start_time else None),
         "end_time": (event.end_time.strftime("%H:%M") if event.end_time else None),
-        "calendar_type": str(event.calendar_type),
+        "calendar_type": str(calendar_type),
+        "repeat_type": str(repeat_type) if repeat_type is not None else None,
         "family_id": event.family_id,
         "family_name": event.family.name if event.family else None,
     }
@@ -92,7 +95,7 @@ def _build_reminder_metadata(event: Event, occurrence: date) -> dict:
         else "future"
     )
 
-    if str(event.calendar_type).lower() == "hebrew" and event.year is not None:
+    if str(calendar_type).lower() == "hebrew" and event.year is not None:
         metadata["calendar_type"] = "HEBREW"
         hy, hm, hd = hebrew.from_gregorian(
             occurrence.year,

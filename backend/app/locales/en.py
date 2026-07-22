@@ -1,37 +1,40 @@
 MESSAGES = {
-
-    "event_reminder_subject":
-        "Event Reminder",
-
-    "hello":
-        "Hello",
-
-    "event":
-        "Event",
-
-    "description":
-        "Description",
-
-    "date":
-        "Date",
-
-    "time":
-        "Time",
-
-    "family":
-        "Family",
-
-    "repeat":
-        "Repeats",
-
-    "today":
-        "Today",
-
-    "tomorrow":
-        "Tomorrow",
-
-    "open":
-        "Open Family Calendar"
+    "event_reminder_subject": "Event Reminder",
+    "event_reminder_subject_today": "Event Reminder: {title} (Today)",
+    "event_reminder_subject_tomorrow": "Event Reminder: {title} (Tomorrow)",
+    "event_reminder_subject_future": "Event Reminder: {title}",
+    "hello": "Hello",
+    "hello_name": "Hello {name}",
+    "there": "there",
+    "reminder_today": "This is a reminder for an event happening today.",
+    "reminder_tomorrow": "This is a reminder for an event happening tomorrow.",
+    "reminder_future": "This is a reminder for an upcoming event.",
+    "reminder_for": "Reminder for",
+    "event": "Event",
+    "description": "Description",
+    "date": "Date",
+    "time": "Time",
+    "start_time": "Start time",
+    "end_time": "End time",
+    "family": "Family",
+    "repeat": "Repeats",
+    "calendar_type": "Calendar",
+    "calendar_type_gregorian": "Gregorian",
+    "calendar_type_hebrew": "Hebrew",
+    "hebrew_date": "Hebrew date",
+    "today": "Today",
+    "tomorrow": "Tomorrow",
+    "open": "Open Family Calendar",
+    "open_details": "Open the application to view details.",
+    "push_title": "Family Calendar",
+    "push_today": "Reminder: {title} is today.",
+    "push_tomorrow": "Reminder: {title} is tomorrow.",
+    "push_future": "Reminder: {title} is coming up.",
+    "repeat_weekly": "Weekly",
+    "repeat_monthly": "Monthly",
+    "repeat_yearly": "Yearly",
+    "repeat_daily": "Daily",
+    "repeat_none": "Does not repeat",
 }
 
 REPEAT_TRANSLATIONS = {

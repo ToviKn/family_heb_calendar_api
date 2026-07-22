@@ -1,5 +1,7 @@
 from datetime import datetime
 
+from app.locales import translate
+
 
 def format_date(date_str: str | None, language: str) -> str | None:
     if not date_str:
@@ -38,24 +40,6 @@ def translate_repeat_type(
     if repeat_type is None:
         return None
 
-    translations = {
-        "he": {
-            "none": "ללא חזרה",
-            "daily": "יומי",
-            "weekly": "שבועי",
-            "monthly": "חודשי",
-            "yearly": "שנתי",
-        },
-        "en": {
-            "none": "Does not repeat",
-            "daily": "Daily",
-            "weekly": "Weekly",
-            "monthly": "Monthly",
-            "yearly": "Yearly",
-        },
-    }
-
-    return translations.get(language, translations["en"]).get(
-        repeat_type,
-        repeat_type,
-    )
+    key = f"repeat_{repeat_type}"
+    translated = translate(language, key)
+    return translated if translated != key else repeat_type

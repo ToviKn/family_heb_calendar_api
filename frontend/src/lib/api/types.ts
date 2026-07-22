@@ -177,6 +177,7 @@ export interface UserResponse {
   id: number;
   email: string;
   name: string;
+  language: string;
 }
 
 export interface NotificationPreferences {
