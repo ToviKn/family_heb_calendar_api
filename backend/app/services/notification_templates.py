@@ -181,20 +181,22 @@ def _render_reminder_text(data: ReminderEmailData) -> str:
 def _render_reminder_html(data: ReminderEmailData) -> str:
     direction = "rtl" if data.language == "he" else "ltr"
     text_align = "right" if data.language == "he" else "left"
-    rows = "".join(
-        "<tr>"
-        f'<td style="padding:10px 0;color:#64748b;font-size:13px;width:38%;vertical-align:top;">{escape(field.label)}</td>'
-        f'<td style="padding:10px 0;color:#0f172a;font-size:15px;font-weight:600;vertical-align:top;">{escape(field.value)}</td>'
-        "</tr>"
-        for field in data.fields
-    )
+    is_hebrew = data.language == "he"
+    rows = ""
+    for field in data.fields:
+         rows += f"""
+        <tr>
+            <td style="width:170px;min-width:170px;max-width:170px;padding:10px 0;color:#64748b;font-size:13px;text-align:{text_align};width:38%;">{escape(field.label)}:</td>
+            <td style="width:100%;padding:10px 0;color:#0f172a;font-size:15px;font-weight:600;text-align:{text_align};">{escape(field.value)}</td>
+        </tr>
+        """
     return f"""<!doctype html>
 <html lang="{escape(data.language)}" dir="{direction}">
   <body style="margin:0;padding:0;background:#f8fafc;font-family:Arial,Helvetica,sans-serif;color:#0f172a;">
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f8fafc;padding:24px 12px;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" dir="{direction}" style="background:#f8fafc;padding:24px 12px;">
       <tr>
         <td align="center">
-          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:600px;background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" dir="{direction}" style="max-width:600px;background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;">
             <tr>
               <td style="padding:28px 28px 18px;text-align:{text_align};">
                 <div style="display:inline-block;padding:6px 10px;border-radius:999px;background:#dbeafe;color:#1d4ed8;font-size:12px;font-weight:700;">{escape(data.heading)}</div>
@@ -204,15 +206,15 @@ def _render_reminder_html(data: ReminderEmailData) -> str:
             </tr>
             <tr>
               <td style="padding:0 28px;text-align:{text_align};">
-                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" dir="{direction}" style="width:100%;table-layout:fixed;border-collapse:collapse;border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;">
                   {rows}
                 </table>
               </td>
             </tr>
             <tr>
-              <td style="padding:24px 28px 30px;text-align:{text_align};">
-                <a href="{escape(data.action_url)}" style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;border-radius:10px;padding:12px 18px;font-size:15px;font-weight:700;">{escape(data.action_label)}</a>
-                <p style="margin:16px 0 0;color:#64748b;font-size:13px;line-height:1.5;">{escape(data.footer)}</p>
+              <td dir="{direction}" style="padding:24px 28px 30px;text-align:{text_align};">
+                <a dir="{direction}" href="{escape(data.action_url)}" style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;border-radius:10px;padding:12px 18px;font-size:15px;font-weight:700;">{escape(data.action_label)}</a>
+                <p dir="{direction}" style="margin:16px 0 0;color:#64748b;font-size:13px;line-height:1.5;">{escape(data.footer)}</p>
               </td>
             </tr>
           </table>
