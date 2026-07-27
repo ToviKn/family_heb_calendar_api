@@ -393,6 +393,33 @@
       "password_updated": "הסיסמה עודכנה בהצלחה.",
       "change_password_failed": "לא ניתן לשנות סיסמה. יש לבדוק את הסיסמה הנוכחית ולנסות שוב.",
       "updating_password": "מעדכן את הסיסמה שלך..."
+    },
+    "notifications": {
+      "title": "התראות",
+      "description": "בחירת אופן שליחת תזכורות ההתראה.",
+      "fields": {
+        "email_enabled": "הפעלת אימייל",
+        "push_enabled": "הפעלת התראות דחיפה",
+        "notify_today": "התראה ביום האירוע",
+        "notify_day_before": "התראה יום לפני"
+      },
+      "actions": {
+        "enable_browser": "הפעלה",
+        "save_preferences": "שמירת העדפות"
+      },
+      "messages": {
+        "browser_disabled": "התראות הדפדפן מושבתות.",
+        "browser_enable": "הפעלת התראות דפדפן.",
+        "browser_enabled": "ההתראות הופעלו בהצלחה.",
+        "permission_denied": "ההרשאה נדחתה.",
+        "settings_saved": "הגדרות ההתראות נשמרו בהצלחה.",
+        "loading": "טוען העדפות התראות..."
+      },
+      "errors": {
+        "load_preferences": "טעינת הגדרות ההתראות נכשלה.",
+        "enable_browser": "הפעלת התראות הדפדפן נכשלה.",
+        "save_preferences": "שמירת הגדרות ההתראות נכשלה."
+      }
     }
   },
   "language": {

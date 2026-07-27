@@ -3,8 +3,9 @@ import type { ReactNode } from 'react';
 
 import { login as loginRequest } from '../../lib/api/auth';
 import { setApiAuthToken } from '../../lib/api/axios';
-import { createUser } from '../../lib/api/users';
+import { createUser, updateUserLanguage } from '../../lib/api/users';
 import { clearStoredAuth, getStoredToken, getStoredUser, storeToken, storeUser } from '../../lib/auth/tokenStorage';
+import i18n from '../../lib/i18n/i18n';
 
 interface RegisterPayload {
   email: string;
@@ -17,7 +18,7 @@ interface LoginPayload {
   password: string;
 }
 
-type AuthUser = { id: number; email: string; name: string };
+type AuthUser = { id: number; email: string; name: string; language?: string };
 
 interface AuthContextValue {
   token: string | null;
@@ -26,6 +27,7 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   login: (payload: LoginPayload) => Promise<void>;
   register: (payload: RegisterPayload) => Promise<void>;
+  setLanguage: (language: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -92,6 +94,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(hasValidStoredToken ? initialStoredUser : null);
 
   useEffect(() => {
+    if (user?.language && user.language !== i18n.language) {
+      void i18n.changeLanguage(user.language);
+    }
+  }, [user?.language]);
+
+  useEffect(() => {
     if (token) {
       setApiAuthToken(token);
       return;
@@ -125,6 +133,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setApiAuthToken(response.access_token);
     setToken(response.access_token);
     setUser(response.user);
+    if (response.user.language) {
+      void i18n.changeLanguage(response.user.language);
+    }
   }, []);
 
   const register = useCallback(async (payload: RegisterPayload): Promise<void> => {
@@ -138,6 +149,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }, []);
 
+  const setLanguage = useCallback(async (language: string): Promise<void> => {
+    await i18n.changeLanguage(language);
+
+    if (!token || !user) {
+      return;
+    }
+
+    const updatedUser = await updateUserLanguage(language);
+    storeUser(updatedUser);
+    setUser(updatedUser);
+  }, [token, user]);
+
   const userId = useMemo(() => decodeUserIdFromToken(token), [token]);
 
   const value = useMemo<AuthContextValue>(
@@ -148,9 +171,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       login,
       register,
+      setLanguage,
       logout,
     }),
-    [token, userId, user, login, register, logout]
+    [token, userId, user, login, register, setLanguage, logout]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

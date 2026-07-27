@@ -7,3 +7,5 @@ export * from './families';
 export * from './notifications';
 export * from './types';
 export * from './users';
+
+export * from './preferences';

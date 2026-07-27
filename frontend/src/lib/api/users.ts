@@ -10,3 +10,8 @@ export async function changePassword(payload: ChangePasswordRequest): Promise<Ch
   const { data } = await apiClient.post<ChangePasswordResponse>('/users/change-password', payload);
   return data;
 }
+
+export async function updateUserLanguage(language: string): Promise<UserResponse> {
+  const { data } = await apiClient.put<UserResponse>('/users/language', { language });
+  return data;
+}
