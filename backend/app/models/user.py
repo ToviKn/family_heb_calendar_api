@@ -11,6 +11,7 @@ class UserResponse(BaseModel):
     id: int
     email: EmailStr
     name: str
+    language: str
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -23,6 +24,10 @@ class ChangePasswordRequest(BaseModel):
 class ChangePasswordResponse(BaseModel):
     status: str
     message: str
+
+
+class UserLanguageUpdate(BaseModel):
+    language: str
 
 
 class AuthLoginResponse(BaseModel):

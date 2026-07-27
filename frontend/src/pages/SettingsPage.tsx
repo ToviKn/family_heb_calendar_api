@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { ErrorMessage, LoadingMessage, SuccessMessage } from '../components/Feedback';
-import { changePassword, getApiErrorMessage } from '../lib/api';
+import { changePassword, getApiErrorMessage, getNotificationPreferences, updateNotificationPreferences, type NotificationPreferences } from '../lib/api';
+import { getBrowserNotificationPermission, subscribeToPushNotifications } from '../services/push';
 
 interface ChangePasswordFormState {
   currentPassword: string;
@@ -24,6 +25,13 @@ export function SettingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [preferences, setPreferences] = useState<NotificationPreferences | null>(null);
+  const [preferencesMessageKey, setPreferencesMessageKey] = useState<string | null>(null);
+  const [permission, setPermission] = useState(getBrowserNotificationPermission());
+
+  useEffect(() => {
+    getNotificationPreferences().then(setPreferences).catch(() => setPreferencesMessageKey('settings.notifications.errors.load_preferences'));
+  }, []);
 
   const passwordsMatch = form.newPassword === form.confirmNewPassword;
   const showPasswordMismatch = Boolean(form.confirmNewPassword) && !passwordsMatch;
@@ -68,12 +76,66 @@ export function SettingsPage() {
     }
   }
 
+
+
+  async function savePreferences() {
+    if (!preferences) return;
+    setPreferencesMessageKey(null);
+    try {
+      const updated = await updateNotificationPreferences({
+        email_enabled: preferences.email_enabled,
+        push_enabled: preferences.push_enabled,
+        notify_today: preferences.notify_today,
+        notify_day_before: preferences.notify_day_before,
+      });
+      setPreferences(updated);
+      setPreferencesMessageKey('settings.notifications.messages.settings_saved');
+    } catch {
+      setPreferencesMessageKey('settings.notifications.errors.save_preferences');
+    }
+  }
+
+  async function enableBrowserNotifications() {
+    try {
+      const subscription = await subscribeToPushNotifications();
+      setPermission(getBrowserNotificationPermission());
+      setPreferencesMessageKey(subscription ? 'settings.notifications.messages.browser_enabled' : 'settings.notifications.messages.permission_denied');
+    } catch {
+      setPreferencesMessageKey('settings.notifications.errors.enable_browser');
+    }
+  }
+
   return (
     <section className="space-y-6">
       <header className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
         <h1 className="text-2xl font-semibold text-slate-900">{t('settings.title')}</h1>
         <p className="mt-2 text-slate-600">{t('settings.description')}</p>
       </header>
+
+
+
+      <article className="max-w-xl rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+        <h2 className="text-lg font-semibold text-slate-900">{t('settings.notifications.title')}</h2>
+        <p className="mt-2 text-sm text-slate-600">{t('settings.notifications.description')}</p>
+        {preferences ? (
+          <div className="mt-4 space-y-3">
+            {(['email_enabled', 'push_enabled', 'notify_today', 'notify_day_before'] as const).map((field) => (
+              <label key={field} className="flex items-center gap-2 text-sm text-slate-700">
+                <input type="checkbox" checked={preferences[field]} onChange={(event) => setPreferences({ ...preferences, [field]: event.target.checked })} />
+                {t(`settings.notifications.fields.${field}`)}
+              </label>
+            ))}
+            {permission !== 'granted' ? (
+              <div className="rounded-md bg-blue-50 p-3 text-sm text-blue-900">
+                <p>{permission === 'denied' ? t('settings.notifications.messages.browser_disabled') : t('settings.notifications.messages.browser_enable')}</p>
+                {permission !== 'denied' ? <button className="mt-2 rounded-md bg-blue-600 px-3 py-1 font-medium text-white" type="button" onClick={enableBrowserNotifications}>{t('settings.notifications.actions.enable_browser')}</button> : null}
+              </div>
+            ) : null}
+            {preferencesMessageKey ? <p className="text-sm text-slate-600">{t(preferencesMessageKey)}</p> : null}
+            <button className="rounded-md bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700" type="button" onClick={savePreferences}>{t('settings.notifications.actions.save_preferences')}</button>
+          </div>
+        ) : <LoadingMessage message={t('settings.notifications.messages.loading')} />}
+      </article>
 
       <article className="max-w-xl rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
         <h2 className="text-lg font-semibold text-slate-900">{t('settings.change_password.title')}</h2>

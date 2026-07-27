@@ -34,6 +34,7 @@ export interface StoredAuthUser {
   id: number;
   email: string;
   name: string;
+  language?: string;
 }
 
 export function getStoredUser(): StoredAuthUser | null {

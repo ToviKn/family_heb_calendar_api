@@ -38,6 +38,16 @@ class Settings:
     db_max_overflow: int = int(os.getenv("DB_MAX_OVERFLOW", "5"))
     db_pool_recycle_seconds: int = int(os.getenv("DB_POOL_RECYCLE_SECONDS", "1800"))
     db_pool_timeout_seconds: int = int(os.getenv("DB_POOL_TIMEOUT_SECONDS", "30"))
+    email_provider: str = os.getenv("EMAIL_PROVIDER", "")
+    smtp_host: str = os.getenv("SMTP_HOST", "")
+    smtp_port: int = int(os.getenv("SMTP_PORT", "587"))
+    smtp_username: str = os.getenv("SMTP_USERNAME", "")
+    smtp_password: str = os.getenv("SMTP_PASSWORD", "")
+    email_from: str = os.getenv("EMAIL_FROM", "")
+    app_url: str = os.getenv("APP_URL", "http://localhost:5173")
+    vapid_private_key: str = os.getenv("VAPID_PRIVATE_KEY", "")
+    vapid_public_key: str = os.getenv("VAPID_PUBLIC_KEY", "")
+    vapid_email: str = os.getenv("VAPID_EMAIL", "")
 
     @property
     def is_production(self) -> bool:

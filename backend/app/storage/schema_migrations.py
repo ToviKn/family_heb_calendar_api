@@ -13,6 +13,8 @@ def run_safe_schema_migrations(engine: Engine) -> None:
     with engine.begin() as connection:
         inspector = inspect(connection)
         table_names = set(inspector.get_table_names())
+        _ensure_user_language_column(connection, inspector, dialect_name, table_names)
+        _create_notification_delivery_tables(connection, dialect_name, table_names)
         _normalize_event_repeat_type_values(
             connection,
             inspector,
@@ -82,6 +84,21 @@ def run_safe_schema_migrations(engine: Engine) -> None:
             "Notification schema migration completed",
             extra={"migration": "notifications", "dialect": dialect_name},
         )
+
+
+def _ensure_user_language_column(connection, inspector, dialect_name: str, table_names: set[str]) -> None:
+    if "users" not in table_names:
+        return
+
+    columns = {column["name"] for column in inspector.get_columns("users")}
+    if "language" in columns:
+        return
+
+    if dialect_name == "sqlite":
+        connection.execute(text("ALTER TABLE users ADD COLUMN language VARCHAR(5) NOT NULL DEFAULT 'en'"))
+        return
+
+    connection.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS language VARCHAR(5) NOT NULL DEFAULT 'en'"))
 
 
 def _normalize_legacy_notification_type_values(connection) -> None:
@@ -292,3 +309,33 @@ def _create_notification_duplicate_lookup_index(connection, dialect_name: str) -
             """
         )
     )
+
+
+def _create_notification_delivery_tables(connection, dialect_name: str, table_names: set[str]) -> None:
+    if "push_subscriptions" not in table_names:
+        if dialect_name == "sqlite":
+            connection.execute(text("""
+                CREATE TABLE push_subscriptions (
+                    id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL, endpoint TEXT NOT NULL,
+                    p256dh_key VARCHAR(512) NOT NULL, auth_key VARCHAR(512) NOT NULL, created_at DATETIME,
+                    FOREIGN KEY(user_id) REFERENCES users (id), UNIQUE(user_id, endpoint)
+                )
+            """))
+        else:
+            connection.execute(text("""
+                CREATE TABLE IF NOT EXISTS push_subscriptions (
+                    id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id), endpoint TEXT NOT NULL,
+                    p256dh_key VARCHAR(512) NOT NULL, auth_key VARCHAR(512) NOT NULL, created_at TIMESTAMP,
+                    UNIQUE(user_id, endpoint)
+                )
+            """))
+    if "user_notification_preferences" not in table_names:
+        connection.execute(text("""
+            CREATE TABLE IF NOT EXISTS user_notification_preferences (
+                user_id INTEGER PRIMARY KEY REFERENCES users(id),
+                email_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+                push_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+                notify_today BOOLEAN NOT NULL DEFAULT TRUE,
+                notify_day_before BOOLEAN NOT NULL DEFAULT TRUE
+            )
+        """))

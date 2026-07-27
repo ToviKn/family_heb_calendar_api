@@ -10,6 +10,7 @@ from app.services.auth_service import hash_password, verify_password
 
 logger = logging.getLogger(__name__)
 EMAIL_REGEX = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+SUPPORTED_LANGUAGES = {"en", "he"}
 
 MIN_PASSWORD_LENGTH = 10
 MAX_PASSWORD_LENGTH = 128
@@ -147,3 +148,25 @@ def change_password(db: Session, user: User, current_password: str, new_password
             extra={"operation": "change_password", "user_id": user.id},
         )
         raise DatabaseError(f"Failed to change password: {exc}", "change_password") from exc
+
+
+def update_language(db: Session, user: User, language: str) -> User:
+    normalized_language = language.strip().lower()
+    if normalized_language not in SUPPORTED_LANGUAGES:
+        raise ValidationError("Unsupported language", "language")
+
+    user.language = normalized_language
+
+    try:
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        return user
+    except Exception as exc:
+        db.rollback()
+        logger.error(
+            "Language update failed",
+            exc_info=True,
+            extra={"operation": "update_language", "user_id": user.id},
+        )
+        raise DatabaseError(f"Failed to update language: {exc}", "update_language") from exc
