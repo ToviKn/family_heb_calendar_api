@@ -73,7 +73,7 @@ def send_email_resend(to_email: str, subject: str, text_body: str, html_body: st
         logger.info("Email sent via Resend",extra={"operation": "send_email_resend", "to_email": to_email,},)
         return True
 
-    except requests.HTTPError:
+    except requests.RequestException:
         logger.exception("Resend HTTP error", extra={"operation": "send_email_resend", "status_code": response.status_code, "response": response.text, "to_email": to_email})
         return False
 
