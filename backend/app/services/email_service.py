@@ -1,5 +1,6 @@
 import logging
 import smtplib
+import socket
 from email.message import EmailMessage
 
 from app.config import settings
@@ -23,6 +24,30 @@ def send_email(to_email: str, subject: str, text_body: str, html_body: str) -> b
     message.set_content(text_body)
     message.add_alternative(html_body, subtype="html")
 
+    #
+    # Debug SMTP
+    #
+    try:
+        ip = socket.gethostbyname(settings.smtp_host)
+        logger.info(f"SMTP resolved to {ip}")
+    except Exception:
+        logger.exception("Cannot resolve SMTP host")
+
+    try:
+        socket.create_connection((settings.smtp_host, settings.smtp_port), timeout=10)
+        logger.info("SMTP connection OK")
+    except Exception:
+        logger.exception("SMTP connection failed")
+
+    try:
+        socket.create_connection(("google.com", 80), timeout=10)
+        logger.info("Internet OK")
+    except Exception:
+        logger.exception("Internet failed")
+
+    #
+    # Send mail
+    #
     try:
         with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=10) as smtp:
             smtp.starttls()
