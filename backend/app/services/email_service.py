@@ -22,6 +22,8 @@ def send_email(to_email: str, subject: str, text_body: str, html_body: str) -> b
         return send_email_smtp(to_email, subject, text_body, html_body,)
     if provider == "resend":
         return send_email_resend(to_email, subject, text_body, html_body,)
+    if provider == "brevo":
+        return send_email_resend(to_email, subject, text_body, html_body,)
 
     logger.warning("Unknown email provider", extra={"operation": "send_email", "provider": provider,})
     return False
@@ -81,18 +83,9 @@ def send_email_resend(to_email: str, subject: str, text_body: str, html_body: st
         logger.exception("Resend send failed", extra={"operation": "send_email", "to_email": to_email})
         return False
 
-def send_email_brevo(
-    to_email: str,
-    subject: str,
-    text_body: str,
-    html_body: str,
-) -> bool:
-
+def send_email_brevo(to_email: str, subject: str, text_body: str, html_body: str) -> bool:
     if not settings.brevo_api_key:
-        logger.warning(
-            "BREVO_API_KEY missing",
-            extra={"operation": "send_email_brevo"},
-        )
+        logger.warning("Missing Brevo API key", extra={"operation": "send_email"})
         return False
 
     headers = {
@@ -117,44 +110,18 @@ def send_email_brevo(
     }
 
     try:
-
-        response = requests.post(
-            settings.brevo_api_url,
-            headers=headers,
-            json=payload,
-            timeout=20,
-        )
-
+        response = requests.post(settings.brevo_api_url, headers=headers, json=payload, timeout=20,)
         response.raise_for_status()
-
-        logger.info(
-            "Brevo email sent",
-            extra={
-                "operation": "send_email_brevo",
-                "to_email": to_email,
-            },
-        )
-
+        logger.info("Email sent via Brevo",extra={"operation": "send_email_brevo", "to_email": to_email,},)
         return True
 
     except requests.HTTPError:
-
-        logger.error(
-            "Brevo HTTP error",
-            extra={
-                "status_code": response.status_code,
-                "response": response.text,
-            },
-            exc_info=True,
-        )
+        logger.error("Brevo HTTP error", extra={"status_code": response.status_code,"response": response.text, "to_email": to_email},exc_info=True,)
+        return False
 
     except Exception:
-
-        logger.exception(
-            "Brevo send failed",
-        )
-
-    return False
+        logger.exception("Brevo send failed", extra={"operation": "send_email", "to_email": to_email})
+        return False
 
 
 def send_event_reminder(user: User, notification: Notification) -> bool:
