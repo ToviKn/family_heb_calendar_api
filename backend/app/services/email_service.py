@@ -2,6 +2,8 @@ import logging
 import smtplib
 from email.message import EmailMessage
 
+import requests
+
 from app.config import settings
 from app.models.models import Notification, User
 
