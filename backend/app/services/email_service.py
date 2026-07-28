@@ -81,6 +81,81 @@ def send_email_resend(to_email: str, subject: str, text_body: str, html_body: st
         logger.exception("Resend send failed", extra={"operation": "send_email", "to_email": to_email})
         return False
 
+def send_email_brevo(
+    to_email: str,
+    subject: str,
+    text_body: str,
+    html_body: str,
+) -> bool:
+
+    if not settings.brevo_api_key:
+        logger.warning(
+            "BREVO_API_KEY missing",
+            extra={"operation": "send_email_brevo"},
+        )
+        return False
+
+    headers = {
+        "accept": "application/json",
+        "api-key": settings.brevo_api_key,
+        "content-type": "application/json",
+    }
+
+    payload = {
+        "sender": {
+            "name": "Family Hebrew Calendar",
+            "email": settings.email_from,
+        },
+        "to": [
+            {
+                "email": to_email,
+            }
+        ],
+        "subject": subject,
+        "htmlContent": html_body,
+        "textContent": text_body,
+    }
+
+    try:
+
+        response = requests.post(
+            settings.brevo_api_url,
+            headers=headers,
+            json=payload,
+            timeout=20,
+        )
+
+        response.raise_for_status()
+
+        logger.info(
+            "Brevo email sent",
+            extra={
+                "operation": "send_email_brevo",
+                "to_email": to_email,
+            },
+        )
+
+        return True
+
+    except requests.HTTPError:
+
+        logger.error(
+            "Brevo HTTP error",
+            extra={
+                "status_code": response.status_code,
+                "response": response.text,
+            },
+            exc_info=True,
+        )
+
+    except Exception:
+
+        logger.exception(
+            "Brevo send failed",
+        )
+
+    return False
+
 
 def send_event_reminder(user: User, notification: Notification) -> bool:
     from app.services.notification_templates import resolve_template
