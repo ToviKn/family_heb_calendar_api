@@ -47,11 +47,11 @@ class Settings:
     vapid_private_key: str = os.getenv("VAPID_PRIVATE_KEY", "")
     vapid_public_key: str = os.getenv("VAPID_PUBLIC_KEY", "")
     vapid_email: str = os.getenv("VAPID_EMAIL", "")
-    email_provider: str = os.getenv("EMAIL_PROVIDER", "smtp")
-    resend_api_key: str = os.getenv("RESEND_API_KEY", "")
-    resend_api_url: str = os.getenv(
-        "RESEND_API_URL",
-        "https://api.resend.com/emails",
+    email_provider: str = os.getenv("EMAIL_PROVIDER", "brevo")
+    brevo_api_key: str = os.getenv("BREVO_API_KEY", "")
+    brevo_api_url: str = os.getenv(
+        "BREVO_API_URL",
+        "https://api.brevo.com/v3/smtp/email",
     )
 
     @property
