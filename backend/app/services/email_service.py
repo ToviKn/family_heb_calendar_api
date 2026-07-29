@@ -112,7 +112,7 @@ def send_email_brevo(to_email: str, subject: str, text_body: str, html_body: str
     try:
         response = requests.post(settings.brevo_api_url, headers=headers, json=payload, timeout=20,)
         response.raise_for_status()
-        logger.info("Email sent via Brevo",extra={"operation": "send_email_brevo", "to_email": to_email,},)
+        logger.info("Email sent via Brevo",extra={"operation": "send_email_brevo", "to_email": to_email, "response": response.json(),},)
         return True
 
     except requests.HTTPError:
