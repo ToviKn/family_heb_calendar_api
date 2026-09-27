@@ -16,6 +16,7 @@ def send_email(to_email: str, subject: str, text_body: str, html_body: str) -> b
         Supported providers:
             smtp
             resend
+            brevo
         """
     provider = settings.email_provider.lower()
     if provider == "smtp":
@@ -23,7 +24,7 @@ def send_email(to_email: str, subject: str, text_body: str, html_body: str) -> b
     if provider == "resend":
         return send_email_resend(to_email, subject, text_body, html_body,)
     if provider == "brevo":
-        return send_email_resend(to_email, subject, text_body, html_body,)
+        return send_email_brevo(to_email, subject, text_body, html_body,)
 
     logger.warning("Unknown email provider", extra={"operation": "send_email", "provider": provider,})
     return False
