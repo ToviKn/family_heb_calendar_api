@@ -1,6 +1,6 @@
 import logging
 from calendar import monthrange
-from datetime import date, timedelta, datetime, timezone
+from datetime import date, timedelta
 from typing import cast
 
 from convertdate import hebrew
@@ -10,6 +10,7 @@ from app.utils.date_utils import hebrew_month_length
 from app.models.models import Event
 from app.storage.enums import CalendarType, RepeatType
 from app.models.event import DateConversionResponse, SimpleDate
+from app.utils.timezone import application_today
 
 logger = logging.getLogger(__name__)
 
@@ -120,7 +121,7 @@ def convert_to_gregorian(year: int, month: int, day: int) -> tuple[int, int, int
 
 
 def _today() -> date:
-    return datetime.now(timezone.utc).date()
+    return application_today()
 
 def _resolve_hebrew_month_for_year(source_month: int, target_h_year: int) -> int:
     """Resolve Adar handling when translating a month into a target Hebrew year."""

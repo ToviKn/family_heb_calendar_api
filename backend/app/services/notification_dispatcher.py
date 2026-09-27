@@ -8,6 +8,7 @@ from app.services.email_service import send_email
 from app.services.notification_preferences_service import get_or_create_preferences
 from app.services.notification_templates import resolve_template
 from app.services.push_service import send_push_notification
+from app.utils.timezone import application_today
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +19,7 @@ def _days_until(notification: Notification) -> int | None:
     if not isinstance(occurrence, str):
         return None
     try:
-        return (date.fromisoformat(occurrence) - date.today()).days
+        return (date.fromisoformat(occurrence) - application_today()).days
     except ValueError:
         return None
 
