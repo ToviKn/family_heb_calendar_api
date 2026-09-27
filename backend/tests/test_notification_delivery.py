@@ -1,5 +1,13 @@
+from datetime import date, datetime
+from types import SimpleNamespace
+
+from app.models.models import Notification
 from app.models.push import PushSubscriptionCreate
+from app.services import email_service
+from app.services.notification_dispatcher import dispatch_notification
 from app.services.notification_preferences_service import get_or_create_preferences
+from app.services.notification_templates import resolve_template
+from app.storage.enums import NotificationType
 
 
 def test_preferences_default_enabled(db_session, sample_users):
@@ -59,14 +67,6 @@ def test_preferences_endpoint_round_trip(client, auth_tokens):
     assert body["notify_today"] is False
     assert body["notify_day_before"] is True
 
-from datetime import datetime
-
-from app.models.models import Notification
-from app.services.notification_dispatcher import dispatch_notification
-from app.services.notification_templates import resolve_template
-from app.storage.enums import NotificationType
-
-
 def test_dispatcher_uses_templates_for_non_reminder_notification(monkeypatch, db_session, sample_users):
     user = sample_users["owner"]
     notification = Notification(
@@ -101,6 +101,60 @@ def test_dispatcher_uses_templates_for_non_reminder_notification(monkeypatch, db
     assert sent["to_email"] == user.email
     assert sent["subject"] == "Family join request"
     assert "requested to join family Test Family" in sent["text_body"]
+
+
+def test_dispatcher_delivers_today_and_tomorrow_reminders(monkeypatch, db_session, sample_users):
+    user = sample_users["owner"]
+    current_date = date(2026, 9, 27)
+    notifications = [
+        Notification(
+            user_id=user.id,
+            message=f"Reminder: Mail 5 on {occurrence}",
+            type=NotificationType.EVENT_REMINDER.value,
+            metadata_json={
+                "notification_kind": "event_reminder",
+                "event_title": "Mail 5",
+                "occurrence_date": occurrence.isoformat(),
+                "date": occurrence.isoformat(),
+                "reminder_type": reminder_type,
+            },
+        )
+        for occurrence, reminder_type in (
+            (current_date, "today"),
+            (date(2026, 9, 28), "tomorrow"),
+        )
+    ]
+    db_session.add_all(notifications)
+    db_session.commit()
+    sent_subjects: list[str] = []
+
+    monkeypatch.setattr(
+        "app.services.notification_dispatcher.application_today", lambda: current_date
+    )
+    monkeypatch.setattr(
+        "app.services.notification_dispatcher.send_email",
+        lambda _email, subject, _text, _html: sent_subjects.append(subject) or True,
+    )
+
+    for notification in notifications:
+        dispatch_notification(db_session, notification)
+
+    assert len(sent_subjects) == 2
+    assert any("Today" in subject for subject in sent_subjects)
+    assert any("Tomorrow" in subject for subject in sent_subjects)
+
+
+def test_email_service_uses_brevo_when_brevo_is_configured(monkeypatch) -> None:
+    monkeypatch.setattr(email_service, "settings", SimpleNamespace(email_provider="brevo"))
+    sent: list[str] = []
+    monkeypatch.setattr(
+        email_service,
+        "send_email_brevo",
+        lambda *_args: sent.append("brevo") or True,
+    )
+
+    assert email_service.send_email("test@example.com", "subject", "text", "html") is True
+    assert sent == ["brevo"]
 
 
 def test_template_registry_covers_required_notification_kinds(sample_users):
