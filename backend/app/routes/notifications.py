@@ -38,9 +38,3 @@ def mark_read(notification_id: int, db: DbSession, current_user: CurrentUser):
 @router.delete("/{notification_id}", status_code=204)
 def delete_notification(notification_id: int, db: DbSession, current_user: CurrentUser) -> None:
     notification_service.delete_notification(db, notification_id, current_user.id)
-
-
-@router.post("/reminders/process")
-def process_reminders(db: DbSession, _: CurrentUser) -> dict[str, int]:
-    created = notification_service.process_event_reminders(db)
-    return {"created": created}

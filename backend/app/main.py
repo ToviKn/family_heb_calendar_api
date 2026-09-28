@@ -10,7 +10,7 @@ from fastapi.responses import JSONResponse, Response
 
 from app.exceptions import CalendarAPIException
 from app.logging_config import configure_logging, reset_request_id, set_request_id
-from app.routes import auth, convert, events, families, notifications, preferences, push, users
+from app.routes import auth, convert, events, families, internal, notifications, preferences, push, users
 from sqlalchemy import inspect, text
 
 from app.storage.database import Base, engine
@@ -164,6 +164,7 @@ app.include_router(users.router)
 app.include_router(events.router)
 app.include_router(families.router)
 app.include_router(notifications.router)
+app.include_router(internal.router)
 app.include_router(push.router, prefix="/api")
 app.include_router(preferences.router, prefix="/api")
 
