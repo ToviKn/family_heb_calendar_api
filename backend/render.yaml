@@ -23,3 +23,20 @@ services:
         value: "false"
       - key: ACCESS_TOKEN_EXPIRE_MINUTES
         value: "60"
+      - key: APP_TIMEZONE
+        value: "Asia/Jerusalem"
+  - type: cron
+    name: family-calendar-reminders
+    env: python
+    schedule: "*/15 * * * *"
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+    startCommand: python -m app.jobs.process_reminders
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: APP_TIMEZONE
+        value: "Asia/Jerusalem"
+      - key: ENV
+        value: "production"
+      - key: LOG_LEVEL
+        value: "INFO"
