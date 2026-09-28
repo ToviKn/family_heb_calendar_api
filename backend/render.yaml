@@ -2,7 +2,7 @@ services:
   - type: web
     name: family-calendar-api
     env: python
-    plan: starter
+    plan: free
     buildCommand: pip install --upgrade pip && pip install -r requirements.txt
     startCommand: gunicorn -k uvicorn.workers.UvicornWorker -w 2 -b 0.0.0.0:$PORT app.main:app
     healthCheckPath: /health
@@ -25,18 +25,5 @@ services:
         value: "60"
       - key: APP_TIMEZONE
         value: "Asia/Jerusalem"
-  - type: cron
-    name: family-calendar-reminders
-    env: python
-    schedule: "*/15 * * * *"
-    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
-    startCommand: python -m app.jobs.process_reminders
-    envVars:
-      - key: DATABASE_URL
+      - key: REMINDER_PROCESS_TOKEN
         sync: false
-      - key: APP_TIMEZONE
-        value: "Asia/Jerusalem"
-      - key: ENV
-        value: "production"
-      - key: LOG_LEVEL
-        value: "INFO"
