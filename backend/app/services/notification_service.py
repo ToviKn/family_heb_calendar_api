@@ -1,6 +1,6 @@
 import logging
 from collections import defaultdict
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timedelta
 from typing import Callable, cast
 
 from sqlalchemy.orm import Session
@@ -13,7 +13,9 @@ from app.services.date_service import calculate_next_occurrence
 from app.services.notification_dispatcher import dispatch_notification
 from convertdate import hebrew
 from app.services.family_service import ensure_user_in_family, get_user_family_ids
+from app.services.notification_preferences_service import get_or_create_preferences
 from app.storage.enums import NotificationType, RepeatType
+from app.utils.timezone import application_today
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +71,7 @@ def _format_hebrew_date_gematria(year: int, month: int, day: int) -> str:
     month_name = hebrew.MONTHS_HEB[month - 1]
     return f"{_gematria(day)} {month_name} {_gematria(year)}"
 
-def _build_reminder_metadata(event: Event, occurrence: date) -> dict:
+def _build_reminder_metadata(event: Event, occurrence: date, current_date: date) -> dict:
     calendar_type = getattr(event.calendar_type, "value", event.calendar_type)
     repeat_type = getattr(event.repeat_type, "value", event.repeat_type)
     metadata = {
@@ -85,7 +87,7 @@ def _build_reminder_metadata(event: Event, occurrence: date) -> dict:
         "family_id": event.family_id,
         "family_name": event.family.name if event.family else None,
     }
-    days_until = (occurrence - date.today()).days
+    days_until = (occurrence - current_date).days
 
     metadata["reminder_type"] = (
         "today"
@@ -164,6 +166,7 @@ def _get_existing_notification(
     event_id: int | None,
     notification_type: NotificationType | str,
     message: str | None = None,
+    metadata_json: dict | None = None,
 ) -> Notification | None:
     normalized_type = _normalize_notification_type(notification_type)
     query = db.query(Notification).filter(
@@ -178,6 +181,18 @@ def _get_existing_notification(
         if event_id is None
         else Notification.event_id == event_id
     )
+
+    if normalized_type == NotificationType.EVENT_REMINDER and metadata_json is not None:
+        occurrence = metadata_json.get("occurrence_date") or metadata_json.get("date")
+        reminder_type = metadata_json.get("reminder_type")
+        for notification in query.all():
+            metadata = notification.metadata_json or {}
+            if (
+                (metadata.get("occurrence_date") or metadata.get("date")) == occurrence
+                and metadata.get("reminder_type") == reminder_type
+            ):
+                return notification
+        return None
 
     if (
         normalized_type in (NotificationType.EVENT_REMINDER, NotificationType.INVITE)
@@ -204,6 +219,7 @@ def _create_notification_record(
         event_id,
         normalized_type,
         message=message,
+        metadata_json=metadata_json,
     )
     if existing_notification:
         return _normalize_notification_record_type(existing_notification), False
@@ -244,7 +260,8 @@ def create_notification(db: Session, payload: NotificationCreate, current_user_i
             notification_type=NotificationType.EVENT_REMINDER,
             metadata_json=_build_reminder_metadata(
                 event,
-                event.next_occurrence if event.next_occurrence is not None else datetime.now(timezone.utc).date(),
+                event.next_occurrence if event.next_occurrence is not None else application_today(),
+                application_today(),
             ),
         )
         db.commit()
@@ -454,7 +471,9 @@ def _advance_expired_occurrence(event: Event, today: date) -> date | None:
     return current_next_occurrence
 
 
-def _reminder_already_sent(db: Session, user_id: int, event_id: int, occurrence: date,) -> bool:
+def _reminder_already_sent(
+    db: Session, user_id: int, event_id: int, occurrence: date, reminder_type: str
+) -> bool:
     occurrence_str = str(occurrence)
 
     notifications = (
@@ -470,15 +489,20 @@ def _reminder_already_sent(db: Session, user_id: int, event_id: int, occurrence:
     for notification in notifications:
         metadata = notification.metadata_json or {}
 
-        if metadata.get("date") == occurrence_str:
+        if (
+            (metadata.get("occurrence_date") or metadata.get("date")) == occurrence_str
+            and metadata.get("reminder_type") == reminder_type
+        ):
             return True
 
     return False
 
 
-def process_event_reminders(db: Session, _within_hours: int = 24) -> int:
+def process_event_reminders(
+    db: Session, _within_hours: int = 24, reference_date: date | None = None
+) -> int:
     try:
-        today = datetime.now(timezone.utc).date()
+        today = reference_date or application_today()
         created_count = 0
         created_notifications: list[Notification] = []
 
@@ -512,7 +536,31 @@ def process_event_reminders(db: Session, _within_hours: int = 24) -> int:
                     next_occurrence = event_occurrences.get(event.id)
                     if next_occurrence is None:
                         continue
-                    if _reminder_already_sent(db, user.id, event.id, next_occurrence, ):
+                    reminder_type = "today" if next_occurrence == today else "tomorrow"
+                    preferences = get_or_create_preferences(db, user.id)
+                    reminder_enabled = (
+                        preferences.notify_today
+                        if reminder_type == "today"
+                        else preferences.notify_day_before
+                    )
+                    if not reminder_enabled:
+                        logger.info(
+                            "Reminder evaluation skipped",
+                            extra={
+                                "operation": "process_event_reminders",
+                                "event_id": event.id,
+                                "user_id": user.id,
+                                "event_date": next_occurrence.isoformat(),
+                                "current_date": today.isoformat(),
+                                "days_until_event": (next_occurrence - today).days,
+                                "reminder_type": reminder_type,
+                                "today_enabled": preferences.notify_today,
+                                "tomorrow_enabled": preferences.notify_day_before,
+                                "reason": "preference_disabled",
+                            },
+                        )
+                        continue
+                    if _reminder_already_sent(db, user.id, event.id, next_occurrence, reminder_type):
                         continue
 
                     reminder_message = f"Reminder: {event.title} on {next_occurrence}"
@@ -522,7 +570,7 @@ def process_event_reminders(db: Session, _within_hours: int = 24) -> int:
                         event_id=event.id,
                         message=reminder_message,
                         notification_type=NotificationType.EVENT_REMINDER,
-                        metadata_json=_build_reminder_metadata(event, next_occurrence),
+                        metadata_json=_build_reminder_metadata(event, next_occurrence, today),
                     )
                     if created:
                         created_notifications.append(notification)
@@ -536,6 +584,12 @@ def process_event_reminders(db: Session, _within_hours: int = 24) -> int:
                                 "user_id": user.id,
                                 "notification_id": notification.id,
                                 "entity_id": notification.id,
+                                "event_date": next_occurrence.isoformat(),
+                                "current_date": today.isoformat(),
+                                "days_until_event": (next_occurrence - today).days,
+                                "reminder_type": reminder_type,
+                                "today_enabled": preferences.notify_today,
+                                "tomorrow_enabled": preferences.notify_day_before,
                             },
                         )
 

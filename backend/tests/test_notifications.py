@@ -1,7 +1,100 @@
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 
-from app.models.models import Notification
+import pytest
+
+from app.models.models import Event, Notification
 from app.services import notification_service
+from app.services.notification_preferences_service import get_or_create_preferences
+from app.storage.enums import CalendarType, RepeatType
+from app.utils.timezone import application_today
+
+
+def _stored_reminder_event(sample_family, sample_users, occurrence: date, calendar_type: str = "gregorian") -> Event:
+    return Event(
+        title="Scheduled reminder",
+        year=5786 if calendar_type == "hebrew" else occurrence.year,
+        month=1 if calendar_type == "hebrew" else occurrence.month,
+        day=1 if calendar_type == "hebrew" else occurrence.day,
+        calendar_type=calendar_type,
+        repeat_type=RepeatType.NONE.value,
+        next_occurrence=occurrence,
+        family_id=sample_family.id,
+        created_by=sample_users["owner"].id,
+    )
+
+
+@pytest.mark.parametrize(
+    ("days_until_event", "notify_today", "notify_day_before", "expected_type"),
+    [
+        (1, True, True, "tomorrow"),
+        (0, True, True, "today"),
+        (0, True, False, "today"),
+        (1, True, False, None),
+        (0, False, True, None),
+        (1, False, True, "tomorrow"),
+    ],
+)
+def test_process_event_reminders_respects_each_timing_preference(
+    db_session, sample_family, sample_users, days_until_event, notify_today,
+    notify_day_before, expected_type,
+) -> None:
+    current_date = date(2026, 7, 29)
+    event = _stored_reminder_event(
+        sample_family, sample_users, current_date + timedelta(days=days_until_event)
+    )
+    db_session.add(event)
+    preferences = get_or_create_preferences(db_session, sample_users["owner"].id)
+    preferences.notify_today = notify_today
+    preferences.notify_day_before = notify_day_before
+    db_session.commit()
+
+    notification_service.process_event_reminders(db_session, reference_date=current_date)
+
+    notifications = db_session.query(Notification).filter(
+        Notification.event_id == event.id, Notification.user_id == sample_users["owner"].id
+    ).all()
+    assert [item.metadata_json["reminder_type"] for item in notifications] == (
+        [expected_type] if expected_type else []
+    )
+
+
+def test_process_event_reminders_creates_today_after_tomorrow_without_duplicates(
+    db_session, sample_family, sample_users
+) -> None:
+    tomorrow = date(2026, 7, 30)
+    event = _stored_reminder_event(sample_family, sample_users, tomorrow)
+    db_session.add(event)
+    db_session.commit()
+
+    assert notification_service.process_event_reminders(db_session, reference_date=tomorrow - timedelta(days=1)) == 2
+    assert notification_service.process_event_reminders(db_session, reference_date=tomorrow - timedelta(days=1)) == 0
+    assert notification_service.process_event_reminders(db_session, reference_date=tomorrow) == 2
+    assert notification_service.process_event_reminders(db_session, reference_date=tomorrow) == 0
+
+    notifications = db_session.query(Notification).filter(Notification.event_id == event.id).all()
+    assert len(notifications) == 4
+    assert {item.metadata_json["reminder_type"] for item in notifications} == {"today", "tomorrow"}
+
+
+def test_application_today_uses_jerusalem_date_at_utc_midnight_boundary() -> None:
+    assert application_today(datetime(2026, 7, 28, 21, 30, tzinfo=timezone.utc)) == date(2026, 7, 29)
+
+
+@pytest.mark.parametrize("calendar_type", [CalendarType.GREGORIAN.value, CalendarType.HEBREW.value])
+def test_process_event_reminders_creates_today_for_each_calendar_type(
+    db_session, sample_family, sample_users, calendar_type
+) -> None:
+    current_date = date(2026, 7, 29)
+    event = _stored_reminder_event(sample_family, sample_users, current_date, calendar_type)
+    db_session.add(event)
+    db_session.commit()
+
+    notification_service.process_event_reminders(db_session, reference_date=current_date)
+
+    notification = db_session.query(Notification).filter(
+        Notification.event_id == event.id, Notification.user_id == sample_users["owner"].id
+    ).one()
+    assert notification.metadata_json["reminder_type"] == "today"
 
 
 def test_event_creation_creates_notifications_for_family_members(

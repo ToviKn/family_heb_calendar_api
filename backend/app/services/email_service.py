@@ -16,6 +16,7 @@ def send_email(to_email: str, subject: str, text_body: str, html_body: str) -> b
         Supported providers:
             smtp
             resend
+            brevo
         """
     provider = settings.email_provider.lower()
     if provider == "smtp":
