@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session, sessionmaker
 # Ensure the application can import storage.database without failing.
 os.environ.setdefault("DATABASE_URL", "sqlite:///./calendar_test_bootstrap.db")
 os.environ["JWT_SECRET_KEY"] = "test-secret"
+os.environ["REMINDER_PROCESS_TOKEN"] = "test-reminder-process-token"
 
 from app.main import app
 from app.models.models import Family, FamilyMembership, User
@@ -165,3 +166,8 @@ def auth_header() -> Any:
         return {"Authorization": f"Bearer {token}"}
 
     return _auth_header
+
+
+@pytest.fixture(scope="function")
+def reminder_process_header() -> dict[str, str]:
+    return {"Authorization": "Bearer test-reminder-process-token"}
