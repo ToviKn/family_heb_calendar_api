@@ -36,7 +36,7 @@ jobs:
             echo "should_run=true" >> "$GITHUB_OUTPUT"
           else
             echo "should_run=false" >> "$GITHUB_OUTPUT"
-            echo "Skipping: this is not 21:00 in Asia/Jerusalem."
+            echo "Skipping: this is not 00:00 in Asia/Jerusalem."
           fi
 
   process-reminders:
