@@ -62,6 +62,40 @@ The platform consists of:
 * Backend `ALLOWED_ORIGINS` must include frontend domains.
 * Frontend API URL must point to the deployed backend.
 
+### Daily reminder processing
+
+Event reminders are processed once each day at **21:00 Asia/Jerusalem**. GitHub
+Actions invokes the protected Render Web Service endpoint; the service then runs
+the existing reminder-processing job using its own Render environment. The
+database and Brevo credentials therefore remain only in Render. Render Cron and
+Render One-Off Jobs are not used.
+
+GitHub Actions schedules are defined in UTC and do not support an
+`Asia/Jerusalem` timezone field. The workflow runs a lightweight hourly time
+check with `TZ=Asia/Jerusalem` and sends the request only when the local hour is
+21, so Israel daylight-saving changes are handled without hard-coded UTC hours.
+
+Configure these values before enabling the workflow:
+
+* **Render environment variable:** `REMINDER_PROCESS_TOKEN` — a long, random
+  secret. It protects `POST /internal/reminders/process`; set its real value in
+  the Render dashboard (the blueprint deliberately uses `sync: false`).
+* **GitHub Actions secret:** `REMINDER_PROCESS_URL` — the full HTTPS URL of that
+  endpoint, for example `https://your-render-service.onrender.com/internal/reminders/process`.
+* **GitHub Actions secret:** `REMINDER_PROCESS_TOKEN` — exactly the same value
+  configured in Render.
+
+`DATABASE_URL` and `BREVO_API_KEY` are not GitHub secrets and must remain in
+Render. The workflow uses `Authorization: Bearer` and fails its job if Render
+returns an HTTP error or cannot be reached. It never prints either secret.
+
+For a manual pre-release check, open **Actions → Process reminders → Run
+workflow**. Confirm the workflow logs show a successful protected request, then
+inspect the Render Web Service logs for `Reminder processing requested by trusted
+automation` and the job's created-reminder count. If it fails, verify the full
+endpoint URL, that both token values match, and Render Web Service health/logs;
+do not add database or Brevo secrets to GitHub.
+
 ## Quick Start
 
 ### Backend

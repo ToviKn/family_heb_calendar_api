@@ -42,7 +42,7 @@ def test_convert_endpoints_reject_invalid_query_values(client, path, query) -> N
         ("get", "/notifications/"),
         ("patch", "/notifications/1/read"),
         ("delete", "/notifications/1"),
-        ("post", "/notifications/reminders/process"),
+        ("post", "/internal/reminders/process"),
     ],
 )
 def test_protected_endpoints_require_authentication(client, method, path, event_payload) -> None:
