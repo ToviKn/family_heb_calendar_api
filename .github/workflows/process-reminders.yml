@@ -32,9 +32,7 @@ jobs:
 
           local_hour="$(TZ=Asia/Jerusalem date +%H)"
           echo "Scheduled run evaluated in Asia/Jerusalem at hour ${local_hour}."
-          if [[ "$local_hour" == "21" ]]; then
-            echo "should_run=true" >> "$GITHUB_OUTPUT"
-          else if [[ "$local_hour" == "00" ]]; then
+          if [[ "$local_hour" == "00" ]]; then
             echo "should_run=true" >> "$GITHUB_OUTPUT"
           else
             echo "should_run=false" >> "$GITHUB_OUTPUT"
