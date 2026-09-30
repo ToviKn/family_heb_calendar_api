@@ -32,11 +32,11 @@ jobs:
 
           local_hour="$(TZ=Asia/Jerusalem date +%H)"
           echo "Scheduled run evaluated in Asia/Jerusalem at hour ${local_hour}."
-          if [[ "$local_hour" == "21" ]]; then
+          if [[ "$local_hour" == "00" ]]; then
             echo "should_run=true" >> "$GITHUB_OUTPUT"
           else
             echo "should_run=false" >> "$GITHUB_OUTPUT"
-            echo "Skipping: this is not 21:00 in Asia/Jerusalem."
+            echo "Skipping: this is not 00:00 in Asia/Jerusalem."
           fi
 
   process-reminders:
