@@ -255,7 +255,7 @@ def test_create_notification_returns_403_for_non_family_member(
     assert response.json()["message"] == "User not in family"
 
 def test_process_event_reminders_creates_due_reminders_once(
-    client, db_session, auth_tokens, event_payload, auth_header
+    client, db_session, auth_tokens, event_payload, auth_header, reminder_process_header
 ) -> None:
     due_payload = {
         **event_payload,
@@ -284,12 +284,12 @@ def test_process_event_reminders_creates_due_reminders_once(
     )
 
     first_process = client.post(
-        "/notifications/reminders/process",
-        headers=auth_header(auth_tokens["owner"]),
+        "/internal/reminders/process",
+        headers=reminder_process_header,
     )
     second_process = client.post(
-        "/notifications/reminders/process",
-        headers=auth_header(auth_tokens["owner"]),
+        "/internal/reminders/process",
+        headers=reminder_process_header,
     )
 
     assert first_process.status_code == 200
@@ -308,7 +308,7 @@ def test_process_event_reminders_creates_due_reminders_once(
     assert len(reminder_notifications) == 2
 
 def test_process_event_reminders_includes_today_events_without_time(
-    client, db_session, auth_tokens, event_payload, auth_header
+    client, db_session, auth_tokens, event_payload, auth_header, reminder_process_header
 ) -> None:
     today_payload = {
         **event_payload,
@@ -327,8 +327,8 @@ def test_process_event_reminders_includes_today_events_without_time(
     event_id = event_response.json()["id"]
 
     process_response = client.post(
-        "/notifications/reminders/process",
-        headers=auth_header(auth_tokens["owner"]),
+        "/internal/reminders/process",
+        headers=reminder_process_header,
     )
 
     assert process_response.status_code == 200
@@ -344,7 +344,7 @@ def test_process_event_reminders_includes_today_events_without_time(
     )
 
 def test_process_event_reminders_includes_tomorrow_events(
-    client, db_session, auth_tokens, event_payload, auth_header
+    client, db_session, auth_tokens, event_payload, auth_header, reminder_process_header
 ) -> None:
     tomorrow = date.today().fromordinal(date.today().toordinal() + 1)
     tomorrow_payload = {
@@ -364,8 +364,8 @@ def test_process_event_reminders_includes_tomorrow_events(
     event_id = event_response.json()["id"]
 
     process_response = client.post(
-        "/notifications/reminders/process",
-        headers=auth_header(auth_tokens["owner"]),
+        "/internal/reminders/process",
+        headers=reminder_process_header,
     )
 
     assert process_response.status_code == 200
@@ -381,7 +381,7 @@ def test_process_event_reminders_includes_tomorrow_events(
     )
 
 def test_process_event_reminders_skips_events_outside_one_day_window(
-    client, db_session, auth_tokens, event_payload, auth_header
+    client, db_session, auth_tokens, event_payload, auth_header, reminder_process_header
 ) -> None:
     future = date.today().fromordinal(date.today().toordinal() + 2)
     future_payload = {
@@ -401,8 +401,8 @@ def test_process_event_reminders_skips_events_outside_one_day_window(
     event_id = event_response.json()["id"]
 
     process_response = client.post(
-        "/notifications/reminders/process",
-        headers=auth_header(auth_tokens["owner"]),
+        "/internal/reminders/process",
+        headers=reminder_process_header,
     )
 
     assert process_response.status_code == 200
@@ -418,7 +418,7 @@ def test_process_event_reminders_skips_events_outside_one_day_window(
     )
 
 def test_process_event_reminders_is_idempotent_for_recurring_events(
-    client, db_session, auth_tokens, event_payload, auth_header
+    client, db_session, auth_tokens, event_payload, auth_header, reminder_process_header
 ) -> None:
     recurring_payload = {
         **event_payload,
@@ -438,12 +438,12 @@ def test_process_event_reminders_is_idempotent_for_recurring_events(
     event_id = event_response.json()["id"]
 
     first_process = client.post(
-        "/notifications/reminders/process",
-        headers=auth_header(auth_tokens["owner"]),
+        "/internal/reminders/process",
+        headers=reminder_process_header,
     )
     second_process = client.post(
-        "/notifications/reminders/process",
-        headers=auth_header(auth_tokens["owner"]),
+        "/internal/reminders/process",
+        headers=reminder_process_header,
     )
 
     assert first_process.status_code == 200
