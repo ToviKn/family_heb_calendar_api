@@ -12,6 +12,7 @@ from app.models.notification import (
 )
 from app.services import notification_service
 from app.services.auth_service import get_current_user
+from app.jobs.process_reminders import run_reminder_processing
 from app.storage.database import get_db
 
 router = APIRouter(prefix="/notifications", tags=["notifications"])
@@ -42,5 +43,5 @@ def delete_notification(notification_id: int, db: DbSession, current_user: Curre
 
 @router.post("/reminders/process")
 def process_reminders(db: DbSession, _: CurrentUser) -> dict[str, int]:
-    created = notification_service.process_event_reminders(db)
-    return {"created": created}
+    """Allow an authenticated website user to run the shared reminder job."""
+    return {"created": run_reminder_processing(db)}
